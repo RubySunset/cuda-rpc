@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fractos/core/future.hpp>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -14,70 +15,120 @@
 
 namespace fractos::service::compute { namespace [[gnu::visibility("default")]] cuda {
 
-        class virtual_device;
-        class virtual_context;
-        class device_function;
-        class device_stream;
-        class device_kernel;
-        class device_memory;
+        class service;
+        class device;
+        class context;
+        class function;
+        class stream;
+        class kernel;
+        class memory;
 //event
 //graph
 //module
 
-        class virtual_device { // CUdevice
+        struct error {
+            error(CUresult code);
+
+            const CUresult code;
+        };
+
+        /**
+         * @brief Connect to the CUDA service with given name
+         */
+        [[nodiscard]] core::future<std::shared_ptr<service>>
+        make_service(std::shared_ptr<core::channel> ch,
+                     core::gns::service& gns, const std::string& name,
+                     const std::chrono::microseconds& wait_time = std::chrono::seconds{0});
+
+        [[nodiscard]] core::future<std::shared_ptr<service>>
+        make_service(std::shared_ptr<core::channel> ch,
+                     core::cap::request& service_req);
+
+        /**
+         * The service implicitly calls cuInit() when started.
+         */
+        class service {
         public:
+            [[nodiscard]] core::future<std::shared_ptr<device>>
+            make_device(uint64_t device_id);
 
-            fractos::core::future<void> Init_dev(fractos::wire::endian::uint8_t dev_id); // cuInit(0);
-    
-            fractos::core::future<virtual_device> get_device(
-                fractos::wire::endian::uint8_t dev_id,
-                const std::unordered_map<std::string, std::any>& backend_args); // id
-
-            // fractos::core::future<device_memory> allocate_memory(mem_alloc_type type, size_t size, std::set<virtual_context> _dev_ctx); // type size ctx
-
-            fractos::core::future<void> destroy();
-
-            virtual_device(std::shared_ptr<void> pimpl);
-
-            virtual_device(fractos::wire::endian::uint8_t id);
-
-            ~virtual_device();
+            /**
+             * @brief Destroy service connection, and all created objects
+             */
+            [[nodiscard]] core::future<void>
+            destroy();
 
         public:
-            std::shared_ptr<virtual_device> _self;
+            ~service();
+            // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
-            fractos::wire::endian::uint8_t id;
-            std::set<virtual_context> _dev_ctx;
-
-
-
-        private:
-            bool _destroyed;
         };
 
-        class virtual_context { //  // CUcontext 
+        /**
+         * @brief Wrapper for CUdevice operations
+         */
+        class device {
         public:
 
-            fractos::core::future<virtual_context> create_context(std::weak_ptr<virtual_device> _dev);
+            /**
+             * @brief Wrapper for cuCtxCreate_v4()
+             */
+            [[nodiscard]] core::future<context>
+            make_context(std::vector<CUctxCreateParams>& params,  unsigned int flags);
 
-            fractos::core::future<void> ctx_sync();
-
-            fractos::core::future<void> ctx_destroy();
-
-            virtual_context();
-
-            ~virtual_context();
+            /**
+             * @brief Destroy device and all its contents
+             */
+            [[nodiscard]] core::future<void>
+            destroy();
 
         public:
-            std::shared_ptr<virtual_context> _self;
-
-            std::weak_ptr<virtual_device> _dev;
-
-
-        private:
-            bool _destroyed;
+            ~device();
+            // NOTE: not for public use
+            std::shared_ptr<void> _pimpl;
         };
 
+        /**
+         * @brief Wrapper for CUcontext operations
+         */
+        class context {
+        public:
+
+            /**
+             * @brief Wrapper for cuMemAlloc()
+             */
+            [[nodiscard]] core::future<memory>
+            make_memory(size_t size);
+
+            /**
+             * @brief Wrapper for cuMemAllocHost()
+             */
+            [[nodiscard]] core::future<memory>
+            make_memory_host(size_t size);
+
+            /**
+             * @brief Wrapper for cuMemAllocManaged()
+             */
+            [[nodiscard]] core::future<memory>
+            make_memory_managed(size_t size, CUmemAttach_flags flags);
+
+            /**
+             * @brief Wrapper for cuCtxSynchronize()
+             */
+            [[nodiscard]] fractos::core::future<void>
+            synchronize();
+
+            /**
+             * @brief Destroy context and all its contents
+             */
+            [[nodiscard]] core::future<void>
+            destroy();
+
+        public:
+            ~context();
+            // NOTE: not for public use
+            std::shared_ptr<void> _pimpl;
+        };
 
         class device_function { // CUfunction
         public:
