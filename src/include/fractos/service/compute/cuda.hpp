@@ -50,6 +50,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         class Service {
         public:
 
+            /**
+             * @brief Wrapper for cuDeviceGet()
+             */
             [[nodiscard]] core::future<std::shared_ptr<Device>>
             make_device(uint64_t device_id);
 
