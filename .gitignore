@@ -1,0 +1,17 @@
+Makefile.in
+/aclocal.m4
+/ar-lib
+/autom4te.cache/
+/compile
+/compile_commands.json
+/config.guess
+/config.h.in
+/config.sub
+/configure
+/.configure.done
+/depcomp
+/deps
+/install-sh
+/ltmain.sh
+/m4/
+/missing
