@@ -1,84 +1,56 @@
 #pragma once
 
+#include <any>
+#include <cuda.h>
 #include <fractos/core/future.hpp>
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <glog/logging.h>
-#include <any>
-#include <cuda.h>
+#include <vector>
 
-
-// #include "../include/device_service_msgs.hpp"
-// #include "device_memory.hpp"
-// #include "device_function.hpp"
 
 namespace fractos::service::compute { namespace [[gnu::visibility("default")]] cuda {
 
-        class service;
-        class clientService;
-        class device;
-        class context;
-        class kernel;
-        // non - context-agnostic
-        class function;
-        class stream;
-        class memory;
-//event
-//graph
-//module
+        class Service;
+        class Device;
+        class Context;
+        class Module;
+        class Function;
+        class Stream;
+        class Memory;
+        class MemoryReservation;
+        class MemoryAllocation;
+        //event
+        //graph
+        //module
 
-        struct error {
-            error(CUresult code);
+
+        struct Error {
+            Error(CUresult code);
 
             const CUresult code;
         };
 
+
         /**
          * @brief Connect to the CUDA service with given name
          */
-        [[nodiscard]] core::future<std::shared_ptr<service>>
+        [[nodiscard]] core::future<std::shared_ptr<Service>>
         make_service(std::shared_ptr<core::channel> ch,
                      core::gns::service& gns, const std::string& name,
                      const std::chrono::microseconds& wait_time = std::chrono::seconds{0});
 
-        [[nodiscard]] core::future<std::shared_ptr<service>>
+        [[nodiscard]] core::future<std::shared_ptr<Service>>
         make_service(std::shared_ptr<core::channel> ch,
                      core::cap::request& service_req);
 
         /**
          * The service implicitly calls cuInit() when started.
          */
-        class service {
+        class Service {
         public:
-            [[nodiscard]] core::future<std::shared_ptr<clientService>>
-            make_client(std::shared_ptr<core::channel> ch,
-                     core::gns::service& gns, const std::string& name,
-                     const std::chrono::microseconds& wait_time = std::chrono::seconds{0});
 
-            [[nodiscard]] core::future<std::shared_ptr<clientService>>
-            make_client(std::shared_ptr<core::channel> ch,
-                     core::cap::request& service_req);
-
-
-            /**
-             * @brief Destroy service connection, and all created objects
-             */
-            [[nodiscard]] core::future<void>
-            destroy();
-
-        public:
-            ~service();
-            // NOTE: not for public use
-            std::shared_ptr<void> _pimpl;
-        };
-
-        /**
-         * The client service implicitly calls cuInit() when started.
-         */
-        class clientService {
-        public:
-            [[nodiscard]] core::future<std::shared_ptr<device>>
+            [[nodiscard]] core::future<std::shared_ptr<Device>>
             make_device(uint64_t device_id);
 
             /**
@@ -88,29 +60,22 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
-            ~service();
+            ~Service();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
         };
 
-
         /**
          * @brief Wrapper for CUdevice operations
          */
-        class device {
+        class Device {
         public:
 
             /**
              * @brief Wrapper for cuCtxCreate_v4()
              */
-            [[nodiscard]] core::future<context>
-            make_context(std::vector<CUctxCreateParams>& params,  unsigned int flags);
-
-            /**
-             * @brief Wrapper for cuLibraryLoadFromFile()
-             */
-            [[nodiscard]] core::future<std::shared_ptr<kernel>>
-            make_Kernel(const char* lib_fileName,  const char* function_name); // cuLibraryLoadFromFile from ptx file
+            [[nodiscard]] core::future<std::shared_ptr<Context>>
+            make_context(const std::vector<CUctxCreateParams>& params,  unsigned int flags);
 
             /**
              * @brief Destroy device and all its contents
@@ -119,83 +84,70 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
-            ~device();
+            ~Device();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
         };
-
-        /**
-         * @brief Wrapper for CUkernel operations
-         */
-        class kernel {
-        public:
-
-            /**
-             * @brief Wrapper for cuKernelGetFunction()
-             */
-            [[nodiscard]] core::future<function>
-            make_function(context ctx); // cuKernelGetFunction 
-
-            /**
-             * @brief Destroy device and all its contents
-             */
-            [[nodiscard]] core::future<void>
-            destroy();
-
-        public:
-            ~kernel();
-            // NOTE: not for public use
-            std::shared_ptr<void> _pimpl;
-        };
-
-        
 
         /**
          * @brief Wrapper for CUcontext operations
          */
-        class context {
+        class Context {
         public:
 
             /**
-             * @brief Wrapper for cuModuleLoad ()
+             * @brief Wrapper for cuModuleLoad()
              */
-            [[nodiscard]] core::future<module>
-            make_load_module( const char* fname);
+            [[nodiscard]] core::future<std::shared_ptr<Module>>
+            make_module(const std::string file_path);
+
+            /**
+             * @brief Wrapper for cuModuleLoadData()
+             */
+            [[nodiscard]] core::future<std::shared_ptr<Module>>
+            make_module(const core::cap::memory& contents);
 
             /**
              * @brief Wrapper for cuStreamCreate()
              */
-            [[nodiscard]] core::future<stream>
-            make_stream( unsigned int  Flags);
+            [[nodiscard]] core::future<std::shared_ptr<Stream>>
+            make_stream(CUstream_flags flags);
 
             /**
              * @brief Wrapper for cuMemAlloc()
              */
-            [[nodiscard]] core::future<device_memory>
+            [[nodiscard]] core::future<std::shared_ptr<Memory>>
             make_memory(size_t size);
 
             /**
              * @brief Wrapper for cuMemAllocHost()
              */
-            [[nodiscard]] core::future<device_memory>
+            [[nodiscard]] core::future<std::shared_ptr<Memory>>
             make_memory_host(size_t size);
 
             /**
              * @brief Wrapper for cuMemAllocManaged()
              */
-            [[nodiscard]] core::future<device_memory>
+            [[nodiscard]] core::future<std::shared_ptr<Memory>>
             make_memory_managed(size_t size, CUmemAttach_flags flags);
-
 
             /**
              * @brief Wrapper for cuMemAddressReserve()
              */
-            [[nodiscard]] core::future<virtual_memory>
-            make_vmemory_space(size_t size, size_t alignment, CUdeviceptr addr, unsigned long long flags);
+            [[nodiscard]] core::future<std::shared_ptr<MemoryReservation>>
+            make_memory_reservation(size_t size, size_t alignment, CUdeviceptr addr, unsigned long long flags);
 
-            
-           
+            /**
+             * @brief Wrapper for cuMemCreate()
+             */
+            [[nodiscard]] core::future<std::shared_ptr<MemoryAllocation>>
+            make_memory_allocation(size_t size, const std::vector<CUmemAllocationProp>& props, unsigned long long flags);
 
+            /**
+             * @brief Wrapper for cuMemMap()
+             */
+            [[nodiscard]] core::future<std::shared_ptr<Memory>>
+            make_memory(MemoryReservation& reservation, MemoryAllocation& allocation, unsigned long long flags);
 
             /**
              * @brief Wrapper for cuCtxSynchronize()
@@ -210,55 +162,70 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
-            ~context();
+            ~Context();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
         };
 
-        class module{
+        /**
+         * @brief Wrapper for CUmodule operations
+         */
+        class Module {
         public:
 
             /**
              * @brief Wrapper for cuModuleGetFunction ()
              */
-            [[nodiscard]] fractos::core::future<function>
-            get_function(const char* name);
+            [[nodiscard]] fractos::core::future<std::shared_ptr<Function>>
+            make_function(const std::string name);
 
             /**
-             * @brief Destroy device and all its contents
+             * @brief Destroy module and all its functions
              */
             [[nodiscard]] core::future<void>
             destroy();
 
         public:
-            ~module();
+            ~Module();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
         }
 
-        class function{
+        /**
+         * @brief Wrapper for CUfunction operations
+         */
+        class Function{
         public:
 
              /**
              * @brief Wrapper for cuLaunchKernel()
              */
+            template<class... Args>
             [[nodiscard]] core::future<void>
-            launch_kernel(stream stream, const std::unordered_map<std::string, std::any>& backend_arg);
+            call(Stream& stream, const std::tuple<size_t, size_t, size_t>& grid, Args&&... args);
 
             /**
-             * @brief Destroy device and all its contents
+             * @brief Destroy function
+             *
+             * @todo what about pending launches?
              */
             [[nodiscard]] core::future<void>
             destroy();
 
         public:
-            ~function();
+            ~Function();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
         }
 
-        class stream{
+        class Stream{
         public:
+
+            [[nodiscard]] fractos::core::future<void>
+            copy(const Memory& src, core::cap::memory& dst);
+
+            [[nodiscard]] fractos::core::future<void>
+            copy(const core::cap::memory& src, Memory& dst);
 
             /**
              * @brief Wrapper for cuStreamSynchronize()
@@ -267,31 +234,24 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             synchronize();
 
             /**
-             * @brief Destroy device and all its contents
+             * @brief Destroy stream
+             *
+             * @todo what about pending operations?
              */
             [[nodiscard]] core::future<void>
             destroy();
 
         public:
-            ~stream();
+            ~Stream();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
         }
 
-        class device_memory{
+        /**
+         * @brief Wrapper for CUdeviceptr reservations
+         */
+        class MemoryReservation {
         public:
-
-            /**
-             * @brief Wrapper for cuMemcpy()
-             */
-            [[nodiscard]] core::future<void>
-            memory_copy(size_t size, CUstream stream, const std::unordered_map<std::string, std::any>& backend_arg); // dst src
-
-            /**
-             * @brief Wrapper for cuMemFree()
-             */
-            [[nodiscard]] core::future<void>
-            memory_free(size_t size);
 
             /**
              * @brief Destroy device and all its contents
@@ -300,44 +260,16 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
-            ~device_memory();
+            ~MemoryReservation();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
         }
 
-        class virtual_memory{
+        /**
+         * @brief Wrapper for CUmemGenericAllocationHandle operations
+         */
+        class MemoryAllocation {
         public:
-
-            /**
-             * @brief Wrapper for cuMemCreate()
-             */
-            [[nodiscard]] core::future<CUmemGenericAllocationHandle>
-            make_vmemory_physical_handle( size_t size, const CUmemAllocationProp* prop, unsigned long long flags);
-
-            /**
-             * @brief Wrapper for cuMemMap()
-             */
-            [[nodiscard]] core::future<void>
-            vmemory_virtual_mapping(CUdeviceptr ptr, size_t size, size_t offset, CUmemGenericAllocationHandle handle, unsigned long long flag);
-
-            /**
-             * @brief Wrapper for cuMemUnmap ( CUdeviceptr ptr, size_t size )
-             */
-            [[nodiscard]] core::future<void>
-            vmemory_virtual_unmap(CUdeviceptr ptr, size_t size);
-
-            /**
-             * @brief Wrapper for cuMemSetAccess()
-             */
-            [[nodiscard]] core::future<void>
-            vmemory_set_access( CUdeviceptr ptr, size_t size, const CUmemAccessDesc* desc, size_t count);
-
-            /**
-             * @brief Wrapper for cuMemRelease() // cuMemCreate
-             */
-            [[nodiscard]] core::future<void>
-            vmemory_free_physical(CUmemGenericAllocationHandle handle);
-            
 
             /**
              * @brief Destroy device and all its contents
@@ -346,30 +278,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
-            ~virtual_memory();
+            ~MemoryAllocation();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
         }
-
-        class device_function { // CUfunction
-        public:
-            fractos::core::future<device_function> get_function(std::weak_ptr<CUmodule> _module);
-
-            fractos::core::future<void> unregister_func();
-
-            device_function();
-
-            ~device_function();
-
-        public:
-            std::shared_ptr<device_function> _self;
-
-            std::weak_ptr<CUmodule> _module;
-
-        private:
-    
-            bool _unregistered;
-        };
 
     } // namespace cuda
 } // namespace fractos::service::compute
