@@ -4,7 +4,7 @@ includedir=${prefix}/include
 libdir=${exec_prefix}/lib
 
 Name: @PACKAGE_NAME@
-Description: FractOS compute service for CUDA
+Description: FractOS CUDA compute service
 Version: @PACKAGE_VERSION@
 Cflags: -I${includedir}
 Libs: -L${libdir} -lfractos-service-compute-cuda -Wl,-rpath -Wl,${libdir}
