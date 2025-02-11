@@ -1,4 +1,5 @@
 #include <fractos/service/compute/cuda.hpp>
+#include <./service_impl.hpp>
 
 using namespace fractos::service::compute::cuda;
 

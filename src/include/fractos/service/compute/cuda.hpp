@@ -25,10 +25,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         //module
 
 
-        struct Error {
-            Error(CUresult code);
+        struct ErrorChecker {
+            ErrorChecker(CUresult err,  const char *file, const int line);
 
-            const CUresult code;
+            const CUresult err;
         };
 
 
