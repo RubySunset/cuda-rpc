@@ -27,16 +27,12 @@ AC_CONFIG_FILES([src/include/Makefile])
 AC_CONFIG_HEADERS([config.h])
 
 # Check for a C++ compiler.
-if test -z "$CXXFLAGS"; then
-    reset_cxxflags=1
-fi
+AC_PROG_CC
 AC_PROG_CXX
 AM_PROG_AR
 LT_INIT()
 AC_LANG([C++])
-if test "$reset_cxxflags" = "1"; then
-    CXXFLAGS=
-fi
+
 AX_CHECK_COMPILE_FLAG([-std=c++20],     [CXXFLAGS="$CXXFLAGS -std=c++20"], [exit 1])
 AX_CHECK_COMPILE_FLAG([-Wall],          [CXXFLAGS="$CXXFLAGS -Wall"])
 AX_CHECK_COMPILE_FLAG([-g],             [CXXFLAGS="$CXXFLAGS -g"])

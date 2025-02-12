@@ -2,9 +2,9 @@ lib_LTLIBRARIES =
 
 
 AM_CPPFLAGS =
-AM_CPPFLAGS += -I$(top_srcdir)/src/include
-AM_CPPFLAGS += -I/usr/local/cuda/include
+AM_CPPFLAGS += -I$(top_srcdir)/../include
 AM_CPPFLAGS += $(PKG_CPPFLAGS)
+
 
 AM_LDFLAGS =
 AM_LDFLAGS += $(PKG_LDFLAGS)
