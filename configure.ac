@@ -9,11 +9,30 @@ AC_PREREQ([2.68])
 #AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 
+
+m4_include([m4/ax_check_cuda.m4])
+AX_CHECK_CUDA
+AC_SUBST(NVCC_PATH)
+
 AM_SILENT_RULES([yes])
 
 # Enable "automake" to simplify creating makefiles. foreign relaxes some GNU
 # checks. -Wall and -Werror are instructions to Automake, not gcc.
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall -Werror])
+
+
+# Check for a C++ compiler.
+if test -z "$CXXFLAGS"; then
+    reset_cxxflags=1
+fi
+AC_PROG_CXX
+AM_PROG_AR
+LT_INIT()
+AC_LANG([C++])
+if test "$reset_cxxflags" = "1"; then
+    CXXFLAGS=
+fi
+
 
 # These are the files to be generated.
 AC_CONFIG_FILES([Makefile])
@@ -26,12 +45,55 @@ AC_CONFIG_FILES([src/include/Makefile])
 # Put configuration results in this file for us to #include in our program.
 AC_CONFIG_HEADERS([config.h])
 
-# Check for a C++ compiler.
-AC_PROG_CC
-AC_PROG_CXX
-AM_PROG_AR
-LT_INIT()
-AC_LANG([C++])
+AC_LANG_DEFINE([CUDA], [cuda], [CUDA], [CUDACXX],
+[])
+
+AC_ARG_WITH([cuda],
+   [AS_HELP_STRING([--with-cuda=PATH], [specify CUDA installation path])],
+   [with_cuda="$withval"],
+   [with_cuda="/usr/local/cuda/"])
+
+if test -n "$with_cuda"
+then
+   if test "$with_cuda" = yes
+   then
+      AC_MSG_ERROR([With-cuda argument requires the path to CUDA, --with-cuda=<CUDA_PATH>])
+   fi
+
+   if test -z "$with_cuda"
+   then
+      AC_MSG_ERROR([If you are building with CUDA GPU support, please input the CUDA path with --with-cuda=<CUDA_PATH>])
+   fi
+
+   # Extract the path from the "--with-cuda" argument
+   cuda_path=$(echo "$with_cuda" | sed 's/--with-cuda=//')
+
+   # Check if the path is valid
+   if test ! -d "$cuda_path"; then
+      AC_MSG_ERROR([The input for cuda-path=$cuda_path is not a valid directory])
+   fi
+
+   CUDA_INCLUDE_FLAGS="-I$with_cuda/include"
+   CUDA_LIBS="-L$with_cuda/lib64 -L$with_cuda/lib -lcudart"
+   NVCC="$with_cuda/bin/nvcc"
+   CUDA_PATH="$with_cuda"
+else
+   AC_MSG_ERROR([B: $with_cuda])
+fi
+
+
+AC_SUBST(CUDA_INCLUDE_FLAGS)
+AC_SUBST(CUDA_LIBS)
+AC_SUBST(NVCC)
+AC_SUBST(CUDA_PATH)
+
+CXX=$NVCC
+AC_SUBST(CXX)
+
+CXXFLAGS=$CUDA_INCLUDE_FLAGS
+
+
+
 
 AX_CHECK_COMPILE_FLAG([-std=c++20],     [CXXFLAGS="$CXXFLAGS -std=c++20"], [exit 1])
 AX_CHECK_COMPILE_FLAG([-Wall],          [CXXFLAGS="$CXXFLAGS -Wall"])
@@ -45,7 +107,8 @@ CONFIG_STR=""
 
 AC_ARG_ENABLE(debug, AS_HELP_STRING([--enable-debug],
               [enable various debugging aids, default: no]))
-
+              
+enable_debug=yes
 PKG_CONFIG_CFLAGS=
 if test "x$enable_debug" = "xyes" ; then
     AX_CHECK_COMPILE_FLAG([-O0],     [CXXFLAGS="$CXXFLAGS -O0"], [exit 1])
