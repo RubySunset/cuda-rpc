@@ -7,13 +7,28 @@
 #
 
 #include <fractos/service/compute/cuda.hpp>
+#include <../library/service_impl.hpp>
 
 using namespace fractos;
+using namespace fractos::service::compute::cuda;
 using namespace std::chrono_literals;
 
 int main(int argc, char *argv[])
 {
     common::logging::init(argv[0]);
+    //////////////////////////////////////////////////
+    // 1) Parse command line
+
+    if (argc != 2) {
+        std::cout << "Usage: " << argv[0] << " <controller_config>" << std::endl;
+        return 1;
+    }
+
+    auto controller = core::parse_controller_config(argv[1]);
+    auto proc = core::make_process(controller).get();
+    auto ch = proc->make_channel().get();
+
+    auto name = "test-service-cuda";
 
     //////////////////////////////////////////////////
     // 2) Get service object, as registered by the server

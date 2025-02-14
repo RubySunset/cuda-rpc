@@ -65,6 +65,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         public:
             ~Service();
             // NOTE: not for public use
+            Service(std::shared_ptr<void> pimpl);
             std::shared_ptr<void> _pimpl;
         };
 
@@ -192,7 +193,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             ~Module();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
-        }
+        };
 
         /**
          * @brief Wrapper for CUfunction operations
@@ -219,7 +220,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             ~Function();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
-        }
+        };
 
         class Stream{
         public:
@@ -248,7 +249,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             ~Stream();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
-        }
+        };
 
         /**
          * @brief Wrapper for CUdeviceptr reservations
@@ -266,7 +267,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             ~MemoryReservation();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
-        }
+        };
 
         /**
          * @brief Wrapper for CUmemGenericAllocationHandle operations
@@ -284,7 +285,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             ~MemoryAllocation();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
-        }
+        };
 
     } // namespace cuda
 } // namespace fractos::service::compute

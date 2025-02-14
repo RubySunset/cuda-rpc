@@ -2,11 +2,13 @@
 #include <./service_impl.hpp>
 #include <./common.hpp>
 
+using namespace fractos;
 using namespace fractos::service::compute::cuda;
 
 
+
 core::future<std::shared_ptr<Service>>
-make_service(std::shared_ptr<core::channel> ch,
+service::compute::cuda::make_service(std::shared_ptr<core::channel> ch,
              core::gns::service& gns, const std::string& name,
              const std::chrono::microseconds& wait_time = std::chrono::seconds{0})
 {
@@ -54,6 +56,15 @@ make_service(std::shared_ptr<core::channel> ch,
 {
     CHECK(false);
 }
+
+
+Service::Service()
+    :_pimpl(Service_impl::make_service(td::shared_ptr<core::channel> ch,
+        core::gns::service& gns, const std::string& name,
+        const std::chrono::microseconds& wait_time = std::chrono::seconds{0}))
+{
+}
+
 
 
 Service::~Service()
