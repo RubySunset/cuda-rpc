@@ -3,6 +3,8 @@
 #include <any>
 #include <cuda.h>
 #include <fractos/core/future.hpp>
+#include <fractos/core/channel.hpp>
+#include <fractos/core/gns.hpp>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -26,8 +28,13 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
 
         struct ErrorChecker {
-            ErrorChecker(CUresult err,  const char *file, const int line);
+            ErrorChecker();
+            // ErrorChecker(CUresult err,  const char *file, const int line);
 
+            ErrorChecker(CUresult err, const std::string& file, int line);
+
+        private:
+            void handleError(CUresult err, const std::string& file, int line);
             const CUresult err;
         };
 
@@ -43,18 +50,24 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         [[nodiscard]] core::future<std::shared_ptr<Service>>
         make_service(std::shared_ptr<core::channel> ch,
                      core::cap::request& service_req);
+        
+                     
 
         /**
          * The service implicitly calls cuInit() when started.
          */
         class Service {
         public:
+            
 
             /**
              * @brief Wrapper for cuDeviceGet()
              */
             [[nodiscard]] core::future<std::shared_ptr<Device>>
             make_device(uint64_t device_id);
+
+            [[nodiscard]] core::future<void>
+            make_service(std::string name);
 
             /**
              * @brief Destroy service connection, and all created objects
@@ -63,9 +76,11 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
+            Service();
             ~Service();
             // NOTE: not for public use
             Service(std::shared_ptr<void> pimpl);
+            Service(std::string name);
             std::shared_ptr<void> _pimpl;
         };
 

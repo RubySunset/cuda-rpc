@@ -131,13 +131,13 @@ PKG_LDFLAGS=
 #PKG_LIBS=
 
 PKG_CHECK_MODULES([FRACTOS_CORE], [fractos-core])
-FRACTOS_CORE_LIBS="-L/home/mingxuanyang/fractos/experiments/build/system-production-amd64/install/lib -lfractos-core -lfractos-gns -Xlinker -rpath -Xlinker /home/mingxuanyang/fractos/experiments/build/system-production-amd64/install/lib -lboost_thread"
+FRACTOS_CORE_LIBS="-L/home/mingxuanyang/fractos/experiments/build/system-production-amd64/install/lib -lfractos-core -lfractos-gns -Wl,-rpath -Wl,/home/mingxuanyang/fractos/experiments/build/system-production-amd64/install/lib -lboost_thread"
 
 PKG_CPPFLAGS="$PKG_CPPFLAGS $FRACTOS_CORE_CFLAGS"
 #PKG_LIBS="$PKG_LIBS $FRACTOS_CORE_LIBS"
 
 PKG_CHECK_MODULES([FRACTOS_COMMON], [fractos-common])
-FRACTOS_COMMON_LIBS="-L/home/mingxuanyang/fractos/experiments/build/system-common-production/install/lib -lfractos-common -Xlinker -rpath -Xlinker /home/mingxuanyang/fractos/experiments/build/system-common-production/install/lib"
+FRACTOS_COMMON_LIBS="-L/home/mingxuanyang/fractos/experiments/build/system-common-production/install/lib -lfractos-common -Wl,-rpath -Wl,/home/mingxuanyang/fractos/experiments/build/system-common-production/install/lib"
 PKG_CPPFLAGS="$PKG_CPPFLAGS $FRACTOS_COMMON_CFLAGS"
 #PKG_LIBS="$PKG_LIBS $FRACTOS_COMMON_LIBS"
 
@@ -158,7 +158,7 @@ fi
 # NOTE: set at the very end so 3rd-party tests don't fail with it
 # AX_CHECK_COMPILE_FLAG([-Werror],        [CXXFLAGS="$CXXFLAGS -Werror"])
 
-PKG_LIBS="-L/home/mingxuanyang/fractos/experiments/build/system-production-amd64/install/lib -lfractos-core -lfractos-gns -Xlinker -rpath -Xlinker /home/mingxuanyang/fractos/experiments/build/system-production-amd64/install/lib -lboost_thread -L/home/mingxuanyang/fractos/experiments/build/system-common-production/install/lib -lfractos-common -Xlinker -rpath -Xlinker /home/mingxuanyang/fractos/experiments/build/system-common-production/install/lib  -lglog  -lboost_program_options"
+PKG_LIBS="-L/home/mingxuanyang/fractos/experiments/build/system-production-amd64/install/lib -lfractos-core -lfractos-gns -Wl,-rpath -Wl,/home/mingxuanyang/fractos/experiments/build/system-production-amd64/install/lib -lboost_thread -L/home/mingxuanyang/fractos/experiments/build/system-common-production/install/lib -lfractos-common -Wl,-rpath -Wl,/home/mingxuanyang/fractos/experiments/build/system-common-production/install/lib  -lglog  -lboost_program_options"
 
 AC_SUBST(PKG_CPPFLAGS)
 AC_SUBST(PKG_LDFLAGS)
