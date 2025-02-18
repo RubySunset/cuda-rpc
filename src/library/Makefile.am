@@ -32,7 +32,9 @@ lib_LTLIBRARIES += libfractos-service-compute-cuda.la
 # libfractos_service_compute_cuda_la_CXXFLAGS = -std=c++20 -Xcompiler="-fno-rtti -fno-exceptions -fPIC -G -O0 -Werror -fvisibility=hidden" -O0
 libfractos_service_compute_cuda_la_SOURCES =
 libfractos_service_compute_cuda_la_SOURCES += error.cpp
-libfractos_service_compute_cuda_la_SOURCES += service.cpp
+libfractos_service_compute_cuda_la_SOURCES += src_service.cpp
+libfractos_service_compute_cuda_la_SOURCES += lib_service_cuda.cpp
+libfractos_service_compute_cuda_la_SOURCES += lib_service_impl.cpp
 # hide all symbols on the client library, only export public API symbols
 # libfractos_service_compute_cuda_la_CXXFLAGS = -Xcompiler -fvisibility=hidden
 libfractos_service_compute_cuda_la_LDFLAGS = -version-info 0:0:0

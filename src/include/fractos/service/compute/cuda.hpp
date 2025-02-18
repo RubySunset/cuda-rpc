@@ -10,6 +10,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <fractos/service/compute/cuda_msg.hpp>
+
 
 namespace fractos::service::compute { namespace [[gnu::visibility("default")]] cuda {
 
@@ -26,6 +28,11 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         //graph
         //module
 
+        struct no_service_error : public std::runtime_error {
+            no_service_error(const std::string& what);
+        };
+    
+    
 
         struct ErrorChecker {
             ErrorChecker();
@@ -42,12 +49,12 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         /**
          * @brief Connect to the CUDA service with given name
          */
-        [[nodiscard]] core::future<std::shared_ptr<Service>>
+        [[nodiscard]] core::future<std::unique_ptr<Service>>
         make_service(std::shared_ptr<core::channel> ch,
                      core::gns::service& gns, const std::string& name,
                      const std::chrono::microseconds& wait_time = std::chrono::seconds{0});
 
-        [[nodiscard]] core::future<std::shared_ptr<Service>>
+        [[nodiscard]] core::future<std::unique_ptr<Service>>
         make_service(std::shared_ptr<core::channel> ch,
                      core::cap::request& service_req);
         
@@ -66,8 +73,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Device>>
             make_device(uint64_t device_id);
 
-            [[nodiscard]] core::future<void>
-            make_service(std::string name);
+            // [[nodiscard]] core::future<void>
+            // make_service(std::string name);
 
             /**
              * @brief Destroy service connection, and all created objects
@@ -83,6 +90,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             Service(std::string name);
             std::shared_ptr<void> _pimpl;
         };
+
+        std::string to_string(const Service& obj);
 
         /**
          * @brief Wrapper for CUdevice operations

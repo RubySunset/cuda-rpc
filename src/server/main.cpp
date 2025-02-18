@@ -7,7 +7,7 @@
 #
 
 #include <fractos/service/compute/cuda.hpp>
-#include <../library/service_impl.hpp>
+#include <../library/src_service.hpp>
 
 using namespace fractos;
 using namespace fractos::service::compute::cuda;
@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
     // 2) Create service object and threads
 
     auto srv = impl::make_service(name);
+    
     LOG(INFO) << "==================================================";
 
     // Create background helper thread that translates signals into requests to

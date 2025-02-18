@@ -1,6 +1,14 @@
-#include <./service_impl.hpp>
+#include <./lib_service_impl.hpp>
 
 using namespace fractos;
+
+std::string impl::to_string(const impl::CuService_impl& obj)
+{
+    return "example::service(" + obj.name + ")";
+}
+
+
+
 // using namespace impl;
 
 // inline

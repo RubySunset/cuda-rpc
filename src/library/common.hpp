@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <fractos/logging.hpp>
 
 
@@ -19,3 +20,27 @@
     LOG_METHOD_PTR(method, ptr) << " <-"
 #define LOG_RES_PTR(method, ptr)                \
     LOG_METHOD_PTR(method, ptr) << " ->"
+
+#define as_callback_log_ignore_error(msg)                               \
+    then([](auto& fut) {                                                \
+             try {                                                      \
+                  (void)fut.get();                                      \
+              } catch (const std::runtime_error& e) {                   \
+                  LOG(ERROR) << msg << ": " << e.what();                \
+              }                                                         \
+         })                                                             \
+    .as_callback()
+
+
+
+
+// Top-level name used to publish in GNS
+static const std::string service_base_name = "fractos::service::compute::cuda";
+
+static inline
+std::string
+get_name(const std::string& name)
+{
+    return service_base_name + "::" + name;
+}
+

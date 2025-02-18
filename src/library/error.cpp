@@ -26,3 +26,9 @@ void ErrorChecker::handleError(CUresult err, const std::string& file, int line) 
 //         exit(-1);
 //     }
 // }
+
+
+service::compute::cuda::no_service_error::no_service_error(const std::string& what)
+    :std::runtime_error(what)
+{
+}
