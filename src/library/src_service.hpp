@@ -10,6 +10,16 @@
 using namespace fractos;
 
 namespace impl {
+    class service;
+    class device;
+
+    //service
+    std::shared_ptr<service> make_cuda_service(std::string name);
+    std::string to_string(const service& obj);
+    //device
+    std::shared_ptr<device> make_device(std::shared_ptr<service> srv, uint64_t value);
+    std::string to_string(const device& obj);
+
 
     class service {
         public:
@@ -30,61 +40,34 @@ namespace impl {
             std::weak_ptr<service> _self;
             std::atomic<bool> _requested_exit;
             std::string _name;
-            fractos::core::cap::request _req_make_device;
+            fractos::core::cap::request _req_make_cuda_device;
     
             friend std::shared_ptr<service> make_cuda_service(std::string name);
             friend std::string to_string(const service& obj);
-        };
+    };
     
-        std::shared_ptr<service> make_cuda_service(std::string name);
     
-        std::string to_string(const service& obj);
     
-    // struct CuService_impl {
-    //     CuService_impl(CuService_impl& other) = delete;
-    //     CuService_impl(const CuService_impl& other) = delete;
+    class device{
+        public:
+            fractos::core::future<void> register_device_methods(std::shared_ptr<fractos::core::channel> ch);
+
+            std::atomic<uint64_t> value;
+            std::weak_ptr<device> self;
+            fractos::core::cap::request req_make_context;
+            fractos::core::cap::request req_destroy;
+
+        protected: 
+            void handle_make_context(auto ch, auto args);
+            void handle_destroy(auto ch, auto args);
+            // friend class context;
         
-    //     // pimpl-to-impl
-    //     static inline impl::CuService_impl& get(fractos::service::compute::cuda::Service& obj)
-    //         { return *reinterpret_cast<impl::CuService_impl*>(obj._pimpl.get()); }
-    //     static inline const impl::CuService_impl& get(const fractos::service::compute::cuda::Service& obj)
-    //         { return *reinterpret_cast<const impl::CuService_impl*>(obj._pimpl.get()); }
+        private:
+            device(std::shared_ptr<service> srv, uint64_t value);
 
-    //     static inline std::shared_ptr<impl::CuService_impl> get_ptr(fractos::service::compute::cuda::Service& obj)
-    //         { return std::static_pointer_cast<impl::CuService_impl>(obj._pimpl); }
-    //     static inline std::shared_ptr<const impl::CuService_impl> get_ptr(const fractos::service::compute::cuda::Service& obj)
-    //         { return std::static_pointer_cast<const impl::CuService_impl>(obj._pimpl); }
+            friend std::shared_ptr<device> make_device(std::shared_ptr<service> srv, uint64_t value);
 
-    //     std::atomic_flag destroy_sent;
-    //     public:
-    //         fractos::core::future<fractos::core::cap::request>
-    //         register_methods(std::shared_ptr<fractos::core::channel> ch);
-
-    //         void request_exit();
-    //         bool exit_requested() const;
-
-    //     public:
-    //         CuService_impl(std::string name);
-    //         const std::string name;
-    //         std::weak_ptr<CuService_impl> _self;
-    //         fractos::core::cap::request _req_make_device;
-    //     protected:
-    //         void handle_connect_cuda_service(auto ch, auto args);
-    //         // friend class object;
+    };
     
-        
-    //     private:
-            
-    //         friend std::shared_ptr<CuService_impl> make_service(std::string name);
-    //         friend std::string to_string(const CuService_impl& obj);
-
-    //         std::atomic<bool> _requested_exit;
-
-    // };
-
-
-    // std::shared_ptr<CuService_impl> make_service(std::string name);
-    // std::string to_string(const CuService_impl& obj);
-
 
 }

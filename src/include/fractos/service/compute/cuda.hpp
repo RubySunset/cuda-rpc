@@ -71,7 +71,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              * @brief Wrapper for cuDeviceGet()
              */
             [[nodiscard]] core::future<std::shared_ptr<Device>>
-            make_device(uint64_t device_id);
+            make_cuda_device(std::shared_ptr<core::channel> ch, uint64_t value);
+
 
             // [[nodiscard]] core::future<void>
             // make_service(std::string name);
@@ -83,11 +84,11 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
-            Service();
+            // Service();
             ~Service();
-            // NOTE: not for public use
-            Service(std::shared_ptr<void> pimpl);
-            Service(std::string name);
+            // // NOTE: not for public use
+            // Service(std::shared_ptr<void> pimpl);
+            // Service(std::string name);
             std::shared_ptr<void> _pimpl;
         };
 
@@ -116,6 +117,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
         };
+
 
         /**
          * @brief Wrapper for CUcontext operations

@@ -8,6 +8,7 @@
 
 #include <fractos/service/compute/cuda.hpp>
 #include <../library/src_service.hpp>
+#include <../library/common.hpp>
 
 using namespace fractos;
 using namespace fractos::service::compute::cuda;
@@ -54,7 +55,7 @@ int main(int argc, char *argv[])
     //////////////////////////////////////////////////
     // 2) Create service object and threads
 
-    auto srv = impl::make_service(name);
+    auto srv = impl::make_cuda_service(name);
     
     LOG(INFO) << "==================================================";
 
@@ -63,7 +64,7 @@ int main(int argc, char *argv[])
     auto intr_handler = common::signal::make_handler_thread(
         {SIGINT, SIGQUIT},
         [srv, ch](auto signum) {
-            LOG(WARNING) << "exit requested ...";
+            LOG(INFO) << "exit requested ...";
             // mark request to exit
             srv->request_exit();
             // ensure channel::run_until() checks exit request
@@ -88,7 +89,7 @@ int main(int argc, char *argv[])
     //////////////////////////////////////////////////
     // 3) Publish service object
 
-    auto full_name = name; //get_name(name);
+    auto full_name = get_name(name);
     auto req_connect = srv->register_methods(ch)
         .get();
 
@@ -103,6 +104,8 @@ int main(int argc, char *argv[])
     for (auto& thread : service_threads) {
         thread.join();
     }
+
+    LOG(INFO) << "================================================== finish";
 
 
 
