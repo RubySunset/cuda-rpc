@@ -52,7 +52,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         [[nodiscard]] core::future<std::unique_ptr<Service>>
         make_service(std::shared_ptr<core::channel> ch,
                      core::gns::service& gns, const std::string& name,
-                     const std::chrono::microseconds& wait_time = std::chrono::seconds{0});
+                     const std::chrono::microseconds& wait_time = std::chrono::seconds{60});
 
         [[nodiscard]] core::future<std::unique_ptr<Service>>
         make_service(std::shared_ptr<core::channel> ch,

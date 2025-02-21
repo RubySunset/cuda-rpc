@@ -4,10 +4,11 @@
 #include <fractos/core/gns.hpp>
 #include <glog/logging.h>
 #include <signal.h>
-#
+
 
 #include <fractos/service/compute/cuda.hpp>
 #include <../library/src_service.hpp>
+#include <../library/src_device.hpp>
 #include <../library/common.hpp>
 
 using namespace fractos;
@@ -46,18 +47,24 @@ int main(int argc, char *argv[])
     auto control_cpu = control_thread->pop_front();
     auto service_cpus = common::cpu::parse_set(args["service-threads"].as<std::string>());
 
+    LOG(INFO) << "================================================== start "
+    << "service" << service_cpus->size()
+    << "control" << control_thread->size();
+
     // Log process state when receiving SIGUSR1
     common::signal::init_log_handler(SIGUSR1, ch->get_process());
+    LOG(INFO) << "name ch " << ch->get_name();
 
     // Log current process state
     ch->get_process()->log_state();
+    
 
     //////////////////////////////////////////////////
     // 2) Create service object and threads
 
-    auto srv = impl::make_cuda_service(name);
+    auto srv = impl::make_service(name);
     
-    LOG(INFO) << "==================================================";
+    LOG(INFO) << "================================================== start ";
 
     // Create background helper thread that translates signals into requests to
     // cleanly stop the server
@@ -80,6 +87,7 @@ int main(int argc, char *argv[])
         service_threads.emplace_back([ch, srv, service_cpus]() {
                                          common::cpu::pin(service_cpus->pop_front());
                                          ch->run_until([srv](){ return srv->exit_requested(); });
+                                         LOG(INFO) << "======================== end here ";
                                      });
     }
 
@@ -90,10 +98,20 @@ int main(int argc, char *argv[])
     // 3) Publish service object
 
     auto full_name = get_name(name);
-    auto req_connect = srv->register_methods(ch)
-        .get();
 
+    // srv->register_methods(ch);
+
+    // auto srv = gpu::gpu_device_service::factory();
+    // srv->register_methods(ch).get();
     auto gns = core::gns::make_service();
+
+    // auto srv_published = gns->publish_named(ch, srv->_req_make_cuda_device, full_name).get();
+
+    auto req_connect =  srv->register_methods(ch)
+        .get();
+    LOG(INFO) << "================================================== middle";
+
+    
 
     auto srv_published = gns->publish_named(ch, req_connect, full_name)
         .get();

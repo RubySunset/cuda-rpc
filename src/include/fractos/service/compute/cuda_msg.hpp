@@ -6,7 +6,7 @@
 
 namespace fractos::service::compute::cuda::message  {
 
-    struct connect_cuda_service  {
+    struct connect_service  {
         struct request {
             struct imms {
             } __attribute__((packed));
@@ -20,17 +20,36 @@ namespace fractos::service::compute::cuda::message  {
                 wire::endian::uint8_t error;
             } __attribute__((packed));
             struct caps {
-                core::cap::request make_cuda_device;
+                core::cap::request make_device;
             };
         };
     };
 
+    struct destroy {
+        struct request {
+            struct imms {
+            } __attribute__((packed));
+            struct caps {
+                core::cap::request cont;
+            };
+        };
+
+        struct response {
+            struct imms {
+                wire::endian::uint8_t error;
+            } __attribute__((packed));
+            struct caps {
+            };
+        };
+    };
+
+
 } // namespace fractos::service::compute::cuda::message
 
 
-namespace fractos::service::compute::cuda::message::Service {
+namespace fractos::service::compute::cuda::message::service {
 
-    struct make_cuda_device {
+    struct make_device {
         struct request {
             struct imms {
                 wire::endian::uint64_t value; // device_id
@@ -45,8 +64,8 @@ namespace fractos::service::compute::cuda::message::Service {
                 wire::endian::uint8_t error;
             } __attribute__((packed));
             struct caps {
+                // core::cap::request make_cuda_context;
                 core::cap::request destroy;
-                core::cap::request make_cuda_context;
             };
         };
     };
@@ -72,7 +91,7 @@ namespace fractos::service::compute::cuda::message::Service {
 } // namespace fractos::service::compute::cuda::message::Service
 
 
-namespace fractos::service::compute::cuda::message::Device {
+namespace fractos::service::compute::cuda::message::device {
 
     struct make_cuda_context {
         struct request {
@@ -81,6 +100,7 @@ namespace fractos::service::compute::cuda::message::Device {
             } __attribute__((packed));
             struct caps {
                 core::cap::request cont;
+                // wire::endian::uint64_t num;
             };
         };
 
@@ -89,7 +109,6 @@ namespace fractos::service::compute::cuda::message::Device {
                 wire::endian::uint8_t error;
             } __attribute__((packed));
             struct caps {
-                core::cap::request destroy;
             };
         };
     };

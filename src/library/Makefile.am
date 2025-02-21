@@ -33,6 +33,7 @@ lib_LTLIBRARIES += libfractos-service-compute-cuda.la
 libfractos_service_compute_cuda_la_SOURCES =
 libfractos_service_compute_cuda_la_SOURCES += error.cpp
 libfractos_service_compute_cuda_la_SOURCES += src_service.cpp
+libfractos_service_compute_cuda_la_SOURCES += src_device.cpp
 libfractos_service_compute_cuda_la_SOURCES += lib_service_cuda.cpp
 libfractos_service_compute_cuda_la_SOURCES += lib_service_impl.cpp
 # hide all symbols on the client library, only export public API symbols
