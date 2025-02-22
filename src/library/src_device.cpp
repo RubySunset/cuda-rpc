@@ -15,6 +15,7 @@ using namespace impl;
 core::future<void>
 impl::device::register_methods(std::shared_ptr<core::channel> ch)
 {
+    LOG_REQ("device register_methods");
     namespace msg = fractos::service::compute::cuda::message::device;
 
     auto self = this->self.lock();

@@ -70,23 +70,23 @@ namespace fractos::service::compute::cuda::message::service {
         };
     };
 
-    struct destroy {
-        struct request {
-            struct imms {
-            } __attribute__((packed));
-            struct caps {
-                core::cap::request cont;
-            };
-        };
+    // struct destroy {
+    //     struct request {
+    //         struct imms {
+    //         } __attribute__((packed));
+    //         struct caps {
+    //             core::cap::request cont;
+    //         };
+    //     };
 
-        struct response {
-            struct imms {
-                wire::endian::uint8_t error;
-            } __attribute__((packed));
-            struct caps {
-            };
-        };
-    };
+    //     struct response {
+    //         struct imms {
+    //             wire::endian::uint8_t error;
+    //         } __attribute__((packed));
+    //         struct caps {
+    //         };
+    //     };
+    // };
 
 } // namespace fractos::service::compute::cuda::message::Service
 

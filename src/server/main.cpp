@@ -99,13 +99,7 @@ int main(int argc, char *argv[])
 
     auto full_name = get_name(name);
 
-    // srv->register_methods(ch);
-
-    // auto srv = gpu::gpu_device_service::factory();
-    // srv->register_methods(ch).get();
     auto gns = core::gns::make_service();
-
-    // auto srv_published = gns->publish_named(ch, srv->_req_make_cuda_device, full_name).get();
 
     auto req_connect =  srv->register_methods(ch)
         .get();

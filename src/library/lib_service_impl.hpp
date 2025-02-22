@@ -28,7 +28,7 @@ namespace impl {
         // std::atomic_flag destroy_sent;
         std::weak_ptr<CuService_impl> self;
         std::shared_ptr<fractos::core::channel> ch;
-        // fractos::core::cap::request req_make_cuda_device;
+        fractos::core::cap::request req_make_device;
         const std::string name;
     };
 

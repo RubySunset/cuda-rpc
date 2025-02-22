@@ -73,7 +73,7 @@ service::compute::cuda::make_service(std::shared_ptr<core::channel> ch,
             
 
                 std::shared_ptr<impl::CuService_impl> pimpl_(
-                    new impl::CuService_impl{{}, ch,name});//std::move(args->caps.make_cuda_device), name});
+                    new impl::CuService_impl{{}, ch,std::move(args->caps.make_device), name});
                 pimpl_->self = pimpl_;
                 auto pimpl = std::static_pointer_cast<void>(pimpl_);
                 // unique_ptr<device_service> res(new device_service{pimpl});
@@ -99,61 +99,61 @@ service::compute::cuda::to_string(const fractos::service::compute::cuda::Service
 }
 
 
-// core::future<std::shared_ptr<service::compute::cuda::Device>>
-// service::compute::cuda::Service::make_cuda_device(std::shared_ptr<core::channel> ch, uint64_t value)
-// {
-//     LOG_REQ("make_cuda_device")
-//         << " value=" << value;
+core::future<std::shared_ptr<service::compute::cuda::Device>>
+service::compute::cuda::Service::make_cuda_device(std::shared_ptr<core::channel> ch, uint64_t value)
+{
+    LOG_REQ("make_cuda_device")
+        << " value=" << value;
 
-//     using msg = service::compute::cuda::message::Service::make_cuda_device;
+    using msg = service::compute::cuda::message::service::make_device;
 
-//     auto& pimpl = impl::CuService_impl::get(*this);
+    auto& pimpl = impl::CuService_impl::get(*this);
 
-//     /*
-//      * 1) Create response_builder() to get the remote operation result.
-//      *
-//      * This is a shortcut to declaring a single-use handler on the client, that
-//      * the remote operation will invoke when it finishes, and returns the
-//      * response message contents.
-//      */
-//     auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
+    /*
+     * 1) Create response_builder() to get the remote operation result.
+     *
+     * This is a shortcut to declaring a single-use handler on the client, that
+     * the remote operation will invoke when it finishes, and returns the
+     * response message contents.
+     */
+    auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
 
-//     /*
-//      * 2) Create and invoke remote operation.
-//      */
-//     auto fut = ch->make_request_builder<msg::request>(pimpl.req_make_cuda_device)
-//         .set_imm(&msg::request::imms::value, value)
-//         .set_cap(&msg::request::caps::cont, resp)
-//         .on_channel()
-//         .invoke(resp)
-//         .unwrap();
+    /*
+     * 2) Create and invoke remote operation.
+     */
+    auto fut = ch->make_request_builder<msg::request>(pimpl.req_make_device)
+        .set_imm(&msg::request::imms::value, value)
+        .set_cap(&msg::request::caps::cont, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap();
 
-//     /*
-//      * 3) Parse response message into method's result
-//      */
+    /*
+     * 3) Parse response message into method's result
+     */
 
-//     return std::move(fut)
-//         .then([this](auto& fut) {
-//                 auto [ch, args] = fut.get();
-//                 wire::error_raise_exception_maybe(args->imms.error);
+    return std::move(fut)
+        .then([this](auto& fut) {
+                auto [ch, args] = fut.get();
+                wire::error_raise_exception_maybe(args->imms.error);
 
-//                 // Build internal object detail::object
-//                 std::shared_ptr<impl::CuDevice_impl> pimpl_(
-//                     new impl::CuDevice_impl{{}, ch,
-//                                             std::move(args->caps.destroy)});
-//                 pimpl_->self = pimpl_;
+                // Build internal object detail::object
+                std::shared_ptr<impl::CuDevice_impl> pimpl_(
+                    new impl::CuDevice_impl{{}, ch,
+                                            std::move(args->caps.destroy)});
+                pimpl_->self = pimpl_;
 
-//                 auto pimpl = std::static_pointer_cast<void>(pimpl_);
-//                 // unique_ptr<device_service> res(new device_service{pimpl});
+                auto pimpl = std::static_pointer_cast<void>(pimpl_);
+                // unique_ptr<device_service> res(new device_service{pimpl});
 
-//                 std::unique_ptr<service::compute::cuda::Device> res(new service::compute::cuda::Device{pimpl});
+                std::unique_ptr<service::compute::cuda::Device> res(new service::compute::cuda::Device{pimpl});
 
-//                 LOG_OP("make_device");
+                LOG_OP("make_device");
 
-//                 // Return example::object
-//                 return res;
-//               });
-// }
+                // Return example::object
+                return res;
+              });
+}
 
 core::future<void>
 service::compute::cuda::Device::destroy()
