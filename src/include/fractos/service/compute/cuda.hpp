@@ -13,6 +13,8 @@
 #include <fractos/service/compute/cuda_msg.hpp>
 
 
+#define checkCudaErrors(err)  ErrorChecker(err, __FILE__, __LINE__)
+
 namespace fractos::service::compute { namespace [[gnu::visibility("default")]] cuda {
 
         class cuda_service;
@@ -58,7 +60,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
     
 
         struct ErrorChecker {
-            ErrorChecker();
+            ErrorChecker(CUresult err);
             // ErrorChecker(CUresult err,  const char *file, const int line);
 
             ErrorChecker(CUresult err, const std::string& file, int line);
@@ -80,6 +82,14 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         [[nodiscard]] core::future<std::unique_ptr<cuda_service>>
         make_service(std::shared_ptr<core::channel> ch,
                      core::cap::request& cuda_service_req);
+        
+
+        /**
+         * @brief Connect to the CUDA cuda_service with given name
+         */             
+        [[nodiscard]] core::future<std::unique_ptr<cuda_service>>
+        make_cuda_service(fractos::core::gns::service& gns, const std::string& name,
+                    std::shared_ptr<core::channel> ch);
       
                      
 
@@ -96,16 +106,16 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             
             void set_default_channel(std::shared_ptr<fractos::core::channel>
             ch);
-            [[nodiscard]] static fractos::core::future<std::unique_ptr<cuda_service>>
-            make_cuda_service(fractos::core::gns::service& gns, const std::string& name,
-                            std::shared_ptr<fractos::core::channel> ch);
+            // [[nodiscard]] static fractos::core::future<std::unique_ptr<cuda_service>>
+            // make_cuda_service(fractos::core::gns::service& gns, const std::string& name,
+            //                 std::shared_ptr<fractos::core::channel> ch);
 
             [[nodiscard]] fractos::core::future<std::shared_ptr<cuda_device>> get_cuda_device(
                 fractos::core::gns::service& gns, uint8_t id);
 
             
             /**
-             * @brief Wrapper for cucuda_deviceGet()
+             * @brief Wrapper for cuDeviceGet()
              */
             [[nodiscard]] core::future<std::shared_ptr<cuda_device>>
             make_cuda_device(std::shared_ptr<core::channel> ch, uint64_t value);
@@ -127,8 +137,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             // cuda_service();
             // ~cuda_service();
             // // NOTE: not for public use
-            // cuda_service(std::shared_ptr<void> pimpl);
-            // cuda_service(std::string name);
+            cuda_service(std::shared_ptr<void> pimpl);
+            cuda_service(std::string name);
             std::shared_ptr<void> _pimpl;
         };
 
@@ -146,7 +156,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             void set_default_channel(std::shared_ptr<fractos::core::channel> ch);
         
             // fractos::core::future<void> destroy();
-        
+            cuda_device(std::shared_ptr<void> pimpl, fractos::wire::endian::uint8_t id);
             cuda_device(std::shared_ptr<void> pimpl);
         
             cuda_device(fractos::wire::endian::uint8_t id);

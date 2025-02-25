@@ -10,8 +10,8 @@ gpu_cuda_device::gpu_cuda_device(wire::endian::uint8_t value) {
     //fork();
     _id = value;
     _destroyed = false;
+   
 }
-
 
 std::shared_ptr<gpu_cuda_device> gpu_cuda_device::factory(wire::endian::uint8_t value){
     auto res = std::shared_ptr<gpu_cuda_device>(new gpu_cuda_device(value));
@@ -20,6 +20,7 @@ std::shared_ptr<gpu_cuda_device> gpu_cuda_device::factory(wire::endian::uint8_t 
 }
 
 gpu_cuda_device::~gpu_cuda_device() {
+    // checkCudaErrors(cuCtxDestroy(context));
 }
 
 /*
@@ -33,7 +34,7 @@ core::future<void> gpu_cuda_device::register_methods(std::shared_ptr<core::chann
     auto self = _self;
 
     return ch->make_request_builder<msg_base::destroy::request>(
-        ch->get_default_endpoint(),
+        ch->get_default_endpoint(), 
         [self](auto ch, auto args) {
             self->handle_destroy(std::move(args));
         })
@@ -72,7 +73,7 @@ void gpu_cuda_device::handle_destroy(auto args) {
             fut.get();
             DLOG(INFO) << "Virtual device destroyed";
             this->_destroyed = true;
-            ch->make_request_builder<msg::response>(args->caps.continuation)
+            ch->make_request_builder<msg::response>(args->caps.continuation) // response
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
                 .on_channel()
                 .invoke()

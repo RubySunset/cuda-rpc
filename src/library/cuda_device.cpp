@@ -22,8 +22,16 @@ const cuda_device_impl& cuda_device_impl::get(const cuda_device& obj)
     return *reinterpret_cast<cuda_device_impl*>(obj._pimpl.get());
 }
 
+cuda_device::cuda_device(std::shared_ptr<void> pimpl, wire::endian::uint8_t id) : _pimpl(pimpl) {
+    CUdevice device;
+    checkCudaErrors(cuDeviceGet(&device, id));
+    // checkCudaErrors(cuCtxCreate(&context, CU_CTX_SCHED_SPIN, device));
 
-cuda_device::cuda_device(std::shared_ptr<void> pimpl) : _pimpl(pimpl) {}
+    DLOG(INFO) << "initialize device : " << id;
+}
+
+cuda_device::cuda_device(std::shared_ptr<void> pimpl) : _pimpl(pimpl) {
+}
 
 cuda_device::cuda_device(wire::endian::uint8_t id) {}
 
@@ -48,7 +56,7 @@ core::future<void> cuda_device::destroy() {
     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_destroy)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
-        .invoke(resp)
+        .invoke(resp) // wait for handle_destroy
         .unwrap()
         .then([](auto& fut) {
             auto [ch, args] = fut.get();

@@ -25,6 +25,13 @@ const cuda_service_impl& cuda_service_impl::get(const cuda_service& obj)
     return *reinterpret_cast<cuda_service_impl*>(obj._pimpl.get());
 }
 
+cuda_service::cuda_service(std::shared_ptr<void> pimpl) : _pimpl(pimpl) {
+    
+    checkCudaErrors(cuInit(0));
+
+}
+
+
 std::shared_ptr<core::channel> cuda_service::get_default_channel() {
     auto& pimpl = cuda_service_impl::get(*this);
     return pimpl.ch;
@@ -45,8 +52,9 @@ void cuda_service::set_default_channel(std::shared_ptr<core::channel> ch) {
  * Make a cuda_service from global_ns which the server publishes to 
  */
 core::future<std::unique_ptr<cuda_service>>
-cuda_service::make_cuda_service(fractos::core::gns::service& gns, const std::string& name,
+fractos::service::compute::cuda::make_cuda_service(fractos::core::gns::service& gns, const std::string& name,
                                     std::shared_ptr<core::channel> ch) {
+    
     return gns.get_wait_for<core::cap::request>(ch, name, std::chrono::seconds{0})
         .then([ch, name](auto& fut) {
             core::cap::request req;
@@ -62,7 +70,7 @@ cuda_service::make_cuda_service(fractos::core::gns::service& gns, const std::str
                 pimpl_->self = pimpl_;
                 auto pimpl = std::static_pointer_cast<void>(pimpl_);
                 std::unique_ptr<cuda_service> res(new cuda_service{pimpl});
-                
+
                 return res;
               });
 
@@ -85,7 +93,7 @@ core::future<std::shared_ptr<cuda_device>> cuda_service::make_cuda_device(uint8_
         .set_imm(&msg::request::imms::value, value)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
-        .invoke(resp)
+        .invoke(resp) // wait for srv_handle
         .unwrap()
         .then([value](auto& fut) {
             auto [ch, args] = fut.get();
@@ -104,10 +112,10 @@ core::future<std::shared_ptr<cuda_device>> cuda_service::make_cuda_device(uint8_
             std::shared_ptr<cuda_device_impl> pimpl_(
                 new cuda_device_impl{{}, ch, args->imms.error, 
                         std::move(args->caps.destroy)}
-                ); 
+                );
             pimpl_->self = pimpl_;
             auto pimpl = static_pointer_cast<void>(pimpl_);
-            std::shared_ptr<cuda_device> res(new cuda_device{pimpl});
+            std::shared_ptr<cuda_device> res(new cuda_device{pimpl, value});
             return res;
         });
 }
