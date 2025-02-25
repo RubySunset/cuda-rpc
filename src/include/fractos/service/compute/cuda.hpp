@@ -15,8 +15,8 @@
 
 namespace fractos::service::compute { namespace [[gnu::visibility("default")]] cuda {
 
-        class Service;
-        class Device;
+        class cuda_service;
+        class cuda_device;
         class Context;
         class Module;
         class Function;
@@ -27,9 +27,32 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         //event
         //graph
         //module
+        struct cuda_service_impl {
+            static cuda_service_impl& get(fractos::service::compute::cuda::cuda_service& service);
+            static const cuda_service_impl& get(const fractos::service::compute::cuda::cuda_service& service);
+        
+            std::weak_ptr<cuda_service_impl> self;
+            std::shared_ptr<fractos::core::channel>
+         ch;
+            fractos::core::cap::request req_make_cuda_device;
+        };
 
-        struct no_service_error : public std::runtime_error {
-            no_service_error(const std::string& what);
+        struct cuda_device_impl {
+            static cuda_device_impl& get(fractos::service::compute::cuda::cuda_device& device);
+            static const cuda_device_impl& get(const fractos::service::compute::cuda::cuda_device& device);
+        
+            std::weak_ptr<cuda_device_impl> self;
+            std::shared_ptr<fractos::core::channel> ch;
+        
+            fractos::wire::endian::uint8_t error;
+            fractos::core::cap::request req_destroy;
+        
+            bool destroyed;
+        };
+        
+
+        struct no_cuda_service_error : public std::runtime_error {
+            no_cuda_service_error(const std::string& what);
         };
     
     
@@ -47,59 +70,91 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
 
         /**
-         * @brief Connect to the CUDA service with given name
+         * @brief Connect to the CUDA cuda_service with given name
          */
-        [[nodiscard]] core::future<std::unique_ptr<Service>>
+        [[nodiscard]] core::future<std::unique_ptr<cuda_service>>
         make_service(std::shared_ptr<core::channel> ch,
                      core::gns::service& gns, const std::string& name,
                      const std::chrono::microseconds& wait_time = std::chrono::seconds{60});
 
-        [[nodiscard]] core::future<std::unique_ptr<Service>>
+        [[nodiscard]] core::future<std::unique_ptr<cuda_service>>
         make_service(std::shared_ptr<core::channel> ch,
-                     core::cap::request& service_req);
-        
+                     core::cap::request& cuda_service_req);
+      
                      
 
         /**
-         * The service implicitly calls cuInit() when started.
+         * The cuda_service implicitly calls cuInit() when started.
          */
-        class Service {
+        class cuda_service {
         public:
+            std::shared_ptr<fractos::core::channel>
+            get_default_channel();
+        
+            std::shared_ptr<fractos::core::channel>
+            get_default_channel() const;
             
+            void set_default_channel(std::shared_ptr<fractos::core::channel>
+            ch);
+            [[nodiscard]] static fractos::core::future<std::unique_ptr<cuda_service>>
+            make_cuda_service(fractos::core::gns::service& gns, const std::string& name,
+                            std::shared_ptr<fractos::core::channel> ch);
 
+            [[nodiscard]] fractos::core::future<std::shared_ptr<cuda_device>> get_cuda_device(
+                fractos::core::gns::service& gns, uint8_t id);
+
+            
             /**
-             * @brief Wrapper for cuDeviceGet()
+             * @brief Wrapper for cucuda_deviceGet()
              */
-            [[nodiscard]] core::future<std::shared_ptr<Device>>
+            [[nodiscard]] core::future<std::shared_ptr<cuda_device>>
             make_cuda_device(std::shared_ptr<core::channel> ch, uint64_t value);
+
+            [[nodiscard]] core::future<std::shared_ptr<cuda_device>>
+            make_cuda_device(uint8_t value);
 
 
             // [[nodiscard]] core::future<void>
-            // make_service(std::string name);
+            // make_cuda_service(std::string name);
 
             /**
-             * @brief Destroy service connection, and all created objects
+             * @brief Destroy cuda_service connection, and all created objects
              */
             [[nodiscard]] core::future<void>
             destroy();
 
         public:
-            // Service();
-            ~Service();
+            // cuda_service();
+            // ~cuda_service();
             // // NOTE: not for public use
-            // Service(std::shared_ptr<void> pimpl);
-            // Service(std::string name);
+            // cuda_service(std::shared_ptr<void> pimpl);
+            // cuda_service(std::string name);
             std::shared_ptr<void> _pimpl;
         };
 
-        std::string to_string(const Service& obj);
+        std::string to_string(const cuda_service& obj);
 
         /**
          * @brief Wrapper for CUdevice operations
          */
-        class Device {
+        class cuda_device {
         public:
+            std::shared_ptr<fractos::core::channel> get_default_channel();
 
+            std::shared_ptr<fractos::core::channel> get_default_channel() const;
+        
+            void set_default_channel(std::shared_ptr<fractos::core::channel> ch);
+        
+            // fractos::core::future<void> destroy();
+        
+            cuda_device(std::shared_ptr<void> pimpl);
+        
+            cuda_device(fractos::wire::endian::uint8_t id);
+        
+            // ~cuda_device();
+    
+
+                                                                               
             /**
              * @brief Wrapper for cuCtxCreate_v4()
              */
@@ -113,11 +168,15 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
-            ~Device();
+            ~cuda_device();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
-        };
+        private:
 
+            bool _destroyed;
+        
+        };
+        std::string to_string(const cuda_device& obj);
 
         /**
          * @brief Wrapper for CUcontext operations
@@ -314,4 +373,4 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         };
 
     } // namespace cuda
-} // namespace fractos::service::compute
+} // namespace fractos::cuda_service::compute
