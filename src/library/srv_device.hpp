@@ -15,6 +15,7 @@ public:
     fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
 protected:
+    void handle_test(auto args);
     void handle_destroy(auto args);
 
 
@@ -25,6 +26,7 @@ private:
     bool _destroyed;
 
 public:
+    fractos::core::cap::request _req_test;
     fractos::core::cap::request _req_destroy;
 
     gpu_cuda_device(fractos::wire::endian::uint8_t value);

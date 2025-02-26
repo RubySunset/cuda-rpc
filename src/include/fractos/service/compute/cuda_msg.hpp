@@ -21,6 +21,7 @@ namespace service::compute::cuda::message{
                     fractos::wire::endian::uint8_t error;
                 } __attribute__ ((packed));
                 struct caps {
+                    fractos::core::cap::request test;
                     fractos::core::cap::request destroy;
                 };
             };
@@ -40,6 +41,7 @@ namespace service::compute::cuda::message{
                     fractos::wire::endian::uint8_t error;
                 } __attribute__ ((packed));
                 struct caps {
+                    fractos::core::cap::request test;
                     fractos::core::cap::request destroy;
                 };
             };
@@ -47,6 +49,23 @@ namespace service::compute::cuda::message{
     }
 
     namespace cuda_device {
+        struct test {
+            struct request {
+                struct imms {
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                } __attribute__ ((packed));
+                struct caps {
+                    // fractos::core::cap::request destroy;
+                };
+            };
+        };
         struct destroy {
             struct request {
                 struct imms {

@@ -47,6 +47,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             std::shared_ptr<fractos::core::channel> ch;
         
             fractos::wire::endian::uint8_t error;
+            fractos::core::cap::request req_test;
             fractos::core::cap::request req_destroy;
         
             bool destroyed;
@@ -176,6 +177,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              */
             [[nodiscard]] core::future<void>
             destroy();
+
+            [[nodiscard]] core::future<void>
+            test();
 
         public:
             ~cuda_device();

@@ -111,6 +111,7 @@ core::future<std::shared_ptr<cuda_device>> cuda_service::make_cuda_device(uint8_
             // get cuda_device object
             std::shared_ptr<cuda_device_impl> pimpl_(
                 new cuda_device_impl{{}, ch, args->imms.error, 
+                        std::move(args->caps.test),
                         std::move(args->caps.destroy)}
                 );
             pimpl_->self = pimpl_;
@@ -163,6 +164,7 @@ core::future<std::shared_ptr<cuda_device>> cuda_service::get_cuda_device(fractos
                             new cuda_device_impl{{}, ch, args->imms.error, 
                                     // move(args->caps.allocate_memory),
                                     // move(args->caps.register_function),
+                                    // move(args->caps.test),
                                     move(args->caps.destroy)}
                             ); 
                         pimpl_->self = pimpl_;

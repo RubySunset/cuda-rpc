@@ -1,7 +1,10 @@
 #include "srv_device.hpp"
 #include <pthread.h>
-
+#include <glog/logging.h>
+#include <fractos/logging.hpp>
 #include <fractos/wire/error.hpp>
+
+
 using namespace fractos;
 using namespace ::test;
 // using namespace impl;
@@ -33,13 +36,24 @@ core::future<void> gpu_cuda_device::register_methods(std::shared_ptr<core::chann
 
     auto self = _self;
 
-    return ch->make_request_builder<msg_base::destroy::request>(
-        ch->get_default_endpoint(), 
+    return ch->make_request_builder<msg_base::test::request>(
+        ch->get_default_endpoint(),
         [self](auto ch, auto args) {
-            self->handle_destroy(std::move(args));
+            self->handle_test(std::move(args));
         })
         .on_channel()
         .make_request()
+        .then([ch, self](auto& fut) {
+            self->_req_test = fut.get();
+            return ch->make_request_builder<msg_base::destroy::request>(
+                ch->get_default_endpoint(), 
+                [self](auto ch, auto args) {
+                    self->handle_destroy(std::move(args));
+                })
+                .on_channel()
+                .make_request();
+            })
+        .unwrap()
         .then([ch, self, this](auto& fut) {
             self->_req_destroy = fut.get();
         });
@@ -49,7 +63,60 @@ core::future<void> gpu_cuda_device::register_methods(std::shared_ptr<core::chann
 /*
  *  Destroy a cuda_device, revoke all of its caps
  */
+void gpu_cuda_device::handle_test(auto args) {
+    DVLOG(logging::SERVICE) << "CALL handle test";
+    using msg = ::service::compute::cuda::message::cuda_device::test;
+
+    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
+    
+    auto self = this->_self;
+
+    if (not args->has_exactly_args() or _destroyed) {
+        ch->make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .on_channel()
+            .invoke()
+            .as_callback();
+
+        return;
+    }
+
+    DVLOG(logging::APP) << "Revoke test";
+
+    ch->template make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+        .on_channel()
+        .invoke()
+        .as_callback();
+        // .as_callback_log_ignore_error("error invoking continuation, ignoring");
+
+
+    // ch->make_request_builder<msg::response>(args->caps.continuation)
+    //         .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+    //         // .set_cap(&msg::response::caps::retest, destroy)
+    //         .on_channel()
+    //         .invoke()
+    //         .as_callback();
+
+    // ch->revoke(self->_req_test)
+    //     .then([this, ch, self, args=std::move(args)](auto& fut) {
+    //         fut.get();
+    //         DLOG(INFO) << "Virtual device test";
+    //         ch->make_request_builder<msg::response>(args->caps.continuation) // response
+    //             .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+    //             .on_channel()
+    //             .invoke()
+    //             .as_callback();
+    //     })
+    // .as_callback();
+}
+
+
+/*
+ *  Destroy a cuda_device, revoke all of its caps
+ */
 void gpu_cuda_device::handle_destroy(auto args) {
+    DVLOG(logging::SERVICE) << "CALL handle destroy";
     using msg = ::service::compute::cuda::message::cuda_device::destroy;
 
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
@@ -66,12 +133,18 @@ void gpu_cuda_device::handle_destroy(auto args) {
         return;
     }
 
-    DLOG(INFO) << "Revoke destroy";
+    DVLOG(logging::SERVICE) << "Revoke destroy";
 
-    ch->revoke(self->_req_destroy)
+    ch->revoke(self->_req_test)
+        .then([ch, self](auto& fut) {
+                  fut.get();
+                  DVLOG(logging::SERVICE) << "Revoke _req_register_function";
+                  return ch->revoke(self->_req_destroy);
+        })
+        .unwrap()
         .then([this, ch, self, args=std::move(args)](auto& fut) {
             fut.get();
-            DLOG(INFO) << "Virtual device destroyed";
+            DVLOG(logging::SERVICE) << "Virtual device destroyed";
             this->_destroyed = true;
             ch->make_request_builder<msg::response>(args->caps.continuation) // response
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
