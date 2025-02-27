@@ -36,15 +36,15 @@ core::future<void> gpu_cuda_device::register_methods(std::shared_ptr<core::chann
 
     auto self = _self;
 
-    return ch->make_request_builder<msg_base::test::request>(
+    return ch->make_request_builder<msg_base::make_cuda_context::request>(
         ch->get_default_endpoint(),
         [self](auto ch, auto args) {
-            self->handle_test(std::move(args));
+            self->handle_make_cuda_context(std::move(args));
         })
         .on_channel()
         .make_request()
         .then([ch, self](auto& fut) {
-            self->_req_test = fut.get();
+            self->_req_make_cuda_context = fut.get();
             return ch->make_request_builder<msg_base::destroy::request>(
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -63,52 +63,47 @@ core::future<void> gpu_cuda_device::register_methods(std::shared_ptr<core::chann
 /*
  *  Destroy a cuda_device, revoke all of its caps
  */
-void gpu_cuda_device::handle_test(auto args) {
-    DVLOG(logging::SERVICE) << "CALL handle test";
-    using msg = ::service::compute::cuda::message::cuda_device::test;
+void gpu_cuda_device::handle_make_cuda_context(auto args) {
+    DVLOG(logging::SERVICE) << "CALL handle make_cuda_context";
+    using msg = ::service::compute::cuda::message::cuda_device::make_cuda_context;
+    
+    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+        DLOG(ERROR) << "got request without continuation, ignoring";
+        return;
+    }
 
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
-    
-    auto self = this->_self;
 
-    if (not args->has_exactly_args() or _destroyed) {
+    if (not args->has_exactly_args()) {
         ch->make_request_builder<msg::response>(args->caps.continuation)
             .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
             .on_channel()
             .invoke()
             .as_callback();
-
         return;
     }
 
-    DVLOG(logging::APP) << "Revoke test";
+    wire::endian::uint8_t value = args->imms.value;
 
-    ch->template make_request_builder<msg::response>(args->caps.continuation)
-        .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
-        .on_channel()
-        .invoke()
+    auto self = _self; // lock()
+
+    LOG(INFO) << "vctx value is: " << (uint64_t)value;
+
+    auto vctx = std::shared_ptr<gpu_cuda_context>(gpu_cuda_context::factory(value));
+
+    vctx->register_methods(ch)
+        .then([this, ch, self, vctx, args=std::move(args), value](auto& fut) {
+            fut.get();
+            _vctx = vctx;
+            // _vdev_map.insert({value, vdev});
+            ch->make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
+                .set_cap(&msg::response::caps::destroy, vctx->_req_destroy)
+                .on_channel()
+                .invoke()
+                .as_callback();
+              })
         .as_callback();
-        // .as_callback_log_ignore_error("error invoking continuation, ignoring");
-
-
-    // ch->make_request_builder<msg::response>(args->caps.continuation)
-    //         .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-    //         // .set_cap(&msg::response::caps::retest, destroy)
-    //         .on_channel()
-    //         .invoke()
-    //         .as_callback();
-
-    // ch->revoke(self->_req_test)
-    //     .then([this, ch, self, args=std::move(args)](auto& fut) {
-    //         fut.get();
-    //         DLOG(INFO) << "Virtual device test";
-    //         ch->make_request_builder<msg::response>(args->caps.continuation) // response
-    //             .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
-    //             .on_channel()
-    //             .invoke()
-    //             .as_callback();
-    //     })
-    // .as_callback();
 }
 
 
@@ -135,7 +130,7 @@ void gpu_cuda_device::handle_destroy(auto args) {
 
     DVLOG(logging::SERVICE) << "Revoke destroy";
 
-    ch->revoke(self->_req_test)
+    ch->revoke(self->_req_make_cuda_context)
         .then([ch, self](auto& fut) {
                   fut.get();
                   DVLOG(logging::SERVICE) << "Revoke _req_register_function";

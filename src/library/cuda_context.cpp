@@ -24,11 +24,11 @@ const cuda_context_impl& cuda_context_impl::get(const cuda_context& obj)
 
 
 
-cuda_context::cuda_context(std::shared_ptr<void> pimpl, wire::endian::uint8_t id) : _pimpl(pimpl) {
+cuda_context::cuda_context(std::shared_ptr<void> pimpl, wire::endian::uint8_t value) : _pimpl(pimpl) {
     CUcontext ctx;
-    checkCudaErrors(cuCtxCreate(&ctx, CU_CTX_SCHED_SPIN, id));
+    checkCudaErrors(cuCtxCreate(&ctx, CU_CTX_SCHED_SPIN, value));
 
-    DLOG(INFO) << "initialize device : " << id;
+    DLOG(INFO) << "initialize context : " << value;
 }
 
 cuda_context::cuda_context(std::shared_ptr<void> pimpl) : _pimpl(pimpl) {
@@ -51,13 +51,13 @@ cuda_context::~cuda_context() {
 core::future<void> cuda_context::destroy() {
     using msg = ::service::compute::cuda::message::cuda_context::destroy;
 
-    DVLOG(logging::SERVICE) << "virtual_device::destroy <-";
+    DVLOG(logging::SERVICE) << "cuda_context::destroy <-";
 
     auto& pimpl = cuda_context_impl::get(*this);
     _destroyed = true;
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_destroy)
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_ctx_destroy)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp) // wait for handle_destroy

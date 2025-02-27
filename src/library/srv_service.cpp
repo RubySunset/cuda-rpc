@@ -106,7 +106,7 @@ void gpu_device_service::handle_make_cuda_device(auto args) {
             // _vdev_map.insert({value, vdev});
             ch->make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
-                .set_cap(&msg::response::caps::test, vdev->_req_test) // test
+                .set_cap(&msg::response::caps::make_cuda_context, vdev->_req_make_cuda_context) // test
                 .set_cap(&msg::response::caps::destroy, vdev->_req_destroy)
                 .on_channel()
                 .invoke()

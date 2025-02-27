@@ -19,6 +19,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
         class cuda_service;
         class cuda_device;
+        class cuda_context;
         class Context;
         class Module;
         class Function;
@@ -47,8 +48,23 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             std::shared_ptr<fractos::core::channel> ch;
         
             fractos::wire::endian::uint8_t error;
-            fractos::core::cap::request req_test;
+            fractos::core::cap::request req_make_cuda_context; // new
+            // fractos::core::cap::request req_test;
             fractos::core::cap::request req_destroy;
+        
+            bool destroyed;
+        };
+
+        struct cuda_context_impl {
+            static cuda_context_impl& get(fractos::service::compute::cuda::cuda_context& context);
+            static const cuda_context_impl& get(const fractos::service::compute::cuda::cuda_context& context);
+        
+            std::weak_ptr<cuda_context_impl> self;
+            std::shared_ptr<fractos::core::channel> ch;
+        
+            fractos::wire::endian::uint8_t error;
+            // fractos::core::cap::request req_test;
+            fractos::core::cap::request req_ctx_destroy;
         
             bool destroyed;
         };
@@ -170,7 +186,13 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              * @brief Wrapper for cuCtxCreate_v4()
              */
             [[nodiscard]] core::future<std::shared_ptr<Context>>
-            make_context(const std::vector<CUctxCreateParams>& params,  unsigned int flags);
+            make_cuda_context(const std::vector<CUctxCreateParams>& params,  unsigned int flags);
+
+            /**
+             * @brief Wrapper for cuCtxCreate_v4()
+             */
+            [[nodiscard]] core::future<std::shared_ptr<cuda_context>>
+            make_cuda_context(uint8_t value);
 
             /**
              * @brief Destroy device and all its contents
@@ -191,6 +213,37 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         
         };
         std::string to_string(const cuda_device& obj);
+
+        class cuda_context {
+            public:
+                std::shared_ptr<fractos::core::channel> get_default_channel();
+    
+                std::shared_ptr<fractos::core::channel> get_default_channel() const;
+            
+                void set_default_channel(std::shared_ptr<fractos::core::channel> ch);
+            
+                // fractos::core::future<void> destroy();
+                cuda_context(std::shared_ptr<void> pimpl, fractos::wire::endian::uint8_t value);
+                cuda_context(std::shared_ptr<void> pimpl);
+            
+                cuda_context(fractos::wire::endian::uint8_t value);
+                /**
+                 * @brief Destroy device and all its contents
+                 */
+                [[nodiscard]] core::future<void>
+                destroy();
+    
+    
+            public:
+                ~cuda_context();
+                // NOTE: not for public use
+                std::shared_ptr<void> _pimpl;
+            private:
+    
+                bool _destroyed;
+            
+            };
+            std::string to_string(const cuda_context& obj);
 
         /**
          * @brief Wrapper for CUcontext operations
