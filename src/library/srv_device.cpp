@@ -39,12 +39,14 @@ core::future<void> gpu_cuda_device::register_methods(std::shared_ptr<core::chann
     return ch->make_request_builder<msg_base::make_cuda_context::request>(
         ch->get_default_endpoint(),
         [self](auto ch, auto args) {
+            DLOG(INFO) << "In device register_methods handler";
             self->handle_make_cuda_context(std::move(args));
         })
         .on_channel()
         .make_request()
         .then([ch, self](auto& fut) {
             self->_req_make_cuda_context = fut.get();
+            DLOG(INFO) << "SET req_make_cuda_context";
             return ch->make_request_builder<msg_base::destroy::request>(
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -55,6 +57,7 @@ core::future<void> gpu_cuda_device::register_methods(std::shared_ptr<core::chann
             })
         .unwrap()
         .then([ch, self, this](auto& fut) {
+            DLOG(INFO) << "SET req_destroy device";
             self->_req_destroy = fut.get();
         });
 
@@ -98,6 +101,7 @@ void gpu_cuda_device::handle_make_cuda_context(auto args) {
             // _vdev_map.insert({value, vdev});
             ch->make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
+                .set_cap(&msg::response::caps::make_cuda_Memalloc, vctx->_req_cuda_Memalloc)
                 .set_cap(&msg::response::caps::destroy, vctx->_req_destroy)
                 .on_channel()
                 .invoke()
@@ -111,7 +115,7 @@ void gpu_cuda_device::handle_make_cuda_context(auto args) {
  *  Destroy a cuda_device, revoke all of its caps
  */
 void gpu_cuda_device::handle_destroy(auto args) {
-    DVLOG(logging::SERVICE) << "CALL handle destroy";
+    LOG(INFO) << "CALL handle destroy";
     using msg = ::service::compute::cuda::message::cuda_device::destroy;
 
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
@@ -128,18 +132,18 @@ void gpu_cuda_device::handle_destroy(auto args) {
         return;
     }
 
-    DVLOG(logging::SERVICE) << "Revoke destroy";
+    LOG(INFO) << "Revoke destroy";
 
     ch->revoke(self->_req_make_cuda_context)
         .then([ch, self](auto& fut) {
                   fut.get();
-                  DVLOG(logging::SERVICE) << "Revoke _req_register_function";
+                  LOG(INFO) << "Revoke _req_register_function";
                   return ch->revoke(self->_req_destroy);
         })
         .unwrap()
         .then([this, ch, self, args=std::move(args)](auto& fut) {
             fut.get();
-            DVLOG(logging::SERVICE) << "Virtual device destroyed";
+            LOG(INFO) << "Virtual device destroyed";
             this->_destroyed = true;
             ch->make_request_builder<msg::response>(args->caps.continuation) // response
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)

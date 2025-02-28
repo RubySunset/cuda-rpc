@@ -13,13 +13,14 @@
 #include <fractos/service/compute/cuda_msg.hpp>
 
 
-#define checkCudaErrors(err)  ErrorChecker(err, __FILE__, __LINE__)
+#define checkCudaErrors(err)  fractos::service::compute::cuda::ErrorChecker(err, __FILE__, __LINE__)
 
 namespace fractos::service::compute { namespace [[gnu::visibility("default")]] cuda {
 
         class cuda_service;
         class cuda_device;
         class cuda_context;
+        class cuda_memory;
         class Context;
         class Module;
         class Function;
@@ -63,8 +64,22 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             std::shared_ptr<fractos::core::channel> ch;
         
             fractos::wire::endian::uint8_t error;
-            // fractos::core::cap::request req_test;
+            fractos::core::cap::request req_cuda_Memalloc;
             fractos::core::cap::request req_ctx_destroy;
+        
+            bool destroyed;
+        };
+
+        struct cuda_memory_impl {
+            static cuda_memory_impl& get(fractos::service::compute::cuda::cuda_memory& memory);
+            static const cuda_memory_impl& get(const fractos::service::compute::cuda::cuda_memory& memory);
+        
+            std::weak_ptr<cuda_memory_impl> self;
+            std::shared_ptr<fractos::core::channel> ch;
+        
+            fractos::wire::endian::uint8_t error;
+            // fractos::core::cap::request req_test; refer to initialize
+            fractos::core::cap::request req_mem_destroy;
         
             bool destroyed;
         };
@@ -183,6 +198,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
                                                                                
             /**
+             * @brief TODO: transfer vector<CUctxCreateParams> through message
              * @brief Wrapper for cuCtxCreate_v4()
              */
             [[nodiscard]] core::future<std::shared_ptr<Context>>
@@ -215,36 +231,79 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         };
         std::string to_string(const cuda_device& obj);
 
+        /**
+         * @brief Wrapper for CUcontext operations
+         */
         class cuda_context {
-            public:
-                std::shared_ptr<fractos::core::channel> get_default_channel();
-    
-                std::shared_ptr<fractos::core::channel> get_default_channel() const;
-            
-                void set_default_channel(std::shared_ptr<fractos::core::channel> ch);
-            
-                // fractos::core::future<void> destroy();
-                cuda_context(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t value);
-                cuda_context(std::shared_ptr<void> pimpl);
-            
-                cuda_context(fractos::wire::endian::uint32_t value);
-                /**
-                 * @brief Destroy device and all its contents
-                 */
-                [[nodiscard]] core::future<void>
-                destroy();
-    
-    
-            public:
-                ~cuda_context();
-                // NOTE: not for public use
-                std::shared_ptr<void> _pimpl;
-            private:
-    
-                bool _destroyed;
-            
-            };
-            std::string to_string(const cuda_context& obj);
+        public:
+            std::shared_ptr<fractos::core::channel> get_default_channel();
+
+            std::shared_ptr<fractos::core::channel> get_default_channel() const;
+        
+            void set_default_channel(std::shared_ptr<fractos::core::channel> ch);
+        
+            // fractos::core::future<void> destroy();
+            cuda_context(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t value);
+            cuda_context(std::shared_ptr<void> pimpl);
+        
+            cuda_context(fractos::wire::endian::uint32_t value);
+
+            /**
+             * @brief Wrapper for cuMemAlloc()
+             */
+            [[nodiscard]] core::future<std::shared_ptr<cuda_memory>>
+            make_cuda_Memalloc(uint64_t size); // size_t
+
+
+            /**
+             * @brief Destroy device and all its contents
+             */
+            [[nodiscard]] core::future<void>
+            destroy();
+
+
+        public:
+            ~cuda_context();
+            // NOTE: not for public use
+            std::shared_ptr<void> _pimpl;
+        private:
+
+            bool _destroyed;
+        
+        };
+        std::string to_string(const cuda_context& obj);
+
+
+        class cuda_memory {
+        public:
+            std::shared_ptr<fractos::core::channel> get_default_channel();
+            std::shared_ptr<fractos::core::channel> get_default_channel() const;
+            void set_default_channel(std::shared_ptr<fractos::core::channel> ch);
+        
+            // fractos::core::future<void> destroy();
+            cuda_memory(std::shared_ptr<void> pimpl, fractos::wire::endian::uint64_t size);
+            cuda_memory(std::shared_ptr<void> pimpl);
+        
+            cuda_memory(fractos::wire::endian::uint64_t size);
+
+            /**
+             * @brief Destroy device and all its contents
+             */
+            [[nodiscard]] core::future<void>
+            destroy();
+
+
+        public:
+            ~cuda_memory();
+            // NOTE: not for public use
+            std::shared_ptr<void> _pimpl;
+        private:
+
+            bool _destroyed;
+        
+        };
+        std::string to_string(const cuda_memory& obj);
+        
 
         /**
          * @brief Wrapper for CUcontext operations
