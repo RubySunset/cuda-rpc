@@ -9,14 +9,14 @@ using namespace fractos;
 using namespace ::test;
 // using namespace impl;
 
-gpu_cuda_context::gpu_cuda_context(wire::endian::uint8_t value) {
+gpu_cuda_context::gpu_cuda_context(fractos::wire::endian::uint32_t value) {
     //fork();
     _id = value;
     _destroyed = false;
    
 }
 
-std::shared_ptr<gpu_cuda_context> gpu_cuda_context::factory(wire::endian::uint8_t value){
+std::shared_ptr<gpu_cuda_context> gpu_cuda_context::factory(fractos::wire::endian::uint32_t value){
     auto res = std::shared_ptr<gpu_cuda_context>(new gpu_cuda_context(value));
     res->_self = res;
     return res;

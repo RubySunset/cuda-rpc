@@ -10,7 +10,7 @@ namespace test {
 
 class gpu_cuda_context {
 public:
-    static std::shared_ptr<gpu_cuda_context> factory(fractos::wire::endian::uint8_t id);
+    static std::shared_ptr<gpu_cuda_context> factory(fractos::wire::endian::uint32_t id);
 
     fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
@@ -19,7 +19,7 @@ protected:
 
 
 private:
-    fractos::wire::endian::uint8_t _id;
+    fractos::wire::endian::uint32_t _id;
 
     std::shared_ptr<gpu_cuda_context> _self;
     bool _destroyed;
@@ -27,7 +27,7 @@ private:
 public:
     fractos::core::cap::request _req_destroy;
 
-    gpu_cuda_context(fractos::wire::endian::uint8_t value);
+    gpu_cuda_context(fractos::wire::endian::uint32_t value);
 
     ~gpu_cuda_context();
 

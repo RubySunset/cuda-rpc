@@ -36,7 +36,7 @@ cuda_device::cuda_device(std::shared_ptr<void> pimpl) : _pimpl(pimpl) {
 cuda_device::cuda_device(wire::endian::uint8_t id) {}
 
 cuda_device::~cuda_device() {
-    DLOG(INFO) << "cuda_device: i am freed";
+    DLOG(INFO) << "cuda_device: i am free";
     if (not _destroyed) {
         _destroyed = true;
         // TODO: check why calling ::get() sometimes gets stuck
@@ -44,7 +44,9 @@ cuda_device::~cuda_device() {
     }
 }
 
-core::future<std::shared_ptr<cuda_context>> cuda_device::make_cuda_context(uint8_t value) {
+core::future<std::shared_ptr<cuda_context>> cuda_device::make_cuda_context(
+                    unsigned int flags) {
+
     using msg = ::service::compute::cuda::message::cuda_device::make_cuda_context;
 
     DVLOG(logging::SERVICE) << "cuda_device::make_cuda_context <-";
@@ -53,12 +55,12 @@ core::future<std::shared_ptr<cuda_context>> cuda_device::make_cuda_context(uint8
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_make_cuda_context)
-        .set_imm(&msg::request::imms::value, value)
+        .set_imm(&msg::request::imms::flags, flags) // unsigned int vs uint32_t
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp) // wait for srv_handle
         .unwrap()
-        .then([value](auto& fut) {
+        .then([flags](auto& fut) {
             auto [ch, args] = fut.get();
 
             if (not args->has_exactly_args()) {
@@ -78,7 +80,7 @@ core::future<std::shared_ptr<cuda_context>> cuda_device::make_cuda_context(uint8
                 );
             pimpl_->self = pimpl_;
             auto pimpl = static_pointer_cast<void>(pimpl_);
-            std::shared_ptr<cuda_context> res(new cuda_context{pimpl, value});
+            std::shared_ptr<cuda_context> res(new cuda_context{pimpl, flags});
             return res;
         });
 }

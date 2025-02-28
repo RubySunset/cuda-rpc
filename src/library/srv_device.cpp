@@ -83,7 +83,7 @@ void gpu_cuda_device::handle_make_cuda_context(auto args) {
         return;
     }
 
-    wire::endian::uint8_t value = args->imms.value;
+    unsigned int value = args->imms.flags; // uint32_t
 
     auto self = _self; // lock()
 

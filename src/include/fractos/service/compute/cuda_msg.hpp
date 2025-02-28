@@ -52,7 +52,7 @@ namespace service::compute::cuda::message{
         struct make_cuda_context {
             struct request {
                 struct imms {
-                    fractos::wire::endian::uint8_t value;
+                    fractos::wire::endian::uint32_t flags; // unsigned int
                 } __attribute__((packed));
                 struct caps {
                     fractos::core::cap::request continuation; 

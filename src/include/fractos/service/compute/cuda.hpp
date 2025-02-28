@@ -186,13 +186,14 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              * @brief Wrapper for cuCtxCreate_v4()
              */
             [[nodiscard]] core::future<std::shared_ptr<Context>>
-            make_cuda_context(const std::vector<CUctxCreateParams>& params,  unsigned int flags);
+            make_cuda_context(const std::vector<CUctxCreateParams>& paramsArray, unsigned int flags); // The paramsArray is an array of CUexecAffinityParam and the numParams describes the size of the array
+
 
             /**
-             * @brief Wrapper for cuCtxCreate_v4()
+             * @brief Wrapper for cuCtxCreate()
              */
             [[nodiscard]] core::future<std::shared_ptr<cuda_context>>
-            make_cuda_context(uint8_t value);
+            make_cuda_context(unsigned int flags);
 
             /**
              * @brief Destroy device and all its contents
@@ -223,10 +224,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
                 void set_default_channel(std::shared_ptr<fractos::core::channel> ch);
             
                 // fractos::core::future<void> destroy();
-                cuda_context(std::shared_ptr<void> pimpl, fractos::wire::endian::uint8_t value);
+                cuda_context(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t value);
                 cuda_context(std::shared_ptr<void> pimpl);
             
-                cuda_context(fractos::wire::endian::uint8_t value);
+                cuda_context(fractos::wire::endian::uint32_t value);
                 /**
                  * @brief Destroy device and all its contents
                  */

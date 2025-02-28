@@ -24,9 +24,9 @@ const cuda_context_impl& cuda_context_impl::get(const cuda_context& obj)
 
 
 
-cuda_context::cuda_context(std::shared_ptr<void> pimpl, wire::endian::uint8_t value) : _pimpl(pimpl) {
+cuda_context::cuda_context(std::shared_ptr<void> pimpl, wire::endian::uint32_t value) : _pimpl(pimpl) {
     CUcontext ctx;
-    checkCudaErrors(cuCtxCreate(&ctx, CU_CTX_SCHED_SPIN, value));
+    checkCudaErrors(cuCtxCreate(&ctx, CU_CTX_SCHED_SPIN, (unsigned int)value)); // 
 
     DLOG(INFO) << "initialize context : " << value;
 }
@@ -34,10 +34,10 @@ cuda_context::cuda_context(std::shared_ptr<void> pimpl, wire::endian::uint8_t va
 cuda_context::cuda_context(std::shared_ptr<void> pimpl) : _pimpl(pimpl) {
 }
 
-cuda_context::cuda_context(wire::endian::uint8_t id) {}
+cuda_context::cuda_context(wire::endian::uint32_t id) {}
 
 cuda_context::~cuda_context() {
-    DLOG(INFO) << "cuda_context: i am freed";
+    DLOG(INFO) << "cuda_context: i am free";
     if (not _destroyed) {
         _destroyed = true;
         // TODO: check why calling ::get() sometimes gets stuck
