@@ -8,7 +8,10 @@ using namespace fractos;
 using namespace ::test;
 // using namespace impl;
 
-gpu_device_service::gpu_device_service() {}
+gpu_device_service::gpu_device_service() {
+
+    // checkCudaErrors(cuInit(0));
+}
 
 void gpu_device_service::request_exit() {
    _requested_exit.store(true); 
@@ -25,7 +28,10 @@ std::shared_ptr<gpu_device_service> gpu_device_service::factory() {
     return res;
 }
 
-gpu_device_service::~gpu_device_service() {}
+gpu_device_service::~gpu_device_service() {
+
+
+}
 /*
  *  The handler for make_cuda_device request
  *  Registers all methods that a cuda_device has

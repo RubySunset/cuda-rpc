@@ -27,7 +27,7 @@ const cuda_service_impl& cuda_service_impl::get(const cuda_service& obj)
 
 cuda_service::cuda_service(std::shared_ptr<void> pimpl) : _pimpl(pimpl) {
     
-    checkCudaErrors(cuInit(0));
+
 
 }
 
@@ -169,7 +169,7 @@ core::future<std::shared_ptr<cuda_device>> cuda_service::get_cuda_device(fractos
                             ); 
                         pimpl_->self = pimpl_;
                         auto pimpl = static_pointer_cast<void>(pimpl_);
-                        shared_ptr<cuda_device> res(new cuda_device{pimpl});
+                        shared_ptr<cuda_device> res(new cuda_device{pimpl, value});
                         return res;
                     });
         })

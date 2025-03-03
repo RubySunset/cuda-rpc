@@ -25,6 +25,7 @@ private:
 
     std::shared_ptr<gpu_cuda_device> _self;
     bool _destroyed;
+    CUdevice _device;
 
 public:
     fractos::core::cap::request _req_make_cuda_context;

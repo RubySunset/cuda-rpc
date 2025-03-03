@@ -24,9 +24,9 @@ const cuda_context_impl& cuda_context_impl::get(const cuda_context& obj)
 
 
 
-cuda_context::cuda_context(std::shared_ptr<void> pimpl, wire::endian::uint32_t value) : _pimpl(pimpl) {
-    CUcontext ctx;
-    checkCudaErrors(cuCtxCreate(&ctx, CU_CTX_SCHED_SPIN, (unsigned int)value)); // 
+cuda_context::cuda_context(std::shared_ptr<void> pimpl, wire::endian::uint32_t value) : 
+    _pimpl(pimpl) {
+
 
     DLOG(INFO) << "initialize context : " << value;
 }

@@ -22,10 +22,7 @@ const cuda_device_impl& cuda_device_impl::get(const cuda_device& obj)
     return *reinterpret_cast<cuda_device_impl*>(obj._pimpl.get());
 }
 
-cuda_device::cuda_device(std::shared_ptr<void> pimpl, wire::endian::uint8_t id) : _pimpl(pimpl) {
-    CUdevice device;
-    checkCudaErrors(cuDeviceGet(&device, id));
-    // checkCudaErrors(cuCtxCreate(&context, CU_CTX_SCHED_SPIN, device));
+cuda_device::cuda_device(std::shared_ptr<void> pimpl, wire::endian::uint8_t id) : _pimpl(pimpl){ // value
 
     DLOG(INFO) << "initialize device : " << id;
 }
@@ -60,7 +57,7 @@ core::future<std::shared_ptr<cuda_context>> cuda_device::make_cuda_context(
         .on_channel()
         .invoke(resp) // wait for srv_handle
         .unwrap()
-        .then([flags](auto& fut) {
+        .then([flags, this](auto& fut) {
             auto [ch, args] = fut.get();
 
             if (not args->has_exactly_args()) {

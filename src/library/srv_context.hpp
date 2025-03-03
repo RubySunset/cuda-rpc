@@ -11,7 +11,7 @@ namespace test {
 
 class gpu_cuda_context {
 public:
-    static std::shared_ptr<gpu_cuda_context> factory(fractos::wire::endian::uint32_t id);
+    static std::shared_ptr<gpu_cuda_context> factory(fractos::wire::endian::uint32_t id, CUdevice& device);
 
     fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
@@ -21,18 +21,20 @@ protected:
 
 
 private:
-    char* allocate_memory(size_t size);//, CUcontext& context); // type?
+    char* allocate_memory(size_t size, CUcontext& context); // type?
+    void context_destroy(CUcontext& context); // type?
 
     fractos::wire::endian::uint32_t _id;
 
     std::shared_ptr<gpu_cuda_context> _self;
     bool _destroyed;
+    CUcontext _ctx; 
 
 public:
     fractos::core::cap::request _req_cuda_Memalloc;
     fractos::core::cap::request _req_destroy;
 
-    gpu_cuda_context(fractos::wire::endian::uint32_t value);
+    gpu_cuda_context(fractos::wire::endian::uint32_t value, CUdevice& device);
     std::shared_ptr<test::gpu_cuda_memory> _dev_mem;
 
     ~gpu_cuda_context();

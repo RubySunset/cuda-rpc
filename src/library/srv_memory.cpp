@@ -26,6 +26,15 @@ gpu_cuda_memory::~gpu_cuda_memory() {
     // checkCudaErrors(cuCtxDestroy(context));
 }
 
+
+void gpu_cuda_memory::memory_free(char* base)
+{
+    CUdeviceptr d_B = reinterpret_cast<CUdeviceptr>(base);
+
+    // Clean up
+    checkCudaErrors(cuMemFree(d_B));
+    // checkCudaErrors(cuCtxDestroy(context));
+}
 /*
  *  Make handlers for a cuda_memory's caps
  */
@@ -70,12 +79,14 @@ void gpu_cuda_memory::handle_destroy(auto args) {
         return;
     }
 
+    memory_free(base);
+
     DVLOG(logging::SERVICE) << "Revoke destroy";
                   
     ch->revoke(self->_req_destroy)
         .then([this, ch, self, args=std::move(args)](auto& fut) {
             fut.get();
-            DLOG(INFO) << "Virtual context destroyed";
+            DLOG(INFO) << "cuda memory destroyed";
             this->_destroyed = true;
             ch->make_request_builder<msg::response>(args->caps.continuation) // response
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
@@ -86,3 +97,4 @@ void gpu_cuda_memory::handle_destroy(auto args) {
     .as_callback();
 
 }
+

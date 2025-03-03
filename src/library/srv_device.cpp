@@ -13,6 +13,13 @@ gpu_cuda_device::gpu_cuda_device(wire::endian::uint8_t value) {
     //fork();
     _id = value;
     _destroyed = false;
+
+    checkCudaErrors(cuInit(0));
+
+    CUdevice device;
+    checkCudaErrors(cuDeviceGet(&device, value));
+    
+    _device = device;
    
 }
 
@@ -23,7 +30,7 @@ std::shared_ptr<gpu_cuda_device> gpu_cuda_device::factory(wire::endian::uint8_t 
 }
 
 gpu_cuda_device::~gpu_cuda_device() {
-    // checkCudaErrors(cuCtxDestroy(context));
+
 }
 
 /*
@@ -92,7 +99,7 @@ void gpu_cuda_device::handle_make_cuda_context(auto args) {
 
     LOG(INFO) << "vctx value is: " << (uint64_t)value;
 
-    auto vctx = std::shared_ptr<gpu_cuda_context>(gpu_cuda_context::factory(value));
+    auto vctx = std::shared_ptr<gpu_cuda_context>(gpu_cuda_context::factory(value, _device));
 
     vctx->register_methods(ch)
         .then([this, ch, self, vctx, args=std::move(args), value](auto& fut) {

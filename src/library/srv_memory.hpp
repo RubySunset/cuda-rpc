@@ -16,9 +16,9 @@ public:
 
 protected:
     void handle_destroy(auto args);
-
-
+    
 private:
+    void memory_free(char* base);  
     fractos::wire::endian::uint32_t _size;
 
     std::shared_ptr<gpu_cuda_memory> _self;

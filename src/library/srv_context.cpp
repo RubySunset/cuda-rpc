@@ -12,22 +12,52 @@ using namespace fractos;
 using namespace ::test;
 // using namespace impl;
 
-gpu_cuda_context::gpu_cuda_context(fractos::wire::endian::uint32_t value) {
+gpu_cuda_context::gpu_cuda_context(fractos::wire::endian::uint32_t value, CUdevice& device) {
     //fork();
     _id = value;
-    _destroyed = false;
-   
+    _destroyed = false;   
+
+    CUcontext ctx;
+    checkCudaErrors(cuCtxCreate(&ctx, CU_CTX_SCHED_SPIN, device)); //(unsigned int)value)); // 
+    _ctx = ctx;
 }
 
-std::shared_ptr<gpu_cuda_context> gpu_cuda_context::factory(fractos::wire::endian::uint32_t value){
-    auto res = std::shared_ptr<gpu_cuda_context>(new gpu_cuda_context(value));
+std::shared_ptr<gpu_cuda_context> gpu_cuda_context::factory(fractos::wire::endian::uint32_t value, CUdevice& device){
+
+    auto res = std::shared_ptr<gpu_cuda_context>(new gpu_cuda_context(value, device));
     res->_self = res;
     return res;
 }
 
 gpu_cuda_context::~gpu_cuda_context() {
-    // checkCudaErrors(cuCtxDestroy(context));
+    checkCudaErrors(cuCtxDestroy(_ctx));
 }
+
+
+char* gpu_cuda_context::allocate_memory(size_t size, CUcontext& context) {
+
+    
+    checkCudaErrors(cuCtxSetCurrent(context));
+    CUdeviceptr d_A;
+   
+    // Allocate memory on the device
+    checkCudaErrors(cuMemAlloc(&d_A, size));
+
+    // Clean up
+    // checkCudaErrors(cuMemFree(d_A));
+    // checkCudaErrors(cuCtxDestroy(context));
+
+    char* addr = nullptr;
+ 
+    addr = (char*)d_A;
+    //checkCudaErrors(cuCtxPopCurrent(nullptr));
+    return addr;
+}
+
+void gpu_cuda_context::context_destroy(CUcontext& context) {
+    checkCudaErrors(cuCtxDestroy(context));
+}
+
 
 /*
  *  Make handlers for a cuda_context's caps
@@ -92,7 +122,7 @@ void gpu_cuda_context::handle_cuda_Memalloc(auto args) {
 
     std::size_t size = args->imms.size; // uint64_t
 
-    char* base = allocate_memory(size);//, context);
+    char* base = allocate_memory(size , _ctx);//, context);
 
     // auto mr_ = ch->make_memory_region(base, size, core::memory_region::translation_type::PIN);
     // std::shared_ptr<typename decltype(mr_)::element_type> mr(std::move(mr_)); // element_type??
@@ -109,7 +139,7 @@ void gpu_cuda_context::handle_cuda_Memalloc(auto args) {
     auto dev_mem = std::shared_ptr<gpu_cuda_memory>(gpu_cuda_memory::factory(size));
 
     // dev_mem->_memory = fut.get();
-    // dev_mem->base = (char*)base;
+    dev_mem->base = (char*)base;
     // dev_mem->_mr = mr;
 
 
@@ -155,6 +185,8 @@ void gpu_cuda_context::handle_destroy(auto args) {
         return;
     }
 
+    context_destroy(_ctx);
+
     LOG(INFO) << "Revoke destroy";
 
     ch->revoke(self->_req_cuda_Memalloc)
@@ -176,60 +208,5 @@ void gpu_cuda_context::handle_destroy(auto args) {
         })
     .as_callback();
 
-                  
-    // ch->revoke(self->_req_destroy)
-    //     .then([this, ch, self, args=std::move(args)](auto& fut) {
-    //         fut.get();
-    //         DLOG(INFO) << "Virtual context destroyed";
-    //         this->_destroyed = true;
-    //         ch->make_request_builder<msg::response>(args->caps.continuation) // response
-    //             .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
-    //             .on_channel()
-    //             .invoke()
-    //             .as_callback();
-    //     })
-    // .as_callback();
-
 }
 
-
-char* gpu_cuda_context::allocate_memory(size_t size){//, CUcontext& context) {
-
-    // Initialize the CUDA driver
-    checkCudaErrors(cuInit(0));
-
-    CUdevice device;
-    checkCudaErrors(cuDeviceGet(&device, 0));
-
-    CUcontext context;
-    checkCudaErrors(cuCtxCreate(&context, 0, device));
-
-    CUdeviceptr d_A;
-    // size_t size = 1024;
-
-    // Allocate memory on the device
-    checkCudaErrors(cuMemAlloc(&d_A, size));
-
-    // Clean up
-    checkCudaErrors(cuMemFree(d_A));
-    checkCudaErrors(cuCtxDestroy(context));
-
-    char* addr = nullptr;
-    // checkCudaErrors(cuCtxSetCurrent(context));
-
-    // if (type == static_cast<uint64_t>(ALLOC_DEVICE)) {
-    //     CUdeviceptr p;
-    //     checkCudaErrors(cuMemAlloc(&p, size));
-    //     addr = (char*)p;
-    // } else if (type == static_cast<uint64_t>(ALLOC_MANAGED)){
-    //     CUdeviceptr p;
-    //     checkCudaErrors(cuMemAllocManaged(&p, size, CU_MEM_ATTACH_GLOBAL));
-    //     addr = (char*)p;
-    // }
-
-    // CUdeviceptr p;
-    // checkCudaErrors(cuMemAlloc(&p, size));
-    addr = (char*)d_A;
-    //checkCudaErrors(cuCtxPopCurrent(nullptr));
-    return addr;
-}
