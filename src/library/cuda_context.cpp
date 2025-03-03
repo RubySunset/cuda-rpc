@@ -88,9 +88,35 @@ core::future<std::shared_ptr<cuda_memory>> cuda_context::make_cuda_Memalloc(
         });
 }
 
-// core::future<void> cuda_context::destroy() {
-//     DLOG(INFO) << "cuda_context: destroy";
-// }
+
+core::future<void> cuda_context::synchronize() {
+    using msg = ::service::compute::cuda::message::cuda_context::synchronize;
+
+    DVLOG(logging::SERVICE) << "cuda_context::synchronize <-";
+
+    auto& pimpl = cuda_context_impl::get(*this);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_ctx_sync)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp) // wait for handle_sync
+        .unwrap()
+        .then([](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            if (not args->has_exactly_args()) {
+                // throw core::other_error("invalid response format for cuda_context::synchronize");
+                DVLOG(logging::SERVICE) << "cuda_context::synchronize ->"
+                                << " error=OTHER args";
+            }
+
+            DVLOG(logging::SERVICE) << "cuda_context::synchronize ->"
+                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
+            wire::error_raise_exception_maybe(args->imms.error);
+        });
+}
+
 core::future<void> cuda_context::destroy() {
     using msg = ::service::compute::cuda::message::cuda_context::destroy;
 

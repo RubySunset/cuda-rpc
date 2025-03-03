@@ -74,6 +74,7 @@ core::future<std::shared_ptr<cuda_context>> cuda_device::make_cuda_context(
             std::shared_ptr<cuda_context_impl> pimpl_(
                 new cuda_context_impl{{}, ch, args->imms.error, 
                         std::move(args->caps.make_cuda_Memalloc),
+                        std::move(args->caps.synchronize),
                         std::move(args->caps.destroy)}
                 );
             pimpl_->self = pimpl_;
@@ -111,33 +112,4 @@ core::future<void> cuda_device::destroy() {
             wire::error_raise_exception_maybe(args->imms.error);
         });
 }
-
-
-// core::future<void> cuda_device::test() {
-//     using msg = ::service::compute::cuda::message::cuda_device::test;
-
-//     DVLOG(logging::SERVICE) << "virtual_device::test <-";
-
-//     auto& pimpl = cuda_device_impl::get(*this);
-
-//     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-//     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_test)
-//         .set_cap(&msg::request::caps::continuation, resp)
-//         .on_channel()
-//         .invoke(resp) // wait for handle_test
-//         .unwrap()
-//         .then([](auto& fut) {
-//             auto [ch, args] = fut.get();
-
-//             if (not args->has_exactly_args()) {
-//                 // throw core::other_error("invalid response format for cuda_device::destroy");
-//                 DVLOG(logging::SERVICE) << "cuda_device::test ->"
-//                                 << " error=OTHER args";
-//             }
-
-//             DVLOG(logging::SERVICE) << "cuda_device::test ->"
-//                                     << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-//             wire::error_raise_exception_maybe(args->imms.error);
-//         });
-// }
 

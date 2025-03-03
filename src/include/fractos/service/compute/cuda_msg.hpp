@@ -64,6 +64,7 @@ namespace service::compute::cuda::message{
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::request make_cuda_Memalloc;
+                    fractos::core::cap::request synchronize;
                     fractos::core::cap::request destroy;
                 };
             };
@@ -106,6 +107,23 @@ namespace service::compute::cuda::message{
                 struct caps {
                     // fractos::core::cap::cap::memory memory;
                     fractos::core::cap::request destroy;
+                };
+            };
+        };
+        
+        struct synchronize {
+            struct request {
+                struct imms {
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                } __attribute__ ((packed));
+                struct caps {
                 };
             };
         };

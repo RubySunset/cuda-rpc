@@ -54,6 +54,11 @@ char* gpu_cuda_context::allocate_memory(size_t size, CUcontext& context) {
     return addr;
 }
 
+
+void gpu_cuda_context::context_synchronize() {
+    checkCudaErrors(cuCtxSynchronize());
+}
+
 void gpu_cuda_context::context_destroy(CUcontext& context) {
     checkCudaErrors(cuCtxDestroy(context));
 }
@@ -80,6 +85,19 @@ core::future<void> gpu_cuda_context::register_methods(std::shared_ptr<core::chan
         .then([ch, self](auto& fut) {
             self->_req_cuda_Memalloc = fut.get();
             LOG(INFO) << "SET req_cuda_Memalloc"; // virtua
+            return ch->make_request_builder<msg_base::synchronize::request>(
+                ch->get_default_endpoint(), 
+                [self](auto ch, auto args) {
+                    
+                    self->handle_synchronize(std::move(args));
+                })
+                .on_channel()
+                .make_request();
+            })
+        .unwrap()
+        .then([ch, self](auto& fut) {
+            self->_req_synchronize = fut.get();
+            LOG(INFO) << "SET req_synchronize"; // virtua
             return ch->make_request_builder<msg_base::destroy::request>(
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -164,6 +182,31 @@ void gpu_cuda_context::handle_cuda_Memalloc(auto args) {
 
 }
 
+
+
+
+void gpu_cuda_context::handle_synchronize(auto args) {
+    LOG(INFO) << "CALL handle synchronize";
+    using msg = ::service::compute::cuda::message::cuda_context::synchronize;
+
+    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+        LOG(ERROR) << "no continuation";
+        return;
+    }
+
+    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
+
+    // context_synchronize();
+
+    ch->make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+        .on_channel()
+        .invoke()
+        .as_callback();
+}
+
+
+
 /*
  *  Destroy a cuda_context, revoke all of its caps
  */
@@ -193,7 +236,13 @@ void gpu_cuda_context::handle_destroy(auto args) {
         .then([ch, self](auto& fut) {
                   fut.get();
                   LOG(INFO) << "Revoke _req_register_function";
-                  return ch->revoke(self->_req_destroy);
+                  return ch->revoke(self->_req_synchronize);
+        })
+        .unwrap()
+        .then([ch, self](auto& fut) {
+            fut.get();
+            LOG(INFO) << "Revoke _req_synchronize";
+            return ch->revoke(self->_req_destroy);
         })
         .unwrap()
         .then([this, ch, self, args=std::move(args)](auto& fut) {

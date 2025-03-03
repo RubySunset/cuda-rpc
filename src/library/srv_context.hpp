@@ -17,11 +17,13 @@ public:
 
 protected:
     void handle_cuda_Memalloc(auto args);
+    void handle_synchronize(auto args);
     void handle_destroy(auto args);
 
 
 private:
     char* allocate_memory(size_t size, CUcontext& context); // type?
+    void context_synchronize(); // type?
     void context_destroy(CUcontext& context); // type?
 
     fractos::wire::endian::uint32_t _id;
@@ -32,6 +34,7 @@ private:
 
 public:
     fractos::core::cap::request _req_cuda_Memalloc;
+    fractos::core::cap::request _req_synchronize;
     fractos::core::cap::request _req_destroy;
 
     gpu_cuda_context(fractos::wire::endian::uint32_t value, CUdevice& device);

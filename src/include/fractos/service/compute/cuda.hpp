@@ -65,6 +65,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         
             fractos::wire::endian::uint8_t error;
             fractos::core::cap::request req_cuda_Memalloc;
+            fractos::core::cap::request req_ctx_sync;
             fractos::core::cap::request req_ctx_destroy;
         
             bool destroyed;
@@ -191,10 +192,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             cuda_device(std::shared_ptr<void> pimpl, fractos::wire::endian::uint8_t id);
             cuda_device(std::shared_ptr<void> pimpl);
         
-            cuda_device(fractos::wire::endian::uint8_t id);
-        
-            // ~cuda_device();
-    
+            cuda_device(fractos::wire::endian::uint8_t id);  
 
                                                                                
             /**
@@ -216,9 +214,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              */
             [[nodiscard]] core::future<void>
             destroy();
-
-            [[nodiscard]] core::future<void>
-            test();
 
         public:
             ~cuda_device();
@@ -254,9 +249,14 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<cuda_memory>>
             make_cuda_Memalloc(uint64_t size); // size_t
 
+            /**
+             * @brief Wrapper for cuCtxSynchronize()
+             */
+            [[nodiscard]] fractos::core::future<void>
+            synchronize();
 
             /**
-             * @brief Destroy device and all its contents
+             * @brief Destroy context and all its contents
              */
             [[nodiscard]] core::future<void>
             destroy();
@@ -286,8 +286,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         
             cuda_memory(fractos::wire::endian::uint64_t size);
 
+            
+
             /**
-             * @brief Destroy device and all its contents
+             * @brief Destroy memory 
              */
             [[nodiscard]] core::future<void>
             destroy();
@@ -390,7 +392,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         public:
 
             /**
-             * @brief Wrapper for cuModuleGetFunction ()
+             * @brief Wrapper for cuModuleGetFunction()
              */
             [[nodiscard]] fractos::core::future<std::shared_ptr<Function>>
             make_function(const std::string name);
