@@ -5,11 +5,15 @@
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
+#include <service_impl.hpp>
+#include <device_impl.hpp>
+
 // #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
 using namespace std;
-using namespace fractos::service::compute::cuda;
 
+using namespace impl;
+using namespace fractos::service::compute::cuda;
 ///////////////////////////////////////////////////////////
 // * pimpl pattern
 // * all cuda_service_impl related functions

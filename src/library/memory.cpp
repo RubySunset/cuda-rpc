@@ -5,9 +5,12 @@
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
+#include <memory_impl.hpp>
+
 // #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
 using namespace fractos::service::compute::cuda;
+using namespace impl;
 
 inline
 cuda_memory_impl& cuda_memory_impl::get(cuda_memory& obj)

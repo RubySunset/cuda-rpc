@@ -6,9 +6,13 @@
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
+
+#include <device_impl.hpp>
+#include <context_impl.hpp>
 // #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
 using namespace fractos::service::compute::cuda;
+using namespace impl;
 
 inline
 cuda_device_impl& cuda_device_impl::get(cuda_device& obj)
@@ -73,7 +77,7 @@ core::future<std::shared_ptr<cuda_context>> cuda_device::make_cuda_context(
             // get cuda_device object
             std::shared_ptr<cuda_context_impl> pimpl_(
                 new cuda_context_impl{{}, ch, args->imms.error, 
-                        std::move(args->caps.make_cuda_Memalloc),
+                        std::move(args->caps.make_cuMemalloc),
                         std::move(args->caps.synchronize),
                         std::move(args->caps.destroy)}
                 );

@@ -16,7 +16,7 @@ public:
     fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
 protected:
-    void handle_cuda_Memalloc(auto args);
+    void handle_cuMemalloc(auto args);
     void handle_synchronize(auto args);
     void handle_destroy(auto args);
 
@@ -33,7 +33,7 @@ private:
     CUcontext _ctx; 
 
 public:
-    fractos::core::cap::request _req_cuda_Memalloc;
+    fractos::core::cap::request _req_cuMemalloc;
     fractos::core::cap::request _req_synchronize;
     fractos::core::cap::request _req_destroy;
 

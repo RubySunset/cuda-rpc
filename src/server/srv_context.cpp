@@ -74,17 +74,17 @@ core::future<void> gpu_cuda_context::register_methods(std::shared_ptr<core::chan
     auto self = _self;
 
 
-    return ch->make_request_builder<msg_base::make_cuda_Memalloc::request>(
+    return ch->make_request_builder<msg_base::make_cuMemalloc::request>(
         ch->get_default_endpoint(),
         [self](auto ch, auto args) {
             LOG(INFO) << "In register_service context handler";
-            self->handle_cuda_Memalloc(std::move(args));
+            self->handle_cuMemalloc(std::move(args));
         })
         .on_channel()
         .make_request()
         .then([ch, self](auto& fut) {
-            self->_req_cuda_Memalloc = fut.get();
-            LOG(INFO) << "SET req_cuda_Memalloc"; // virtua
+            self->_req_cuMemalloc = fut.get();
+            LOG(INFO) << "SET req_cuMemalloc"; // virtua
             return ch->make_request_builder<msg_base::synchronize::request>(
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -118,9 +118,9 @@ core::future<void> gpu_cuda_context::register_methods(std::shared_ptr<core::chan
 /*
  *  Destroy a cuda_context, revoke all of its caps
  */
-void gpu_cuda_context::handle_cuda_Memalloc(auto args) {
-    LOG(INFO) << "CALL handle handle_cuda_Memalloc";
-    using msg = ::service::compute::cuda::message::cuda_context::make_cuda_Memalloc;
+void gpu_cuda_context::handle_cuMemalloc(auto args) {
+    LOG(INFO) << "CALL handle handle_cuMemalloc";
+    using msg = ::service::compute::cuda::message::cuda_context::make_cuMemalloc;
     
     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
         DLOG(ERROR) << "got request without continuation, ignoring";
@@ -232,7 +232,7 @@ void gpu_cuda_context::handle_destroy(auto args) {
 
     LOG(INFO) << "Revoke destroy";
 
-    ch->revoke(self->_req_cuda_Memalloc)
+    ch->revoke(self->_req_cuMemalloc)
         .then([ch, self](auto& fut) {
                   fut.get();
                   LOG(INFO) << "Revoke _req_register_function";

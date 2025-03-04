@@ -5,9 +5,13 @@
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
+
+#include <context_impl.hpp>
+#include <memory_impl.hpp>
 // #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
 using namespace fractos::service::compute::cuda;
+using namespace impl;
 
 inline
 cuda_context_impl& cuda_context_impl::get(cuda_context& obj)
@@ -47,17 +51,17 @@ cuda_context::~cuda_context() {
 
 
 
-core::future<std::shared_ptr<cuda_memory>> cuda_context::make_cuda_Memalloc(
+core::future<std::shared_ptr<cuda_memory>> cuda_context::make_cuMemalloc(
                     uint64_t size) {
 
-    using msg = ::service::compute::cuda::message::cuda_context::make_cuda_Memalloc;
+    using msg = ::service::compute::cuda::message::cuda_context::make_cuMemalloc;
 
-    LOG(INFO) << "cuda_context::make_cuda_Memalloc <-";
+    LOG(INFO) << "cuda_context::make_cuMemalloc <-";
 
     auto& pimpl = cuda_context_impl::get(*this);
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_cuda_Memalloc)
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_cuMemalloc)
         .set_imm(&msg::request::imms::size, size) // unsigned int vs uint32_t
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
@@ -68,11 +72,11 @@ core::future<std::shared_ptr<cuda_memory>> cuda_context::make_cuda_Memalloc(
 
             if (not args->has_exactly_args()) {
                 // throw core::other_error("invalvalue response format for cuda_service::make_cuda_device");
-                LOG(INFO) << "cuda_context::make_cuda_Memalloc ->"
+                LOG(INFO) << "cuda_context::make_cuMemalloc ->"
                 <<" error= OTHER args";
             }
 
-            LOG(INFO) << "cuda_context::make_cuda_Memalloc ->"
+            LOG(INFO) << "cuda_context::make_cuMemalloc ->"
                                     << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
             wire::error_raise_exception_maybe(args->imms.error);
 

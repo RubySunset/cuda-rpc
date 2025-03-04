@@ -31,59 +31,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         //event
         //graph
         //module
-        struct cuda_service_impl {
-            static cuda_service_impl& get(fractos::service::compute::cuda::cuda_service& service);
-            static const cuda_service_impl& get(const fractos::service::compute::cuda::cuda_service& service);
-        
-            std::weak_ptr<cuda_service_impl> self;
-            std::shared_ptr<fractos::core::channel>
-         ch;
-            fractos::core::cap::request req_make_cuda_device;
-        };
-
-        struct cuda_device_impl {
-            static cuda_device_impl& get(fractos::service::compute::cuda::cuda_device& device);
-            static const cuda_device_impl& get(const fractos::service::compute::cuda::cuda_device& device);
-        
-            std::weak_ptr<cuda_device_impl> self;
-            std::shared_ptr<fractos::core::channel> ch;
-        
-            fractos::wire::endian::uint8_t error;
-            fractos::core::cap::request req_make_cuda_context; // new
-            // fractos::core::cap::request req_test;
-            fractos::core::cap::request req_destroy;
-        
-            bool destroyed;
-        };
-
-        struct cuda_context_impl {
-            static cuda_context_impl& get(fractos::service::compute::cuda::cuda_context& context);
-            static const cuda_context_impl& get(const fractos::service::compute::cuda::cuda_context& context);
-        
-            std::weak_ptr<cuda_context_impl> self;
-            std::shared_ptr<fractos::core::channel> ch;
-        
-            fractos::wire::endian::uint8_t error;
-            fractos::core::cap::request req_cuda_Memalloc;
-            fractos::core::cap::request req_ctx_sync;
-            fractos::core::cap::request req_ctx_destroy;
-        
-            bool destroyed;
-        };
-
-        struct cuda_memory_impl {
-            static cuda_memory_impl& get(fractos::service::compute::cuda::cuda_memory& memory);
-            static const cuda_memory_impl& get(const fractos::service::compute::cuda::cuda_memory& memory);
-        
-            std::weak_ptr<cuda_memory_impl> self;
-            std::shared_ptr<fractos::core::channel> ch;
-        
-            fractos::wire::endian::uint8_t error;
-            // fractos::core::cap::request req_test; refer to initialize
-            fractos::core::cap::request req_mem_destroy;
-        
-            bool destroyed;
-        };
         
 
         struct no_cuda_service_error : public std::runtime_error {
@@ -247,7 +194,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              * @brief Wrapper for cuMemAlloc()
              */
             [[nodiscard]] core::future<std::shared_ptr<cuda_memory>>
-            make_cuda_Memalloc(uint64_t size); // size_t
+            make_cuMemalloc(uint64_t size); // size_t
 
             /**
              * @brief Wrapper for cuCtxSynchronize()
