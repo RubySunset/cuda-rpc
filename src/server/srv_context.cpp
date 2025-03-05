@@ -220,12 +220,12 @@ void gpu_cuda_context::handle_module_file(auto args) {
     }
     
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
-    std::string func_name = args->imms.func_name;
+    std::string file_name = args->imms.file_name;
 
-    if (not args->has_exactly_args()) { // func_name
+    if (not args->has_exactly_args()) { // file_name
         if (not args->has_exactly_imms()) {
-            if (args->imms_size() == 8 + func_name.size()) {
-                LOG(INFO) << "got imms length : " << func_name.size(); // char func_name[] in msg
+            if (args->imms_size() == 8 + file_name.size()) {
+                LOG(INFO) << "got imms length : " << file_name.size(); // char file_name[] in msg
             } else {
                 LOG(ERROR) << "got error imms";
                 ch->make_request_builder<msg::response>(args->caps.continuation)
@@ -249,10 +249,10 @@ void gpu_cuda_context::handle_module_file(auto args) {
     }
 
     auto self = _self;
-    LOG(INFO) << "module name is: " << func_name;
+    LOG(INFO) << "module name is: " << file_name;
 
 
-    auto mod = std::shared_ptr<gpu_cuda_module>(gpu_cuda_module::factory(func_name, _ctx));
+    auto mod = std::shared_ptr<gpu_cuda_module>(gpu_cuda_module::factory(file_name, _ctx));
 
 
     mod->register_methods(ch)
@@ -262,19 +262,13 @@ void gpu_cuda_context::handle_module_file(auto args) {
 
             ch->make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
-                // .set_imm(&msg::response::imms::address, dev_mem->_memory.get_addr())
-                // .set_cap(&msg::response::caps::memory, dev_mem->_memory)
+                .set_cap(&msg::response::caps::get_cuda_function, mod->_req_get_func)
                 .set_cap(&msg::response::caps::destroy, mod->_req_destroy)
                 .on_channel()
                 .invoke()
                 .as_callback();
             })
         .as_callback();
-    // ch->make_request_builder<msg::response>(args->caps.continuation)
-    //     .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
-    //     .on_channel()
-    //     .invoke()
-    //     .as_callback();
 
 
 

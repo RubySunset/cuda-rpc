@@ -117,8 +117,8 @@ namespace service::compute::cuda::message{
                 struct imms {
                     // fractos::wire::endian::uint64_t virtual_device_id;
                     // fractos::wire::endian::uint64_t name; // transfer through string with uint64_t num = std::stoull(str);
-                    fractos::wire::endian::uint64_t func_name_size;
-                    char func_name[];
+                    fractos::wire::endian::uint64_t file_name_size;
+                    char file_name[];
                 } __attribute__((packed));
                 struct caps {
                     fractos::core::cap::request continuation; 
@@ -131,6 +131,7 @@ namespace service::compute::cuda::message{
                 } __attribute__ ((packed));
                 struct caps {
                     // fractos::core::cap::cap::memory memory;
+                    fractos::core::cap::request get_cuda_function;
                     fractos::core::cap::request destroy;
                 };
             };
@@ -193,6 +194,27 @@ namespace service::compute::cuda::message{
 
     namespace cuda_module {
 
+        struct get_cuda_function {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t func_name_size;
+                    char func_name[]; // unsigned int
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation; 
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                } __attribute__ ((packed));
+                struct caps {
+                    fractos::core::cap::request call;
+                    fractos::core::cap::request func_destroy; 
+                };
+            };
+        };
+
         struct destroy {
             struct request {
                 struct imms {
@@ -210,6 +232,55 @@ namespace service::compute::cuda::message{
             };
         };
     }
+
+    namespace cuda_function {
+        struct call {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t args_num;
+                    fractos::wire::endian::uint64_t grid;
+                    fractos::wire::endian::uint64_t block;
+                    char kernel_args[];
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                    // fractos::core::cap::request continuation_success; 
+                    // fractos::core::cap::request continuation_failure;
+
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+            struct kernel_arg_info {
+                fractos::wire::endian::uint64_t size;
+                char value[];
+            };
+
+        };
+
+        struct func_destroy {
+            struct request {
+                struct imms {
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
+    }
+
     
     
     

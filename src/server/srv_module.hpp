@@ -3,6 +3,9 @@
 #include <queue>
 #include <chrono>
 #include <fractos/service/compute/cuda.hpp>
+#include "./srv_function.hpp"
+
+
 using namespace fractos;
 
 
@@ -15,6 +18,7 @@ public:
     fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
 protected:
+    void handle_get_function(auto args);
     void handle_destroy(auto args);
     
 private:
@@ -27,7 +31,10 @@ private:
     CUmodule _module;
 
 public:
+    fractos::core::cap::request _req_get_func;
     fractos::core::cap::request _req_destroy;
+
+    std::shared_ptr<test::gpu_cuda_function> _func; 
 
     gpu_cuda_module(std::string& name, CUcontext& ctx);
 

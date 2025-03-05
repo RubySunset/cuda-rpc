@@ -14,6 +14,7 @@ AM_LDFLAGS += $(CUDA_LIBS)
 lib_LTLIBRARIES += libfractos-service-compute-cuda.la
 libfractos_service_compute_cuda_la_SOURCES =
 libfractos_service_compute_cuda_la_SOURCES += error.cpp
+libfractos_service_compute_cuda_la_SOURCES += function.cpp
 libfractos_service_compute_cuda_la_SOURCES += module.cpp
 libfractos_service_compute_cuda_la_SOURCES += memory.cpp
 libfractos_service_compute_cuda_la_SOURCES += context.cpp

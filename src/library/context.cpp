@@ -96,7 +96,7 @@ core::future<std::shared_ptr<cuda_memory>> cuda_context::make_cumemalloc(
 
 core::future<std::shared_ptr<cuda_module>> cuda_context::make_module_file(
 // core::future<void> cuda_context::make_module_file(
-            const std::string& func_name) {
+            const std::string& file_name) {
 
     using msg = ::service::compute::cuda::message::cuda_context::make_module_file;
 
@@ -107,13 +107,13 @@ core::future<std::shared_ptr<cuda_module>> cuda_context::make_module_file(
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_module_file)
         // .set_imm(&msg::request::imms::name, name) // unsigned int vs uint32_t
-        .set_imm(&msg::request::imms::func_name_size, func_name.size())
-        .set_imm(offsetof(msg::request::imms, func_name), func_name.c_str(), func_name.size())
+        .set_imm(&msg::request::imms::file_name_size, file_name.size())
+        .set_imm(offsetof(msg::request::imms, file_name), file_name.c_str(), file_name.size())
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp) // wait for srv_handle
         .unwrap()
-        .then([func_name](auto& fut) { // function_name
+        .then([file_name](auto& fut) { // function_name
             auto [ch, args] = fut.get();
 
             if (not args->has_exactly_args()) {
@@ -129,11 +129,12 @@ core::future<std::shared_ptr<cuda_module>> cuda_context::make_module_file(
             // get cuda_module object
             std::shared_ptr<cuda_module_impl> pimpl_(
                 new cuda_module_impl{{}, ch, args->imms.error,
+                        std::move(args->caps.get_cuda_function),
                         std::move(args->caps.destroy)}
                 );
             pimpl_->self = pimpl_;
             auto pimpl = static_pointer_cast<void>(pimpl_);
-            std::shared_ptr<cuda_module> res(new cuda_module{pimpl, func_name});
+            std::shared_ptr<cuda_module> res(new cuda_module{pimpl, file_name});
             return res;
         });
 }

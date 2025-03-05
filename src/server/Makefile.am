@@ -19,5 +19,6 @@ fractos_service_compute_cuda_SOURCES += srv_device.cpp
 fractos_service_compute_cuda_SOURCES += srv_context.cpp
 fractos_service_compute_cuda_SOURCES += srv_module.cpp
 fractos_service_compute_cuda_SOURCES += srv_memory.cpp
+fractos_service_compute_cuda_SOURCES += srv_function.cpp
 fractos_service_compute_cuda_SOURCES += main.cpp
 fractos_service_compute_cuda_LDADD = ../library/libfractos-service-compute-cuda.la

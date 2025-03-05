@@ -6,6 +6,7 @@
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
 #include <module_impl.hpp>
+#include <function_impl.hpp>
 
 // #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
@@ -48,9 +49,50 @@ cuda_module::~cuda_module() {
     }
 }
 
-// core::future<void> cuda_module::destroy() {
-//     DLOG(INFO) << "cuda_module: destroy";
-// }
+core::future<std::shared_ptr<cuda_function>> cuda_module::get_cuda_function(
+            const std::string& func_name) {
+    
+        using msg = ::service::compute::cuda::message::cuda_module::get_cuda_function;
+    
+        LOG(INFO) << "cuda_module::get_cuda_function <-";
+    
+        auto& pimpl = cuda_module_impl::get(*this);
+    
+        auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+        return pimpl.ch->make_request_builder<msg::request>(pimpl.req_get_func)
+            // .set_imm(&msg::request::imms::name, name) // unsigned int vs uint32_t
+            .set_imm(&msg::request::imms::func_name_size, func_name.size())
+            .set_imm(offsetof(msg::request::imms, func_name), func_name.c_str(), func_name.size())
+            .set_cap(&msg::request::caps::continuation, resp)
+            .on_channel()
+            .invoke(resp) // wait for srv_handle
+            .unwrap()
+            .then([func_name](auto& fut) { // function_name
+                auto [ch, args] = fut.get();
+    
+                if (not args->has_exactly_args()) {
+                    // throw core::other_error("invalvalue response format for cuda_service::make_cuda_device");
+                    LOG(INFO) << "cuda_context::get_cuda_function ->"
+                    <<" error= OTHER args";
+                }
+    
+                LOG(INFO) << "cuda_context::get_cuda_function ->"
+                                        << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
+                wire::error_raise_exception_maybe(args->imms.error);
+    
+                //get cuda_function object
+                std::shared_ptr<cuda_function_impl> pimpl_(
+                    new cuda_function_impl{{}, ch, args->imms.error,
+                            // std::move(args->caps.call),
+                            std::move(args->caps.func_destroy)}
+                    );
+                pimpl_->self = pimpl_;
+                auto pimpl = static_pointer_cast<void>(pimpl_);
+                std::shared_ptr<cuda_function> res(new cuda_function{pimpl, func_name});
+                return res;
+            });
+    }
+
 core::future<void> cuda_module::destroy() {
     using msg = ::service::compute::cuda::message::cuda_module::destroy;
 

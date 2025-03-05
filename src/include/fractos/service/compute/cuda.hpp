@@ -182,7 +182,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              * @brief Wrapper for cuModuleLoad()
              */
             [[nodiscard]] core::future<std::shared_ptr<cuda_module>>
-            make_module_file(const std::string& file_path); // cubin PTX fatbin 
+            make_module_file(const std::string& file_name); // cubin PTX fatbin 
 
             // /**
             //  * @brief Wrapper for cuModuleLoad()
@@ -266,11 +266,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
                                                                                 
             /**
-             * @brief TODO: transfer vector<CUctxCreateParams> through message
              * @brief Wrapper for cuModuleGetFunction()
              */
             [[nodiscard]] core::future<std::shared_ptr<cuda_function>>
-            get_cuda_function(const std::string func_name); // The paramsArray is an array of CUexecAffinityParam and the numParams describes the size of the array
+            get_cuda_function(const std::string& file_name); // The paramsArray is an array of CUexecAffinityParam and the numParams describes the size of the array
             
             /**
              * @brief Destroy module with cuModuleUnload 
@@ -293,16 +292,30 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             public:
             
                 // fractos::core::future<void> destroy();
-                cuda_function(std::shared_ptr<void> pimpl, fractos::wire::endian::uint64_t size);
+                cuda_function(std::shared_ptr<void> pimpl, std::string function_name);
                 cuda_function(std::shared_ptr<void> pimpl);
             
-                cuda_function(fractos::wire::endian::uint64_t size);
-    
+                cuda_function(std::string function_name);
+
+                /**
+                 * @brief Wrapper for cuLaunchKernel()
+                 */
+                template<class... Args>
+                [[nodiscard]] core::future<void>
+                call(std::pair<size_t, size_t>& gpu_grid, Args&&... args);
+
+                /**
+                 * @brief Wrapper for cuLaunchKernel()
+                 */
+                template<class... Args>
+                [[nodiscard]] core::future<void>
+                call(Stream& stream, const std::tuple<size_t, size_t, size_t>& grid, Args&&... args);
+
                 /**
                  * @brief Destroy function 
                  */
                 [[nodiscard]] core::future<void>
-                destroy();
+                func_destroy();
     
     
             public:
