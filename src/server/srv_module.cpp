@@ -1,4 +1,4 @@
-#include "srv_memory.hpp"
+#include "srv_module.hpp"
 #include <pthread.h>
 #include <glog/logging.h>
 #include <fractos/logging.hpp>
@@ -9,40 +9,47 @@ using namespace fractos;
 using namespace ::test;
 // using namespace impl;
 
-gpu_cuda_memory::gpu_cuda_memory(fractos::wire::endian::uint32_t size, CUcontext& ctx) {
+gpu_cuda_module::gpu_cuda_module(std::string& name, CUcontext& ctx) {
     //fork();
-    _size = size;
+    // 
+    _name = name;  // std::string 
     _destroyed = false;
     _ctx = ctx;
+
+    CUmodule module;
+    checkCudaErrors(cuCtxSetCurrent(_ctx));
+    checkCudaErrors(cuModuleLoad(&module, _name.c_str()));
+    _module = module;
+
+    LOG(INFO) << "load module :  name = " << _name;
    
 }
 
-std::shared_ptr<gpu_cuda_memory> gpu_cuda_memory::factory(fractos::wire::endian::uint32_t size, CUcontext& ctx){
-    auto res = std::shared_ptr<gpu_cuda_memory>(new gpu_cuda_memory(size, ctx));
+std::shared_ptr<gpu_cuda_module> gpu_cuda_module::factory(std::string& name, CUcontext& ctx){
+    auto res = std::shared_ptr<gpu_cuda_module>(new gpu_cuda_module(name, ctx));
     res->_self = res;
     return res;
 }
 
-gpu_cuda_memory::~gpu_cuda_memory() {
+gpu_cuda_module::~gpu_cuda_module() {
     // checkCudaErrors(cuCtxDestroy(context));
+    
 }
 
 
-void gpu_cuda_memory::memory_free(char* base)
+void gpu_cuda_module::module_unload() // current
 {
-    checkCudaErrors(cuCtxSetCurrent(_ctx));
-    CUdeviceptr d_B = reinterpret_cast<CUdeviceptr>(base);
-
-    // Clean up
-    checkCudaErrors(cuMemFree(d_B));
+    // checkCudaErrors(cuCtxSetCurrent(_ctx));
+    LOG(INFO) << "Unload module :  name = " << _name;
+    checkCudaErrors(cuModuleUnload(_module));
     // checkCudaErrors(cuCtxDestroy(context));
 }
 /*
- *  Make handlers for a cuda_memory's caps
+ *  Make handlers for a cuda_module's caps
  */
-core::future<void> gpu_cuda_memory::register_methods(std::shared_ptr<core::channel> ch)
+core::future<void> gpu_cuda_module::register_methods(std::shared_ptr<core::channel> ch)
 {
-    namespace msg_base = ::service::compute::cuda::message::cuda_memory;
+    namespace msg_base = ::service::compute::cuda::message::cuda_module;
 
     auto self = _self;
 
@@ -61,11 +68,11 @@ core::future<void> gpu_cuda_memory::register_methods(std::shared_ptr<core::chann
 }
 
 /*
- *  Destroy a cuda_memory, revoke all of its caps
+ *  Destroy a cuda_module, revoke all of its caps
  */
-void gpu_cuda_memory::handle_destroy(auto args) {
+void gpu_cuda_module::handle_destroy(auto args) {
     DVLOG(logging::SERVICE) << "CALL handle destroy";
-    using msg = ::service::compute::cuda::message::cuda_memory::destroy;
+    using msg = ::service::compute::cuda::message::cuda_module::destroy;
 
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
     
@@ -81,7 +88,7 @@ void gpu_cuda_memory::handle_destroy(auto args) {
         return;
     }
 
-    memory_free(base);
+    module_unload();
 
     DVLOG(logging::SERVICE) << "Revoke destroy";
                   

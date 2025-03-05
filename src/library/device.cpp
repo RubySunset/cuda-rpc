@@ -77,7 +77,8 @@ core::future<std::shared_ptr<cuda_context>> cuda_device::make_cuda_context(
             // get cuda_device object
             std::shared_ptr<cuda_context_impl> pimpl_(
                 new cuda_context_impl{{}, ch, args->imms.error, 
-                        std::move(args->caps.make_cuMemalloc),
+                        std::move(args->caps.make_cumemalloc),
+                        std::move(args->caps.make_module_file),
                         std::move(args->caps.synchronize),
                         std::move(args->caps.destroy)}
                 );

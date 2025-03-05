@@ -23,7 +23,8 @@ namespace impl {
             std::shared_ptr<fractos::core::channel> ch;
         
             fractos::wire::endian::uint8_t error;
-            fractos::core::cap::request req_cuMemalloc;
+            fractos::core::cap::request req_cumemalloc;
+            fractos::core::cap::request req_module_file;
             fractos::core::cap::request req_ctx_sync;
             fractos::core::cap::request req_ctx_destroy;
         

@@ -63,7 +63,8 @@ namespace service::compute::cuda::message{
                     fractos::wire::endian::uint8_t error;
                 } __attribute__ ((packed));
                 struct caps {
-                    fractos::core::cap::request make_cuMemalloc;
+                    fractos::core::cap::request make_cumemalloc;
+                    fractos::core::cap::request make_module_file;
                     fractos::core::cap::request synchronize;
                     fractos::core::cap::request destroy;
                 };
@@ -89,11 +90,35 @@ namespace service::compute::cuda::message{
 
     namespace cuda_context {
 
-        struct make_cuMemalloc {
+        struct make_cumemalloc {
             struct request {
                 struct imms {
                     // fractos::wire::endian::uint64_t virtual_device_id;
                     fractos::wire::endian::uint64_t size; // unsigned int
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation; 
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    // fractos::wire::endian::uint64_t address;
+                } __attribute__ ((packed));
+                struct caps {
+                    // fractos::core::cap::cap::memory memory;
+                    fractos::core::cap::request destroy;
+                };
+            };
+        };
+
+        struct make_module_file {
+            struct request {
+                struct imms {
+                    // fractos::wire::endian::uint64_t virtual_device_id;
+                    // fractos::wire::endian::uint64_t name; // transfer through string with uint64_t num = std::stoull(str);
+                    fractos::wire::endian::uint64_t func_name_size;
+                    char func_name[];
                 } __attribute__((packed));
                 struct caps {
                     fractos::core::cap::request continuation; 
@@ -147,6 +172,26 @@ namespace service::compute::cuda::message{
     }
 
     namespace cuda_memory {
+
+        struct destroy {
+            struct request {
+                struct imms {
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
+    }
+
+    namespace cuda_module {
 
         struct destroy {
             struct request {

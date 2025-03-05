@@ -7,6 +7,7 @@
 #include <fractos/service/compute/cuda.hpp>
 
 #include <context_impl.hpp>
+#include <module_impl.hpp>
 #include <memory_impl.hpp>
 // #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
@@ -51,17 +52,17 @@ cuda_context::~cuda_context() {
 
 
 
-core::future<std::shared_ptr<cuda_memory>> cuda_context::make_cuMemalloc(
+core::future<std::shared_ptr<cuda_memory>> cuda_context::make_cumemalloc(
                     uint64_t size) {
 
-    using msg = ::service::compute::cuda::message::cuda_context::make_cuMemalloc;
+    using msg = ::service::compute::cuda::message::cuda_context::make_cumemalloc;
 
-    LOG(INFO) << "cuda_context::make_cuMemalloc <-";
+    LOG(INFO) << "cuda_context::make_cumemalloc <-";
 
     auto& pimpl = cuda_context_impl::get(*this);
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_cuMemalloc)
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_cumemalloc)
         .set_imm(&msg::request::imms::size, size) // unsigned int vs uint32_t
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
@@ -72,11 +73,11 @@ core::future<std::shared_ptr<cuda_memory>> cuda_context::make_cuMemalloc(
 
             if (not args->has_exactly_args()) {
                 // throw core::other_error("invalvalue response format for cuda_service::make_cuda_device");
-                LOG(INFO) << "cuda_context::make_cuMemalloc ->"
+                LOG(INFO) << "cuda_context::make_cumemalloc ->"
                 <<" error= OTHER args";
             }
 
-            LOG(INFO) << "cuda_context::make_cuMemalloc ->"
+            LOG(INFO) << "cuda_context::make_cumemalloc ->"
                                     << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
             wire::error_raise_exception_maybe(args->imms.error);
 
@@ -88,6 +89,51 @@ core::future<std::shared_ptr<cuda_memory>> cuda_context::make_cuMemalloc(
             pimpl_->self = pimpl_;
             auto pimpl = static_pointer_cast<void>(pimpl_);
             std::shared_ptr<cuda_memory> res(new cuda_memory{pimpl, size});
+            return res;
+        });
+}
+
+
+core::future<std::shared_ptr<cuda_module>> cuda_context::make_module_file(
+// core::future<void> cuda_context::make_module_file(
+            const std::string& func_name) {
+
+    using msg = ::service::compute::cuda::message::cuda_context::make_module_file;
+
+    LOG(INFO) << "cuda_context::make_module_file <-";
+
+    auto& pimpl = cuda_context_impl::get(*this);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_module_file)
+        // .set_imm(&msg::request::imms::name, name) // unsigned int vs uint32_t
+        .set_imm(&msg::request::imms::func_name_size, func_name.size())
+        .set_imm(offsetof(msg::request::imms, func_name), func_name.c_str(), func_name.size())
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp) // wait for srv_handle
+        .unwrap()
+        .then([func_name](auto& fut) { // function_name
+            auto [ch, args] = fut.get();
+
+            if (not args->has_exactly_args()) {
+                // throw core::other_error("invalvalue response format for cuda_service::make_cuda_device");
+                LOG(INFO) << "cuda_context::make_module_file ->"
+                <<" error= OTHER args";
+            }
+
+            LOG(INFO) << "cuda_context::make_module_file ->"
+                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
+            wire::error_raise_exception_maybe(args->imms.error);
+
+            // get cuda_module object
+            std::shared_ptr<cuda_module_impl> pimpl_(
+                new cuda_module_impl{{}, ch, args->imms.error,
+                        std::move(args->caps.destroy)}
+                );
+            pimpl_->self = pimpl_;
+            auto pimpl = static_pointer_cast<void>(pimpl_);
+            std::shared_ptr<cuda_module> res(new cuda_module{pimpl, func_name});
             return res;
         });
 }

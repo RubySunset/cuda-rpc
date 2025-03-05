@@ -11,6 +11,7 @@
 using namespace fractos;
 using namespace ::test;
 // using namespace impl;
+#define MAX_IO_SIZE    (1024 * 1024 * 16)   
 
 gpu_cuda_context::gpu_cuda_context(fractos::wire::endian::uint32_t value, CUdevice& device) {
     //fork();
@@ -36,23 +37,19 @@ gpu_cuda_context::~gpu_cuda_context() {
 
 char* gpu_cuda_context::allocate_memory(size_t size, CUcontext& context) {
 
-    
+    char* addr = nullptr;
     checkCudaErrors(cuCtxSetCurrent(context));
     CUdeviceptr d_A;
    
     // Allocate memory on the device
     checkCudaErrors(cuMemAlloc(&d_A, size));
 
-    // Clean up
-    // checkCudaErrors(cuMemFree(d_A));
-    // checkCudaErrors(cuCtxDestroy(context));
-
-    char* addr = nullptr;
  
     addr = (char*)d_A;
     //checkCudaErrors(cuCtxPopCurrent(nullptr));
     return addr;
 }
+
 
 
 void gpu_cuda_context::context_synchronize() {
@@ -62,6 +59,7 @@ void gpu_cuda_context::context_synchronize() {
 void gpu_cuda_context::context_destroy(CUcontext& context) {
     checkCudaErrors(cuCtxDestroy(context));
 }
+
 
 
 /*
@@ -74,17 +72,30 @@ core::future<void> gpu_cuda_context::register_methods(std::shared_ptr<core::chan
     auto self = _self;
 
 
-    return ch->make_request_builder<msg_base::make_cuMemalloc::request>(
+    return ch->make_request_builder<msg_base::make_cumemalloc::request>(
         ch->get_default_endpoint(),
         [self](auto ch, auto args) {
             LOG(INFO) << "In register_service context handler";
-            self->handle_cuMemalloc(std::move(args));
+            self->handle_cumemalloc(std::move(args));
         })
         .on_channel()
         .make_request()
         .then([ch, self](auto& fut) {
-            self->_req_cuMemalloc = fut.get();
-            LOG(INFO) << "SET req_cuMemalloc"; // virtua
+            self->_req_cumemalloc = fut.get();
+            LOG(INFO) << "SET req_cumemalloc"; // virtua
+            return ch->make_request_builder<msg_base::make_module_file::request>(
+                ch->get_default_endpoint(), 
+                [self](auto ch, auto args) {
+                    
+                    self->handle_module_file(std::move(args));
+                })
+                .on_channel()
+                .make_request();
+            })
+        .unwrap()
+        .then([ch, self](auto& fut) {
+            self->_req_module_file = fut.get();
+            LOG(INFO) << "SET req_module_file"; // virtua
             return ch->make_request_builder<msg_base::synchronize::request>(
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -118,15 +129,16 @@ core::future<void> gpu_cuda_context::register_methods(std::shared_ptr<core::chan
 /*
  *  Destroy a cuda_context, revoke all of its caps
  */
-void gpu_cuda_context::handle_cuMemalloc(auto args) {
-    LOG(INFO) << "CALL handle handle_cuMemalloc";
-    using msg = ::service::compute::cuda::message::cuda_context::make_cuMemalloc;
+void gpu_cuda_context::handle_cumemalloc(auto args_) {
+    LOG(INFO) << "CALL handle handle_cumemalloc";
+    std::shared_ptr<typename decltype(args_)::element_type> args(std::move(args_));
+    using msg = ::service::compute::cuda::message::cuda_context::make_cumemalloc;
     
     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
         DLOG(ERROR) << "got request without continuation, ignoring";
         return;
     }
-
+    
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
 
     if (not args->has_exactly_args()) {
@@ -137,47 +149,133 @@ void gpu_cuda_context::handle_cuMemalloc(auto args) {
             .as_callback();
         return;
     }
+    auto self = _self;
+    std::size_t size = args->imms.size; // uint64_t MAX_IO_SIZE;
 
-    std::size_t size = args->imms.size; // uint64_t
+    
+    // char *base;
+    // if (posix_memalign((void **) &base, 4096, MAX_IO_SIZE) != 0) {
+    //     throw std::runtime_error("Failed to allocate I/O buffer for worker.");
+    // }
 
     char* base = allocate_memory(size , _ctx);//, context);
 
-    // auto mr_ = ch->make_memory_region(base, size, core::memory_region::translation_type::PIN);
-    // std::shared_ptr<typename decltype(mr_)::element_type> mr(std::move(mr_)); // element_type??
-    // ch->make_memory(base, size, *mr)
-    // .then([ch, args=std::move(args), size, this, base, mr](auto& fut) {
-
-    // std::shared_ptr<typename decltype(args_)::element_type> args_(std::move(args));
-
-    auto self = _self; // lock()
-    // LOG(INFO) << "cuda device addr: " << (void*)base;
-    LOG(INFO) << "mem size is: " << size;
 
 
-    auto dev_mem = std::shared_ptr<gpu_cuda_memory>(gpu_cuda_memory::factory(size));
-
-    // dev_mem->_memory = fut.get();
-    dev_mem->base = (char*)base;
-    // dev_mem->_mr = mr;
+    auto mr_ = ch->make_memory_region(base, size, core::memory_region::translation_type::PIN);
+    std::shared_ptr<typename decltype(mr_)::element_type> mr(std::move(mr_)); // element_type??
 
 
-    dev_mem->register_methods(ch)
-        .then([this, ch, self, dev_mem, args=std::move(args), size](auto& fut) {
+    ch->make_memory(base, size, *mr)
+        .then([ch, args, size, this, base, mr](auto& fut) {
+            // auto mem = fut.get();
+
+        
+
+        auto self = _self; // lock()
+        // LOG(INFO) << "cuda device addr: " << (void*)base;
+        LOG(INFO) << "mem size is: " << size;
+
+
+        auto dev_mem = std::shared_ptr<gpu_cuda_memory>(gpu_cuda_memory::factory(size, _ctx));
+        
+
+        dev_mem->_memory = fut.get();
+        dev_mem->base = (char*)base;
+        dev_mem->_mr = mr;
+
+
+        dev_mem->register_methods(ch)
+            .then([this, ch, self, dev_mem, size, args ](auto& fut) { //, args=std::move(args),  mr_=std::move(mr_)
+                fut.get();
+                _dev_mem = dev_mem;
+
+                // LOG(INFO) << "BACKEND memory size is " << dev_mem->_memory.get_size();
+
+                ch->make_request_builder<msg::response>(args->caps.continuation)
+                    .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
+                    // .set_imm(&msg::response::imms::address, dev_mem->_memory.get_addr())
+                    // .set_cap(&msg::response::caps::memory, dev_mem->_memory)
+                    .set_cap(&msg::response::caps::destroy, dev_mem->_req_destroy)
+                    .on_channel()
+                    .invoke()
+                    .as_callback();
+                })
+            .as_callback();
+        })
+        .as_callback();
+
+
+
+}
+
+void gpu_cuda_context::handle_module_file(auto args) {
+    LOG(INFO) << "CALL handle_module_file";
+
+    using msg = ::service::compute::cuda::message::cuda_context::make_module_file;
+    
+    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+        LOG(ERROR) << "got request without continuation, ignoring";
+        return;
+    }
+    
+    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
+    std::string func_name = args->imms.func_name;
+
+    if (not args->has_exactly_args()) { // func_name
+        if (not args->has_exactly_imms()) {
+            if (args->imms_size() == 8 + func_name.size()) {
+                LOG(INFO) << "got imms length : " << func_name.size(); // char func_name[] in msg
+            } else {
+                LOG(ERROR) << "got error imms";
+                ch->make_request_builder<msg::response>(args->caps.continuation)
+                    .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+                    .on_channel()
+                    .invoke()
+                    .as_callback();
+                return;
+            }
+        }
+        else
+        {
+            LOG(ERROR) << "got error caps";
+            ch->make_request_builder<msg::response>(args->caps.continuation)
+                    .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+                    .on_channel()
+                    .invoke()
+                    .as_callback();
+                return;
+        }
+    }
+
+    auto self = _self;
+    LOG(INFO) << "module name is: " << func_name;
+
+
+    auto mod = std::shared_ptr<gpu_cuda_module>(gpu_cuda_module::factory(func_name, _ctx));
+
+
+    mod->register_methods(ch)
+        .then([this, ch, self, mod, args=std::move(args) ](auto& fut) { //, args=std::move(args),  mr_=std::move(mr_)
             fut.get();
-            _dev_mem = dev_mem;
-
-            // LOG(INFO) << "BACKEND memory size is " << dev_mem->_memory.get_size();
+            _mod = mod;
 
             ch->make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
                 // .set_imm(&msg::response::imms::address, dev_mem->_memory.get_addr())
                 // .set_cap(&msg::response::caps::memory, dev_mem->_memory)
-                .set_cap(&msg::response::caps::destroy, dev_mem->_req_destroy)
+                .set_cap(&msg::response::caps::destroy, mod->_req_destroy)
                 .on_channel()
                 .invoke()
                 .as_callback();
             })
         .as_callback();
+    // ch->make_request_builder<msg::response>(args->caps.continuation)
+    //     .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+    //     .on_channel()
+    //     .invoke()
+    //     .as_callback();
+
 
 
 }
@@ -232,11 +330,17 @@ void gpu_cuda_context::handle_destroy(auto args) {
 
     LOG(INFO) << "Revoke destroy";
 
-    ch->revoke(self->_req_cuMemalloc)
+    ch->revoke(self->_req_cumemalloc)
         .then([ch, self](auto& fut) {
                   fut.get();
-                  LOG(INFO) << "Revoke _req_register_function";
-                  return ch->revoke(self->_req_synchronize);
+                  LOG(INFO) << "Revoke _req_cumemalloc";
+                  return ch->revoke(self->_req_module_file);
+        })
+        .unwrap()
+        .then([ch, self](auto& fut) {
+            fut.get();
+            LOG(INFO) << "Revoke _req_module_file";
+            return ch->revoke(self->_req_synchronize);
         })
         .unwrap()
         .then([ch, self](auto& fut) {

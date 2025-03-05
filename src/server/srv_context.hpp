@@ -4,6 +4,7 @@
 #include <chrono>
 #include <fractos/service/compute/cuda.hpp>
 #include "./srv_memory.hpp"
+#include "./srv_module.hpp"
 using namespace fractos;
 
 
@@ -16,7 +17,8 @@ public:
     fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
 protected:
-    void handle_cuMemalloc(auto args);
+    void handle_cumemalloc(auto args);
+    void handle_module_file(auto args);
     void handle_synchronize(auto args);
     void handle_destroy(auto args);
 
@@ -31,14 +33,17 @@ private:
     std::shared_ptr<gpu_cuda_context> _self;
     bool _destroyed;
     CUcontext _ctx; 
+    
 
 public:
-    fractos::core::cap::request _req_cuMemalloc;
+    fractos::core::cap::request _req_cumemalloc;
+    fractos::core::cap::request _req_module_file;
     fractos::core::cap::request _req_synchronize;
     fractos::core::cap::request _req_destroy;
 
     gpu_cuda_context(fractos::wire::endian::uint32_t value, CUdevice& device);
     std::shared_ptr<test::gpu_cuda_memory> _dev_mem;
+    std::shared_ptr<test::gpu_cuda_module> _mod; 
 
     ~gpu_cuda_context();
 

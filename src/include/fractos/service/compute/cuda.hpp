@@ -21,6 +21,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         class cuda_device;
         class cuda_context;
         class cuda_memory;
+        class cuda_module;
+        class cuda_function;
         class Context;
         class Module;
         class Function;
@@ -97,15 +99,11 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             /**
              * @brief Wrapper for cuDeviceGet()
              */
-            [[nodiscard]] core::future<std::shared_ptr<cuda_device>>
-            make_cuda_device(std::shared_ptr<core::channel> ch, uint64_t value);
+            // [[nodiscard]] core::future<std::shared_ptr<cuda_device>>
+            // make_cuda_device(std::shared_ptr<core::channel> ch, uint64_t value);
 
             [[nodiscard]] core::future<std::shared_ptr<cuda_device>>
             make_cuda_device(uint8_t value);
-
-
-            // [[nodiscard]] core::future<void>
-            // make_cuda_service(std::string name);
 
             /**
              * @brief Destroy cuda_service connection, and all created objects
@@ -129,11 +127,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class cuda_device {
         public:
-            std::shared_ptr<fractos::core::channel> get_default_channel();
-
-            std::shared_ptr<fractos::core::channel> get_default_channel() const;
-        
-            void set_default_channel(std::shared_ptr<fractos::core::channel> ch);
         
             // fractos::core::future<void> destroy();
             cuda_device(std::shared_ptr<void> pimpl, fractos::wire::endian::uint8_t id);
@@ -178,11 +171,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class cuda_context {
         public:
-            std::shared_ptr<fractos::core::channel> get_default_channel();
-
-            std::shared_ptr<fractos::core::channel> get_default_channel() const;
-        
-            void set_default_channel(std::shared_ptr<fractos::core::channel> ch);
         
             // fractos::core::future<void> destroy();
             cuda_context(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t value);
@@ -191,10 +179,28 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             cuda_context(fractos::wire::endian::uint32_t value);
 
             /**
+             * @brief Wrapper for cuModuleLoad()
+             */
+            [[nodiscard]] core::future<std::shared_ptr<cuda_module>>
+            make_module_file(const std::string& file_path); // cubin PTX fatbin 
+
+            // /**
+            //  * @brief Wrapper for cuModuleLoad()
+            //  */
+            // [[nodiscard]] core::future<void>
+            // make_module_file(const std::string& file_path); // cubin PTX fatbin 
+
+            /**
+             * @brief Wrapper for cuModuleLoadData()
+             */
+            [[nodiscard]] core::future<std::shared_ptr<cuda_module>>
+            make_module_data(const core::cap::memory& contents);
+
+            /**
              * @brief Wrapper for cuMemAlloc()
              */
             [[nodiscard]] core::future<std::shared_ptr<cuda_memory>>
-            make_cuMemalloc(uint64_t size); // size_t
+            make_cumemalloc(uint64_t size); // size_t
 
             /**
              * @brief Wrapper for cuCtxSynchronize()
@@ -223,9 +229,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
         class cuda_memory {
         public:
-            std::shared_ptr<fractos::core::channel> get_default_channel();
-            std::shared_ptr<fractos::core::channel> get_default_channel() const;
-            void set_default_channel(std::shared_ptr<fractos::core::channel> ch);
         
             // fractos::core::future<void> destroy();
             cuda_memory(std::shared_ptr<void> pimpl, fractos::wire::endian::uint64_t size);
@@ -252,6 +255,66 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         
         };
         std::string to_string(const cuda_memory& obj);
+
+        class cuda_module {
+        public:
+
+            cuda_module(std::shared_ptr<void> pimpl, std::string name);
+            cuda_module(std::shared_ptr<void> pimpl);
+        
+            cuda_module(std::string name);  
+
+                                                                                
+            /**
+             * @brief TODO: transfer vector<CUctxCreateParams> through message
+             * @brief Wrapper for cuModuleGetFunction()
+             */
+            [[nodiscard]] core::future<std::shared_ptr<cuda_function>>
+            get_cuda_function(const std::string func_name); // The paramsArray is an array of CUexecAffinityParam and the numParams describes the size of the array
+            
+            /**
+             * @brief Destroy module with cuModuleUnload 
+             */
+            [[nodiscard]] core::future<void> 
+            destroy();
+
+        public:
+            ~cuda_module();
+            // NOTE: not for public use
+            std::shared_ptr<void> _pimpl;
+        private:
+
+            bool _destroyed;
+        
+        };
+        std::string to_string(const cuda_module& obj);
+
+        class cuda_function {
+            public:
+            
+                // fractos::core::future<void> destroy();
+                cuda_function(std::shared_ptr<void> pimpl, fractos::wire::endian::uint64_t size);
+                cuda_function(std::shared_ptr<void> pimpl);
+            
+                cuda_function(fractos::wire::endian::uint64_t size);
+    
+                /**
+                 * @brief Destroy function 
+                 */
+                [[nodiscard]] core::future<void>
+                destroy();
+    
+    
+            public:
+                ~cuda_function();
+                // NOTE: not for public use
+                std::shared_ptr<void> _pimpl;
+            private:
+    
+                bool _destroyed;
+            
+            };
+            std::string to_string(const cuda_function& obj);
         
 
         /**
