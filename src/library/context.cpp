@@ -81,10 +81,13 @@ core::future<std::shared_ptr<cuda_memory>> cuda_context::make_cumemalloc(
                                     << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
             wire::error_raise_exception_maybe(args->imms.error);
 
+            char* tmp = reinterpret_cast<char*>(args->imms.address.get());
+
             // get cuda_device object
             std::shared_ptr<cuda_memory_impl> pimpl_(
                 new cuda_memory_impl{{}, ch, args->imms.error, 
-                        std::move(args->caps.destroy)}
+                        std::move(args->caps.destroy), 
+                    false, tmp, size, std::move(args->caps.memory)}
                 );
             pimpl_->self = pimpl_;
             auto pimpl = static_pointer_cast<void>(pimpl_);

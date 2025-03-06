@@ -194,8 +194,8 @@ void gpu_cuda_context::handle_cumemalloc(auto args_) {
 
                 ch->make_request_builder<msg::response>(args->caps.continuation)
                     .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
-                    // .set_imm(&msg::response::imms::address, dev_mem->_memory.get_addr())
-                    // .set_cap(&msg::response::caps::memory, dev_mem->_memory)
+                    .set_imm(&msg::response::imms::address, dev_mem->_memory.get_addr())
+                    .set_cap(&msg::response::caps::memory, dev_mem->_memory)
                     .set_cap(&msg::response::caps::destroy, dev_mem->_req_destroy)
                     .on_channel()
                     .invoke()

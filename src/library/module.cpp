@@ -83,7 +83,7 @@ core::future<std::shared_ptr<cuda_function>> cuda_module::get_cuda_function(
                 //get cuda_function object
                 std::shared_ptr<cuda_function_impl> pimpl_(
                     new cuda_function_impl{{}, ch, args->imms.error,
-                            // std::move(args->caps.call),
+                            std::move(args->caps.call),
                             std::move(args->caps.func_destroy)}
                     );
                 pimpl_->self = pimpl_;

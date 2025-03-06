@@ -34,10 +34,18 @@ cuda_memory::cuda_memory(std::shared_ptr<void> pimpl, wire::endian::uint64_t siz
     DLOG(INFO) << "initialize memory : " << size;
 }
 
-cuda_memory::cuda_memory(std::shared_ptr<void> pimpl) : _pimpl(pimpl) {
+char* cuda_memory::get_addr() {
+    auto& pimpl = cuda_memory_impl::get(*this);
+
+    return pimpl.addr;
 }
 
-cuda_memory::cuda_memory(wire::endian::uint64_t size) {}
+core::cap::memory& cuda_memory::get_cap_mem() {
+    auto& pimpl = cuda_memory_impl::get(*this);
+
+    return pimpl.memory;
+}
+
 
 cuda_memory::~cuda_memory() {
     DLOG(INFO) << "cuda_memory: i am free";

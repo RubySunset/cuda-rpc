@@ -84,8 +84,14 @@ void gpu_cuda_memory::handle_destroy(auto args) {
     memory_free(base);
 
     DVLOG(logging::SERVICE) << "Revoke destroy";
-                  
-    ch->revoke(self->_req_destroy)
+
+    ch->revoke(self->_memory)
+        .then([ch, self](auto& fut) {
+                  fut.get();
+                  DLOG(INFO) << "Revoke _req_deallocate";
+                  return ch->revoke(self->_req_destroy);
+              })
+        .unwrap()
         .then([this, ch, self, args=std::move(args)](auto& fut) {
             fut.get();
             DLOG(INFO) << "cuda memory destroyed";

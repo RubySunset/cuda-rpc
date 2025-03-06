@@ -103,10 +103,10 @@ namespace service::compute::cuda::message{
             struct response {
                 struct imms {
                     fractos::wire::endian::uint8_t error;
-                    // fractos::wire::endian::uint64_t address;
+                    fractos::wire::endian::uint64_t address;
                 } __attribute__ ((packed));
                 struct caps {
-                    // fractos::core::cap::cap::memory memory;
+                    fractos::core::cap::memory memory;
                     fractos::core::cap::request destroy;
                 };
             };

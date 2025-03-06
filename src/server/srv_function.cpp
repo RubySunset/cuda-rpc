@@ -75,48 +75,50 @@ void gpu_cuda_function::handle_call(auto args) {
     LOG(INFO) << "CALL handle call";
     using msg = ::service::compute::cuda::message::cuda_function::call;
 
-    // if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-    //     LOG(ERROR) << "no continuation";
-    //     return;
-    // }
+    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+        LOG(ERROR) << "no continuation";
+        return;
+    }
 
-    // std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
+    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
 
-    // auto args_num = args->imms.args_num;
-    // auto grid = args->imms.grid;
-    // auto block = args->imms.block;
+    auto args_num = args->imms.args_num;
+    auto grid = args->imms.grid;
+    auto block = args->imms.block;
 
-    // auto raw_kernel_args = args->imms.kernel_args;
+    auto raw_kernel_args = args->imms.kernel_args;
 
-    // void* kernel_args[args_num.get()];
+    void* kernel_args[args_num.get()];
 
-    // for (uint i = 0; i < args_num; i++) {
-    //     auto info = (msg::kernel_arg_info*)raw_kernel_args;
-    //     //LOG(INFO) << (void*)(uintptr_t)*(char*)info->value;
-    //     kernel_args[i] = info->value;
-    //     raw_kernel_args += info->size.get() + sizeof(msg::kernel_arg_info);
+    for (uint i = 0; i < args_num; i++) {
+        auto info = (msg::kernel_arg_info*)raw_kernel_args;
+        //LOG(INFO) << (void*)(uintptr_t)*(char*)info->value;
+        kernel_args[i] = info->value;
+        raw_kernel_args += info->size.get() + sizeof(msg::kernel_arg_info);
 
-    //     //kernel_args[i] = (void*)raw_kernel_args;
-    //     //raw_kernel_args += 8;
-    // }
+        //kernel_args[i] = (void*)raw_kernel_args;
+        //raw_kernel_args += 8;
+    }
 
     // dim3 dimGrid(grid);
     // dim3 dimBlock(block);
 
     // CUevent event;
+
+    checkCudaErrors(cuLaunchKernel(_func, grid, 1, 1, 
+        block, 1, 1, 
+        0, 0, kernel_args, 0)); // 0 , stream , args, 0
     // checkCudaErrors(cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z, 
     //                dimBlock.x, dimBlock.y, dimBlock.z, 
     //                0, 0, kernel_args, 0)); // 0 , stream , args, 0
 
 
 
-    // context_synchronize();
-
-    // ch->make_request_builder<msg::response>(args->caps.continuation)
-    //     .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
-    //     .on_channel()
-    //     .invoke()
-    //     .as_callback();
+    ch->make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+        .on_channel()
+        .invoke()
+        .as_callback();
 }
 
 
@@ -144,8 +146,14 @@ void gpu_cuda_function::handle_func_destroy(auto args) {
     // memory_free(base);
 
     DVLOG(logging::SERVICE) << "Revoke destroy";
-                  
-    ch->revoke(self->_req_func_destroy)
+
+    ch->revoke(self->_req_call)
+        .then([ch, self](auto& fut) {
+            fut.get();
+            LOG(INFO) << "Revoke _req_cumemalloc";
+            return ch->revoke(self->_req_func_destroy);
+        })
+        .unwrap()
         .then([this, ch, self, args=std::move(args)](auto& fut) {
             fut.get();
             DLOG(INFO) << "cuda function destroyed";

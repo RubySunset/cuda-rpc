@@ -9,6 +9,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <utility>
 
 #include <fractos/service/compute/cuda_msg.hpp>
 
@@ -236,7 +237,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         
             cuda_memory(fractos::wire::endian::uint64_t size);
 
-            
+            char* get_addr();
+            fractos::core::cap::memory& get_cap_mem();
+
 
             /**
              * @brief Destroy memory 
@@ -301,8 +304,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
                  * @brief Wrapper for cuLaunchKernel()
                  */
                 template<class... Args>
-                [[nodiscard]] core::future<void>
-                call(std::pair<size_t, size_t>& gpu_grid, Args&&... args);
+                core::future<void> call(std::pair<size_t, size_t>& gpu_grid, Args&&... ker_args);
+
+                template<class... Args>
+                core::future<void> call(Args&&... ker_args);
 
                 /**
                  * @brief Wrapper for cuLaunchKernel()
@@ -328,6 +333,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             
             };
             std::string to_string(const cuda_function& obj);
+            
         
 
         /**
@@ -526,3 +532,4 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
     } // namespace cuda
 } // namespace fractos::cuda_service::compute
+#include "/home/mingxuanyang/fractos/experiments/deps/service-compute-cuda/src/library/functio.inc.hpp" // Include the implementation

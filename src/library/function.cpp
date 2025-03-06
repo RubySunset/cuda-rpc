@@ -53,7 +53,7 @@ cuda_function::~cuda_function() {
 //                                     std::tuple<Args...> args) {
 //     if constexpr (N < std::tuple_size<decltype(args)>()) {
 //     auto size = sizeof(std::get<N>(args));
-//     using msg = service::compute::detail::cuda_function::call;
+//     using msg = ::service::compute::cuda::message::cuda_function::call;
 //     msg::kernel_arg_info arg_info;
 //     arg_info.size = size;
 //     req.set_imm(offset, &arg_info, sizeof(arg_info));
@@ -66,48 +66,50 @@ cuda_function::~cuda_function() {
 //     }
 // }
 
-template<class... Args>
-core::future<void> cuda_function::call(std::pair<size_t, size_t>& gpu_grid, Args&&... ker_args) {
-    using msg = ::service::compute::cuda::message::cuda_function::call;
+// template<class... Args>
+// core::future<void> cuda_function::call(Args&&... ker_args) {
+// // core::future<void> cuda_function::call(std::pair<size_t, size_t>& gpu_grid, Args&&... ker_args) {
+//     using msg = ::service::compute::cuda::message::cuda_function::call;
 
-    // DVLOG(logging::SERVICE) << "cuda_function::call <-";
+//     DVLOG(logging::SERVICE) << "cuda_function::call <-";
 
-    // auto& pimpl = cuda_function_impl:get(*this);
+//     auto& pimpl = cuda_function_impl::get(*this);
 
-    // auto kargs = std::make_tuple<Args...>(std::forward<Args>(ker_args)...);
+//     // auto kargs = std::make_tuple<Args...>(std::forward<Args>(ker_args)...);
 
-    // auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    // auto req =  pimpl.ch->make_request_builder<msg::request>(pimpl.req_func_call)
-    //     .set_imm(&msg::request::imms::grid, (uint64_t)gpu_grid.first)
-    //     .set_imm(&msg::request::imms::block, (uint64_t)gpu_grid.second)
-    //     .set_cap(&msg::request::caps::continuation_success, resp)
-    //     .set_cap(&msg::request::caps::continuation_failure, resp)
+//     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+//     auto req =  pimpl.ch->make_request_builder<msg::request>(pimpl.req_func_call)
+//         // .set_imm(&msg::request::imms::grid, (uint64_t)gpu_grid.first)
+//         // .set_imm(&msg::request::imms::block, (uint64_t)gpu_grid.second)
+//         .set_cap(&msg::request::caps::continuation, resp);
+//         // .set_cap(&msg::request::caps::continuation_success, resp)
+//         // .set_cap(&msg::request::caps::continuation_failure, resp)
 
-    // size_t cur_offset = offsetof(msg::request::imms, block) + sizeof(uint64_t);
-    // size_t args_num = 0;
-    // append_call_arg<0>(cur_offset, args_num, req, kargs);
-    // req.set_imm(&msg::request::imms::args_num, (uint64_t)args_num);
+//     size_t cur_offset = offsetof(msg::request::imms, block) + sizeof(uint64_t);
+//     size_t args_num = 0;
+//     // append_call_arg<0>(cur_offset, args_num, req, kargs);
+//     req.set_imm(&msg::request::imms::args_num, (uint64_t)args_num);
     
 
-    // return req
-    //     // .set_cap(&msg::request::caps::continuation, resp)
-    //     .on_channel()
-    //     .invoke(resp) // wait for handle_sync
-    //     .unwrap()
-    //     .then([](auto& fut) {
-    //         auto [ch, args] = fut.get();
+//     return req
+//         // .set_cap(&msg::request::caps::continuation, resp)
+//         .on_channel()
+//         .invoke(resp) // wait for handle_sync
+//         .unwrap()
+//         .then([](auto& fut) {
+//             auto [ch, args] = fut.get();
 
-    //         if (not args->has_exactly_args()) {
-    //             // throw core::other_error("invalid response format for cuda_context::synchronize");
-    //             DVLOG(logging::SERVICE) << "cuda_function::call ->"
-    //                             << " error=OTHER args";
-    //         }
+//             if (not args->has_exactly_args()) {
+//                 // throw core::other_error("invalid response format for cuda_context::synchronize");
+//                 DVLOG(logging::SERVICE) << "cuda_function::call ->"
+//                                 << " error=OTHER args";
+//             }
 
-    //         DVLOG(logging::SERVICE) << "cuda_function::call ->"
-    //                                 << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-    //         wire::error_raise_exception_maybe(args->imms.error);
-    //     });
-}
+//             DVLOG(logging::SERVICE) << "cuda_function::call ->"
+//                                     << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
+//             wire::error_raise_exception_maybe(args->imms.error);
+//         });
+// }
 
 
 

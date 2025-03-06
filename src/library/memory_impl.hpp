@@ -28,6 +28,10 @@ namespace impl {
             fractos::core::cap::request req_mem_destroy;
         
             bool destroyed;
+            char* addr;
+            size_t size;
+            fractos::core::cap::memory memory;
+
         };
         
 
