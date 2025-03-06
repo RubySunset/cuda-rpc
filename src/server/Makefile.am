@@ -1,7 +1,7 @@
 bin_PROGRAMS =
 
 AM_CPPFLAGS =
-AM_CPPFLAGS += -I$(srcdir)/../include
+AM_CPPFLAGS += -I$(srcdir)/../include -I$(srcdir)/../library
 AM_CPPFLAGS += $(PKG_CPPFLAGS)
 AM_CPPFLAGS += $(CUDA_INCLUDE_FLAGS)
 

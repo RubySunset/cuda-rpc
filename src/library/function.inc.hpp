@@ -5,7 +5,8 @@
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
-#include </home/mingxuanyang/fractos/experiments/deps/service-compute-cuda/src/library/function_impl.hpp>
+// #include </home/mingxuanyang/fractos/experiments/deps/service-compute-cuda/src/library/function_impl.hpp>
+#include <function_impl.hpp>
 
 // #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;

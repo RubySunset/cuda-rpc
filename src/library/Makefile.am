@@ -10,6 +10,8 @@ AM_LDFLAGS += $(PKG_LDFLAGS)
 AM_LDFLAGS += $(PKG_LIBS)
 AM_LDFLAGS += $(CUDA_LIBS)
 
+nobase_include_HEADERS = function.inc.hpp
+nobase_include_HEADERS += function_impl.hpp
 
 lib_LTLIBRARIES += libfractos-service-compute-cuda.la
 libfractos_service_compute_cuda_la_SOURCES =
