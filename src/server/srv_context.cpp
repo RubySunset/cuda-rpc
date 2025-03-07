@@ -288,7 +288,7 @@ void gpu_cuda_context::handle_synchronize(auto args) {
 
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
 
-    // context_synchronize();
+    context_synchronize();
 
     ch->make_request_builder<msg::response>(args->caps.continuation)
         .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
