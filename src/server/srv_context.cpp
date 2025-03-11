@@ -3,9 +3,7 @@
 #include <glog/logging.h>
 #include <fractos/logging.hpp>
 #include <fractos/wire/error.hpp>
-// #include <fractos/service/compute/cuda.hpp>
 
-// #include <fractos/service/compute/cuda.hpp>
 
 
 using namespace fractos;
@@ -13,7 +11,7 @@ using namespace ::test;
 // using namespace impl;
 #define MAX_IO_SIZE    (1024 * 1024 * 16)   
 
-gpu_cuda_context::gpu_cuda_context(fractos::wire::endian::uint32_t value, CUdevice& device) {
+gpu_Context::gpu_Context(fractos::wire::endian::uint32_t value, CUdevice& device) {
     //fork();
     _id = value;
     _destroyed = false;   
@@ -23,19 +21,19 @@ gpu_cuda_context::gpu_cuda_context(fractos::wire::endian::uint32_t value, CUdevi
     _ctx = ctx;
 }
 
-std::shared_ptr<gpu_cuda_context> gpu_cuda_context::factory(fractos::wire::endian::uint32_t value, CUdevice& device){
+std::shared_ptr<gpu_Context> gpu_Context::factory(fractos::wire::endian::uint32_t value, CUdevice& device){
 
-    auto res = std::shared_ptr<gpu_cuda_context>(new gpu_cuda_context(value, device));
+    auto res = std::shared_ptr<gpu_Context>(new gpu_Context(value, device));
     res->_self = res;
     return res;
 }
 
-gpu_cuda_context::~gpu_cuda_context() {
+gpu_Context::~gpu_Context() {
     checkCudaErrors(cuCtxDestroy(_ctx));
 }
 
 
-char* gpu_cuda_context::allocate_memory(size_t size, CUcontext& context) {
+char* gpu_Context::allocate_memory(size_t size, CUcontext& context) {
 
     char* addr = nullptr;
     checkCudaErrors(cuCtxSetCurrent(context));
@@ -52,37 +50,37 @@ char* gpu_cuda_context::allocate_memory(size_t size, CUcontext& context) {
 
 
 
-void gpu_cuda_context::context_synchronize() {
+void gpu_Context::context_synchronize() {
     checkCudaErrors(cuCtxSynchronize());
 }
 
-void gpu_cuda_context::context_destroy(CUcontext& context) {
+void gpu_Context::context_destroy(CUcontext& context) {
     checkCudaErrors(cuCtxDestroy(context));
 }
 
 
 
 /*
- *  Make handlers for a cuda_context's caps
+ *  Make handlers for a Context's caps
  */
-core::future<void> gpu_cuda_context::register_methods(std::shared_ptr<core::channel> ch)
+core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> ch)
 {
-    namespace msg_base = ::service::compute::cuda::message::cuda_context;
+    namespace msg_base = ::service::compute::cuda::message::Context;
 
     auto self = _self;
 
 
-    return ch->make_request_builder<msg_base::make_cumemalloc::request>(
+    return ch->make_request_builder<msg_base::make_memory::request>(
         ch->get_default_endpoint(),
         [self](auto ch, auto args) {
-            LOG(INFO) << "In register_service context handler";
-            self->handle_cumemalloc(std::move(args));
+            VLOG(fractos::logging::SERVICE) << "In register_service context handler";
+            self->handle_memory(std::move(args));
         })
         .on_channel()
         .make_request()
         .then([ch, self](auto& fut) {
-            self->_req_cumemalloc = fut.get();
-            LOG(INFO) << "SET req_cumemalloc"; // virtua
+            self->_req_memory = fut.get();
+            VLOG(fractos::logging::SERVICE) << "SET req_memory"; // virtua
             return ch->make_request_builder<msg_base::make_module_file::request>(
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -95,7 +93,7 @@ core::future<void> gpu_cuda_context::register_methods(std::shared_ptr<core::chan
         .unwrap()
         .then([ch, self](auto& fut) {
             self->_req_module_file = fut.get();
-            LOG(INFO) << "SET req_module_file"; // virtua
+            VLOG(fractos::logging::SERVICE) << "SET req_module_file"; // virtua
             return ch->make_request_builder<msg_base::synchronize::request>(
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -108,7 +106,7 @@ core::future<void> gpu_cuda_context::register_methods(std::shared_ptr<core::chan
         .unwrap()
         .then([ch, self](auto& fut) {
             self->_req_synchronize = fut.get();
-            LOG(INFO) << "SET req_synchronize"; // virtua
+            VLOG(fractos::logging::SERVICE) << "SET req_synchronize"; // virtua
             return ch->make_request_builder<msg_base::destroy::request>(
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -120,19 +118,19 @@ core::future<void> gpu_cuda_context::register_methods(std::shared_ptr<core::chan
             })
         .unwrap()
         .then([ch, self, this](auto& fut) {
-            LOG(INFO) << "SET req_destroy context";
+            VLOG(fractos::logging::SERVICE) << "SET req_destroy context";
             self->_req_destroy = fut.get();
         });
 
 }
 
 /*
- *  Destroy a cuda_context, revoke all of its caps
+ *  Destroy a Context, revoke all of its caps
  */
-void gpu_cuda_context::handle_cumemalloc(auto args_) {
-    LOG(INFO) << "CALL handle handle_cumemalloc";
+void gpu_Context::handle_memory(auto args_) {
+    VLOG(fractos::logging::SERVICE) << "CALL handle handle_memory";
     std::shared_ptr<typename decltype(args_)::element_type> args(std::move(args_));
-    using msg = ::service::compute::cuda::message::cuda_context::make_cumemalloc;
+    using msg = ::service::compute::cuda::message::Context::make_memory;
     
     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
         DLOG(ERROR) << "got request without continuation, ignoring";
@@ -173,11 +171,11 @@ void gpu_cuda_context::handle_cumemalloc(auto args_) {
         
 
         auto self = _self; // lock()
-        // LOG(INFO) << "cuda device addr: " << (void*)base;
-        LOG(INFO) << "mem size is: " << size;
+        // VLOG(fractos::logging::SERVICE) << "cuda device addr: " << (void*)base;
+        VLOG(fractos::logging::SERVICE) << "mem size is: " << size;
 
 
-        auto dev_mem = std::shared_ptr<gpu_cuda_memory>(gpu_cuda_memory::factory(size, _ctx));
+        auto dev_mem = std::shared_ptr<gpu_Memory>(gpu_Memory::factory(size, _ctx));
         
 
         dev_mem->_memory = fut.get();
@@ -190,7 +188,7 @@ void gpu_cuda_context::handle_cumemalloc(auto args_) {
                 fut.get();
                 _dev_mem = dev_mem;
 
-                // LOG(INFO) << "BACKEND memory size is " << dev_mem->_memory.get_size();
+                // VLOG(fractos::logging::SERVICE) << "BACKEND memory size is " << dev_mem->_memory.get_size();
 
                 ch->make_request_builder<msg::response>(args->caps.continuation)
                     .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
@@ -209,10 +207,10 @@ void gpu_cuda_context::handle_cumemalloc(auto args_) {
 
 }
 
-void gpu_cuda_context::handle_module_file(auto args) {
-    LOG(INFO) << "CALL handle_module_file";
+void gpu_Context::handle_module_file(auto args) {
+    VLOG(fractos::logging::SERVICE) << "CALL handle_module_file";
 
-    using msg = ::service::compute::cuda::message::cuda_context::make_module_file;
+    using msg = ::service::compute::cuda::message::Context::make_module_file;
     
     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
         LOG(ERROR) << "got request without continuation, ignoring";
@@ -225,7 +223,7 @@ void gpu_cuda_context::handle_module_file(auto args) {
     if (not args->has_exactly_args()) { // file_name
         if (not args->has_exactly_imms()) {
             if (args->imms_size() == 8 + file_name.size()) {
-                LOG(INFO) << "got imms length : " << file_name.size(); // char file_name[] in msg
+                VLOG(fractos::logging::SERVICE) << "got imms length : " << file_name.size(); // char file_name[] in msg
             } else {
                 LOG(ERROR) << "got error imms";
                 ch->make_request_builder<msg::response>(args->caps.continuation)
@@ -249,10 +247,10 @@ void gpu_cuda_context::handle_module_file(auto args) {
     }
 
     auto self = _self;
-    LOG(INFO) << "module name is: " << file_name;
+    VLOG(fractos::logging::SERVICE) << "module name is: " << file_name;
 
 
-    auto mod = std::shared_ptr<gpu_cuda_module>(gpu_cuda_module::factory(file_name, _ctx));
+    auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(file_name, _ctx));
 
 
     mod->register_methods(ch)
@@ -262,7 +260,7 @@ void gpu_cuda_context::handle_module_file(auto args) {
 
             ch->make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
-                .set_cap(&msg::response::caps::get_cuda_function, mod->_req_get_func)
+                .set_cap(&msg::response::caps::get_function, mod->_req_get_func)
                 .set_cap(&msg::response::caps::destroy, mod->_req_destroy)
                 .on_channel()
                 .invoke()
@@ -277,9 +275,9 @@ void gpu_cuda_context::handle_module_file(auto args) {
 
 
 
-void gpu_cuda_context::handle_synchronize(auto args) {
-    LOG(INFO) << "CALL handle synchronize";
-    using msg = ::service::compute::cuda::message::cuda_context::synchronize;
+void gpu_Context::handle_synchronize(auto args) {
+    VLOG(fractos::logging::SERVICE) << "CALL handle synchronize";
+    using msg = ::service::compute::cuda::message::Context::synchronize;
 
     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
         LOG(ERROR) << "no continuation";
@@ -300,11 +298,11 @@ void gpu_cuda_context::handle_synchronize(auto args) {
 
 
 /*
- *  Destroy a cuda_context, revoke all of its caps
+ *  Destroy a Context, revoke all of its caps
  */
-void gpu_cuda_context::handle_destroy(auto args) {
-    LOG(INFO) << "CALL handle destroy";
-    using msg = ::service::compute::cuda::message::cuda_context::destroy;
+void gpu_Context::handle_destroy(auto args) {
+    VLOG(fractos::logging::SERVICE) << "CALL handle destroy";
+    using msg = ::service::compute::cuda::message::Context::destroy;
 
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
     
@@ -322,30 +320,30 @@ void gpu_cuda_context::handle_destroy(auto args) {
 
     context_destroy(_ctx);
 
-    LOG(INFO) << "Revoke destroy";
+    VLOG(fractos::logging::SERVICE) << "Revoke destroy";
 
-    ch->revoke(self->_req_cumemalloc)
+    ch->revoke(self->_req_memory)
         .then([ch, self](auto& fut) {
                   fut.get();
-                  LOG(INFO) << "Revoke _req_cumemalloc";
+                  VLOG(fractos::logging::SERVICE) << "Revoke _req_memory";
                   return ch->revoke(self->_req_module_file);
         })
         .unwrap()
         .then([ch, self](auto& fut) {
             fut.get();
-            LOG(INFO) << "Revoke _req_module_file";
+            VLOG(fractos::logging::SERVICE) << "Revoke _req_module_file";
             return ch->revoke(self->_req_synchronize);
         })
         .unwrap()
         .then([ch, self](auto& fut) {
             fut.get();
-            LOG(INFO) << "Revoke _req_synchronize";
+            VLOG(fractos::logging::SERVICE) << "Revoke _req_synchronize";
             return ch->revoke(self->_req_destroy);
         })
         .unwrap()
         .then([this, ch, self, args=std::move(args)](auto& fut) {
             fut.get();
-            LOG(INFO) << "Virtual context destroyed";
+            VLOG(fractos::logging::SERVICE) << "Virtual context destroyed";
             this->_destroyed = true;
             ch->make_request_builder<msg::response>(args->caps.continuation) // response
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)

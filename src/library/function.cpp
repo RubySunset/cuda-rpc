@@ -5,6 +5,8 @@
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
+// #include <fractos/service/compute/cuda_msg.hpp>
+
 #include <function_impl.hpp>
 
 // #include <fractos/service/compute/cuda_msg.hpp>
@@ -13,34 +15,27 @@ using namespace fractos::service::compute::cuda;
 using namespace impl;
 
 inline
-cuda_function_impl& cuda_function_impl::get(cuda_function& obj)
+Function_impl& Function_impl::get(Function& obj)
 {
-    return *reinterpret_cast<cuda_function_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<Function_impl*>(obj._pimpl.get());
 }
 
 inline
-const cuda_function_impl& cuda_function_impl::get(const cuda_function& obj) 
+const Function_impl& Function_impl::get(const Function& obj) 
 {
-    return *reinterpret_cast<cuda_function_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<Function_impl*>(obj._pimpl.get());
 }
 
-
-
-
-cuda_function::cuda_function(std::shared_ptr<void> pimpl, std::string func_name) : _pimpl(pimpl) {
-
-
+Function::Function(std::shared_ptr<void> pimpl, std::string func_name) : _pimpl(pimpl) {
 
     DLOG(INFO) << "initialize function : " << func_name;
 }
 
-cuda_function::cuda_function(std::shared_ptr<void> pimpl) : _pimpl(pimpl) {
-}
 
-cuda_function::cuda_function(std::string func_name) {}
 
-cuda_function::~cuda_function() {
-    DLOG(INFO) << "cuda_function: i am free";
+
+Function::~Function() {
+    DLOG(INFO) << "Function: i am free";
     if (not _destroyed) {
         _destroyed = true;
         // TODO: check why calling ::get() sometimes gets stuck
@@ -53,7 +48,7 @@ cuda_function::~cuda_function() {
 //                                     std::tuple<Args...> args) {
 //     if constexpr (N < std::tuple_size<decltype(args)>()) {
 //     auto size = sizeof(std::get<N>(args));
-//     using msg = ::service::compute::cuda::message::cuda_function::call;
+//     using msg = ::service::compute::cuda::message::Function::call;
 //     msg::kernel_arg_info arg_info;
 //     arg_info.size = size;
 //     req.set_imm(offset, &arg_info, sizeof(arg_info));
@@ -67,13 +62,13 @@ cuda_function::~cuda_function() {
 // }
 
 // template<class... Args>
-// core::future<void> cuda_function::call(Args&&... ker_args) {
-// // core::future<void> cuda_function::call(std::pair<size_t, size_t>& gpu_grid, Args&&... ker_args) {
-//     using msg = ::service::compute::cuda::message::cuda_function::call;
+// core::future<void> Function::call(Args&&... ker_args) {
+// // core::future<void> Function::call(std::pair<size_t, size_t>& gpu_grid, Args&&... ker_args) {
+//     using msg = ::service::compute::cuda::message::Function::call;
 
-//     DVLOG(logging::SERVICE) << "cuda_function::call <-";
+//     DVLOG(logging::SERVICE) << "Function::call <-";
 
-//     auto& pimpl = cuda_function_impl::get(*this);
+//     auto& pimpl = Function_impl::get(*this);
 
 //     // auto kargs = std::make_tuple<Args...>(std::forward<Args>(ker_args)...);
 
@@ -100,12 +95,12 @@ cuda_function::~cuda_function() {
 //             auto [ch, args] = fut.get();
 
 //             if (not args->has_exactly_args()) {
-//                 // throw core::other_error("invalid response format for cuda_context::synchronize");
-//                 DVLOG(logging::SERVICE) << "cuda_function::call ->"
+//                 // throw core::other_error("invalid response format for Function::call");
+//                 DVLOG(logging::SERVICE) << "Function::call ->"
 //                                 << " error=OTHER args";
 //             }
 
-//             DVLOG(logging::SERVICE) << "cuda_function::call ->"
+//             DVLOG(logging::SERVICE) << "Function::call ->"
 //                                     << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
 //             wire::error_raise_exception_maybe(args->imms.error);
 //         });
@@ -113,12 +108,12 @@ cuda_function::~cuda_function() {
 
 
 
-core::future<void> cuda_function::func_destroy() {
-    using msg = ::service::compute::cuda::message::cuda_function::func_destroy;
+core::future<void> Function::func_destroy() {
+    using msg = ::service::compute::cuda::message::Function::func_destroy;
 
-    DVLOG(logging::SERVICE) << "cuda_function::func_destroy <-";
+    DVLOG(logging::SERVICE) << "Function::func_destroy <-";
 
-    auto& pimpl = cuda_function_impl::get(*this);
+    auto& pimpl = Function_impl::get(*this);
     _destroyed = true;
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
@@ -131,12 +126,12 @@ core::future<void> cuda_function::func_destroy() {
             auto [ch, args] = fut.get();
 
             if (not args->has_exactly_args()) {
-                // throw core::other_error("invalid response format for cuda_function::destroy");
-                DVLOG(logging::SERVICE) << "cuda_function::func_destroy ->"
+                // throw core::other_error("invalid response format for Function::destroy");
+                DVLOG(logging::SERVICE) << "Function::func_destroy ->"
                                 << " error=OTHER args";
             }
 
-            DVLOG(logging::SERVICE) << "cuda_function::func_destroy ->"
+            DVLOG(logging::SERVICE) << "Function::func_destroy ->"
                                     << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
             wire::error_raise_exception_maybe(args->imms.error);
         });

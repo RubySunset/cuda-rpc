@@ -9,7 +9,7 @@ using namespace fractos;
 using namespace ::test;
 // using namespace impl;
 
-gpu_cuda_memory::gpu_cuda_memory(fractos::wire::endian::uint32_t size, CUcontext& ctx) {
+gpu_Memory::gpu_Memory(fractos::wire::endian::uint32_t size, CUcontext& ctx) {
     //fork();
     _size = size;
     _destroyed = false;
@@ -17,18 +17,18 @@ gpu_cuda_memory::gpu_cuda_memory(fractos::wire::endian::uint32_t size, CUcontext
    
 }
 
-std::shared_ptr<gpu_cuda_memory> gpu_cuda_memory::factory(fractos::wire::endian::uint32_t size, CUcontext& ctx){
-    auto res = std::shared_ptr<gpu_cuda_memory>(new gpu_cuda_memory(size, ctx));
+std::shared_ptr<gpu_Memory> gpu_Memory::factory(fractos::wire::endian::uint32_t size, CUcontext& ctx){
+    auto res = std::shared_ptr<gpu_Memory>(new gpu_Memory(size, ctx));
     res->_self = res;
     return res;
 }
 
-gpu_cuda_memory::~gpu_cuda_memory() {
+gpu_Memory::~gpu_Memory() {
     // checkCudaErrors(cuCtxDestroy(context));
 }
 
 
-void gpu_cuda_memory::memory_free(char* base)
+void gpu_Memory::memory_free(char* base)
 {
     checkCudaErrors(cuCtxSetCurrent(_ctx));
     CUdeviceptr d_B = reinterpret_cast<CUdeviceptr>(base);
@@ -38,11 +38,11 @@ void gpu_cuda_memory::memory_free(char* base)
     // checkCudaErrors(cuCtxDestroy(context));
 }
 /*
- *  Make handlers for a cuda_memory's caps
+ *  Make handlers for a Memory's caps
  */
-core::future<void> gpu_cuda_memory::register_methods(std::shared_ptr<core::channel> ch)
+core::future<void> gpu_Memory::register_methods(std::shared_ptr<core::channel> ch)
 {
-    namespace msg_base = ::service::compute::cuda::message::cuda_memory;
+    namespace msg_base = ::service::compute::cuda::message::Memory;
 
     auto self = _self;
 
@@ -61,11 +61,11 @@ core::future<void> gpu_cuda_memory::register_methods(std::shared_ptr<core::chann
 }
 
 /*
- *  Destroy a cuda_memory, revoke all of its caps
+ *  Destroy a Memory, revoke all of its caps
  */
-void gpu_cuda_memory::handle_destroy(auto args) {
+void gpu_Memory::handle_destroy(auto args) {
     DVLOG(logging::SERVICE) << "CALL handle destroy";
-    using msg = ::service::compute::cuda::message::cuda_memory::destroy;
+    using msg = ::service::compute::cuda::message::Memory::destroy;
 
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
     
@@ -88,13 +88,13 @@ void gpu_cuda_memory::handle_destroy(auto args) {
     ch->revoke(self->_memory)
         .then([ch, self](auto& fut) {
                   fut.get();
-                  DLOG(INFO) << "Revoke _req_deallocate";
+                  DVLOG(fractos::logging::SERVICE) << "Revoke _req_deallocate";
                   return ch->revoke(self->_req_destroy);
               })
         .unwrap()
         .then([this, ch, self, args=std::move(args)](auto& fut) {
             fut.get();
-            DLOG(INFO) << "cuda memory destroyed";
+            DVLOG(fractos::logging::SERVICE) << "cuda memory destroyed";
             this->_destroyed = true;
             ch->make_request_builder<msg::response>(args->caps.continuation) // response
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)

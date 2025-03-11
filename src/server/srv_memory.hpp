@@ -8,9 +8,9 @@ using namespace fractos;
 
 namespace test {
 
-class gpu_cuda_memory {
+class gpu_Memory {
 public:
-    static std::shared_ptr<gpu_cuda_memory> factory(fractos::wire::endian::uint32_t size, CUcontext& ctx);
+    static std::shared_ptr<gpu_Memory> factory(fractos::wire::endian::uint32_t size, CUcontext& ctx);
 
     fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
@@ -21,7 +21,7 @@ private:
     void memory_free(char* base);  
     fractos::wire::endian::uint32_t _size;
 
-    std::shared_ptr<gpu_cuda_memory> _self;
+    std::shared_ptr<gpu_Memory> _self;
     bool _destroyed;
     CUcontext _ctx;
 
@@ -33,9 +33,9 @@ public:
     
     char* base;
 
-    gpu_cuda_memory(fractos::wire::endian::uint32_t size, CUcontext& ctx);
+    gpu_Memory(fractos::wire::endian::uint32_t size, CUcontext& ctx);
 
-    ~gpu_cuda_memory();
+    ~gpu_Memory();
 
     //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
 };

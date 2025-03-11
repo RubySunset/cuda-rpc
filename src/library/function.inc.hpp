@@ -5,6 +5,9 @@
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
+#include <fractos/service/compute/cuda_msg.hpp>
+
+
 // #include </home/mingxuanyang/fractos/experiments/deps/service-compute-cuda/src/library/function_impl.hpp>
 #include <function_impl.hpp>
 
@@ -13,26 +16,12 @@ using namespace fractos;
 using namespace fractos::service::compute::cuda;
 using namespace impl;
 
-// inline
-// cuda_function_impl& cuda_function_impl::get(cuda_function& obj)
-// {
-//     return *reinterpret_cast<cuda_function_impl*>(obj._pimpl.get());
-// }
-
-// inline
-// const cuda_function_impl& cuda_function_impl::get(const cuda_function& obj) 
-// {
-//     return *reinterpret_cast<cuda_function_impl*>(obj._pimpl.get());
-// }
-
-
-
 template <size_t N, class T, class... Args>
 static inline void append_call_arg(size_t &offset, size_t &count, T &req,
                                     std::tuple<Args...> args) {
     if constexpr (N < std::tuple_size<decltype(args)>()) {
     auto size = sizeof(std::get<N>(args));
-    using msg = ::service::compute::cuda::message::cuda_function::call;
+    using msg = ::service::compute::cuda::message::Function::call;
     msg::kernel_arg_info arg_info;
     arg_info.size = size;
     req.set_imm(offset, &arg_info, sizeof(arg_info));
@@ -46,13 +35,12 @@ static inline void append_call_arg(size_t &offset, size_t &count, T &req,
 }
 
 template<class... Args>
-core::future<void> cuda_function::call(std::pair<size_t, size_t>& gpu_grid,Args&&... ker_args) {
-// core::future<void> cuda_function::call(std::pair<size_t, size_t>& gpu_grid, Args&&... ker_args) {
-    using msg = ::service::compute::cuda::message::cuda_function::call;
+core::future<void> Function::call(std::pair<size_t, size_t>& gpu_grid, Args&&... ker_args) {
+    using msg = ::service::compute::cuda::message::Function::call;
 
-    DVLOG(logging::SERVICE) << "cuda_function::call <-";
+    DVLOG(logging::SERVICE) << "Function::call <-";
 
-    auto& pimpl = cuda_function_impl::get(*this);
+    auto& pimpl = Function_impl::get(*this);
 
     auto kargs = std::make_tuple<Args...>(std::forward<Args>(ker_args)...);
 
@@ -79,12 +67,12 @@ core::future<void> cuda_function::call(std::pair<size_t, size_t>& gpu_grid,Args&
             auto [ch, args] = fut.get();
 
             if (not args->has_exactly_args()) {
-                // throw core::other_error("invalid response format for cuda_context::synchronize");
-                DVLOG(logging::SERVICE) << "cuda_function::call ->"
+                // throw core::other_error("invalid response format for Function::call");
+                DVLOG(logging::SERVICE) << "Function::call ->"
                                 << " error=OTHER args";
             }
 
-            DVLOG(logging::SERVICE) << "cuda_function::call ->"
+            DVLOG(logging::SERVICE) << "Function::call ->"
                                     << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
             wire::error_raise_exception_maybe(args->imms.error);
         });

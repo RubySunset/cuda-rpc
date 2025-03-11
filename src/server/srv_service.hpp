@@ -10,6 +10,7 @@
 
 
 #include <fractos/service/compute/cuda.hpp>
+// #include <fractos/service/compute/cuda_msg.hpp>
 #include "./srv_device.hpp"
 using namespace fractos;
 
@@ -21,8 +22,8 @@ namespace test {
     
         static std::shared_ptr<gpu_device_service> factory();
     
-        fractos::core::cap::request req_make_cuda_device;
-        fractos::core::cap::request req_get_cuda_device;
+        fractos::core::cap::request req_make_device;
+        fractos::core::cap::request req_get_Device;
     
         fractos::core::future<void> register_service(std::shared_ptr<fractos::core::channel> ch);
     
@@ -33,15 +34,15 @@ namespace test {
         ~gpu_device_service();
     
     protected:
-        void handle_make_cuda_device(auto args);
-        void handle_get_cuda_device(auto args);
+        void handle_make_device(auto args);
+        void handle_get_Device(auto args);
     
     public:
         std::shared_ptr<void> _pimpl;
     
     private:
         gpu_device_service();
-        std::shared_ptr<test::gpu_cuda_device> _vdev;
+        std::shared_ptr<test::gpu_Device> _vdev;
     
         std::shared_ptr<fractos::core::channel> ch;
         std::weak_ptr<gpu_device_service> _self;

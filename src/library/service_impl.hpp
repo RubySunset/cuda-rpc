@@ -14,14 +14,14 @@ using namespace fractos::service::compute::cuda;
 
 namespace impl { 
         
-        struct cuda_service_impl {
-            static cuda_service_impl& get(fractos::service::compute::cuda::cuda_service& service);
-            static const cuda_service_impl& get(const fractos::service::compute::cuda::cuda_service& service);
+        struct Service_impl {
+            static Service_impl& get(fractos::service::compute::cuda::Service& service);
+            static const Service_impl& get(const fractos::service::compute::cuda::Service& service);
         
-            std::weak_ptr<cuda_service_impl> self;
+            std::weak_ptr<Service_impl> self;
             std::shared_ptr<fractos::core::channel>
          ch;
-            fractos::core::cap::request req_make_cuda_device;
+            fractos::core::cap::request req_make_device;
         };
 
         

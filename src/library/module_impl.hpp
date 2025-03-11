@@ -16,15 +16,15 @@ namespace impl {
         
         
 
-        struct cuda_module_impl {
-            static cuda_module_impl& get(fractos::service::compute::cuda::cuda_module& module);
-            static const cuda_module_impl& get(const fractos::service::compute::cuda::cuda_module& module);
+        struct Module_impl {
+            static Module_impl& get(fractos::service::compute::cuda::Module& module);
+            static const Module_impl& get(const fractos::service::compute::cuda::Module& module);
         
-            std::weak_ptr<cuda_module_impl> self;
+            std::weak_ptr<Module_impl> self;
             std::shared_ptr<fractos::core::channel> ch;
         
             fractos::wire::endian::uint8_t error;
-            fractos::core::cap::request req_get_func; //refer to initialize
+            fractos::core::cap::request req_get_func; 
             fractos::core::cap::request req_module_unload;
         
             bool destroyed;

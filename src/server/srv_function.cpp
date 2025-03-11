@@ -9,7 +9,7 @@ using namespace fractos;
 using namespace ::test;
 // using namespace impl;
 
-gpu_cuda_function::gpu_cuda_function(std::string func_name, CUcontext& ctx, CUmodule& mod) {
+gpu_Function::gpu_Function(std::string func_name, CUcontext& ctx, CUmodule& mod) {
     //fork();
     _name = func_name;
     _destroyed = false;
@@ -22,22 +22,22 @@ gpu_cuda_function::gpu_cuda_function(std::string func_name, CUcontext& ctx, CUmo
 
 }
 
-std::shared_ptr<gpu_cuda_function> gpu_cuda_function::factory(std::string func_name, CUcontext& ctx, CUmodule& mod){
-    auto res = std::shared_ptr<gpu_cuda_function>(new gpu_cuda_function(func_name, ctx, mod));
+std::shared_ptr<gpu_Function> gpu_Function::factory(std::string func_name, CUcontext& ctx, CUmodule& mod){
+    auto res = std::shared_ptr<gpu_Function>(new gpu_Function(func_name, ctx, mod));
     res->_self = res;
     return res;
 }
 
-gpu_cuda_function::~gpu_cuda_function() {
+gpu_Function::~gpu_Function() {
     // checkCudaErrors(cuCtxDestroy(context));
 }
 
 /*
- *  Make handlers for a cuda_function's caps
+ *  Make handlers for a Function's caps
  */
-core::future<void> gpu_cuda_function::register_methods(std::shared_ptr<core::channel> ch)
+core::future<void> gpu_Function::register_methods(std::shared_ptr<core::channel> ch)
 {
-    namespace msg_base = ::service::compute::cuda::message::cuda_function;
+    namespace msg_base = ::service::compute::cuda::message::Function;
 
     auto self = _self;
 
@@ -51,7 +51,7 @@ core::future<void> gpu_cuda_function::register_methods(std::shared_ptr<core::cha
         .make_request()
         .then([ch, self](auto& fut) {
             self->_req_call = fut.get();
-            LOG(INFO) << "SET req_call"; // virtua
+            VLOG(fractos::logging::SERVICE) << "SET req_call"; // virtua
             return ch->make_request_builder<msg_base::func_destroy::request>(
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -71,9 +71,9 @@ core::future<void> gpu_cuda_function::register_methods(std::shared_ptr<core::cha
 
 
 
-void gpu_cuda_function::handle_call(auto args) {
-    LOG(INFO) << "CALL handle call";
-    using msg = ::service::compute::cuda::message::cuda_function::call;
+void gpu_Function::handle_call(auto args) {
+    VLOG(fractos::logging::SERVICE) << "CALL handle call";
+    using msg = ::service::compute::cuda::message::Function::call;
 
     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
         LOG(ERROR) << "no continuation";
@@ -92,7 +92,7 @@ void gpu_cuda_function::handle_call(auto args) {
 
     for (uint i = 0; i < args_num; i++) {
         auto info = (msg::kernel_arg_info*)raw_kernel_args;
-        //LOG(INFO) << (void*)(uintptr_t)*(char*)info->value;
+        //VLOG(fractos::logging::SERVICE) << (void*)(uintptr_t)*(char*)info->value;
         kernel_args[i] = info->value;
         raw_kernel_args += info->size.get() + sizeof(msg::kernel_arg_info);
 
@@ -123,11 +123,11 @@ void gpu_cuda_function::handle_call(auto args) {
 
 
 /*
- *  Destroy a cuda_function, revoke all of its caps
+ *  Destroy a Function, revoke all of its caps
  */
-void gpu_cuda_function::handle_func_destroy(auto args) {
+void gpu_Function::handle_func_destroy(auto args) {
     DVLOG(logging::SERVICE) << "CALL handle destroy";
-    using msg = ::service::compute::cuda::message::cuda_function::func_destroy;
+    using msg = ::service::compute::cuda::message::Function::func_destroy;
 
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
     
@@ -150,13 +150,13 @@ void gpu_cuda_function::handle_func_destroy(auto args) {
     ch->revoke(self->_req_call)
         .then([ch, self](auto& fut) {
             fut.get();
-            LOG(INFO) << "Revoke _req_cumemalloc";
+            VLOG(fractos::logging::SERVICE) << "Revoke _req_memory";
             return ch->revoke(self->_req_func_destroy);
         })
         .unwrap()
         .then([this, ch, self, args=std::move(args)](auto& fut) {
             fut.get();
-            DLOG(INFO) << "cuda function destroyed";
+            DVLOG(fractos::logging::SERVICE) << "cuda function destroyed";
             this->_destroyed = true;
             ch->make_request_builder<msg::response>(args->caps.continuation) // response
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)

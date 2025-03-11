@@ -7,6 +7,7 @@
 
 #include <fractos/service/compute/cuda.hpp>
 
+
 #include "srv_service.hpp"
 
 using namespace fractos;
@@ -34,17 +35,14 @@ int main(int argc, char *argv[])
 
     // Log process state when receiving SIGUSR1
     common::signal::init_log_handler(SIGUSR1, ch->get_process());
-    LOG(INFO) << "name ch " << ch->get_name();
+    DVLOG(logging::SERVICE) << "name ch " << ch->get_name();
 
     // Log current process state
     ch->get_process()->log_state();
 
     auto srv = test::gpu_device_service::factory();
 
-    LOG(INFO) << "Create service";
-
-    LOG(INFO) << ch;
-    LOG(INFO) << "Register service";
+    LOG(INFO) << "Create cuda service";
     srv->register_service(ch).get();
 
     auto gns = core::gns::make_service();
@@ -63,7 +61,7 @@ int main(int argc, char *argv[])
         });
     intr_handler.detach();
     
-    auto srv_published = gns->publish_named(ch, srv->req_make_cuda_device, name)
+    auto srv_published = gns->publish_named(ch, srv->req_make_device, name)
         .get();
 
 
@@ -73,7 +71,7 @@ int main(int argc, char *argv[])
     ch->run_until([srv]() {return srv->exit_requested(); });
 
 
-    LOG(INFO) << "================================================== finish";
+    LOG(INFO) << "================================================== finish cuda service";
 
 
 
