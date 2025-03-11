@@ -47,7 +47,7 @@ Module::~Module() {
 core::future<std::shared_ptr<Function>> Module::get_function(
             const std::string& func_name) {
     
-        using msg = ::service::compute::cuda::message::Module::get_function;
+        using msg = ::service::compute::cuda::wire::Module::get_function;
     
         DVLOG(logging::SERVICE) << "Module::get_function <-";
     
@@ -89,7 +89,7 @@ core::future<std::shared_ptr<Function>> Module::get_function(
     }
 
 core::future<void> Module::destroy() {
-    using msg = ::service::compute::cuda::message::Module::destroy;
+    using msg = ::service::compute::cuda::wire::Module::destroy;
 
     DVLOG(logging::SERVICE) << "Module::destroy <-";
 

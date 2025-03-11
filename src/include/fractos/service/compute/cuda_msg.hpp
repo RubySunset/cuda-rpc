@@ -3,7 +3,7 @@
 #include <fractos/wire/endian.hpp>
 using namespace fractos;
 
-namespace service::compute::cuda::message{
+namespace service::compute::cuda::wire{
   
     namespace Service {
         struct make_device {

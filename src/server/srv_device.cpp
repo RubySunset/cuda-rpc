@@ -38,7 +38,7 @@ gpu_Device::~gpu_Device() {
  */
 core::future<void> gpu_Device::register_methods(std::shared_ptr<core::channel> ch)
 {
-    namespace msg_base = ::service::compute::cuda::message::Device;
+    namespace msg_base = ::service::compute::cuda::wire::Device;
 
 
     auto self = _self;
@@ -75,7 +75,7 @@ core::future<void> gpu_Device::register_methods(std::shared_ptr<core::channel> c
  */
 void gpu_Device::handle_make_context(auto args) {
     DVLOG(logging::SERVICE) << "CALL handle make_context";
-    using msg = ::service::compute::cuda::message::Device::make_context;
+    using msg = ::service::compute::cuda::wire::Device::make_context;
     
     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
         DLOG(ERROR) << "got request without continuation, ignoring";
@@ -125,7 +125,7 @@ void gpu_Device::handle_make_context(auto args) {
  */
 void gpu_Device::handle_destroy(auto args) {
     VLOG(fractos::logging::SERVICE) << "CALL handle destroy";
-    using msg = ::service::compute::cuda::message::Device::destroy;
+    using msg = ::service::compute::cuda::wire::Device::destroy;
 
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
     

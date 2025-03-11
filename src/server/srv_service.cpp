@@ -39,7 +39,7 @@ gpu_device_service::~gpu_device_service() {
 core::future<void> gpu_device_service::register_service(std::shared_ptr<core::channel> ch)
 {
     // namespace msg_base = ::service::compute::detail::device_service;
-    namespace msg_base = ::service::compute::cuda::message::Service;
+    namespace msg_base = ::service::compute::cuda::wire::Service;
 
     auto self = _self.lock();
 
@@ -79,7 +79,7 @@ core::future<void> gpu_device_service::register_service(std::shared_ptr<core::ch
  *  Return this Device to the frontend service
  */
 void gpu_device_service::handle_make_device(auto args) {
-    using msg = ::service::compute::cuda::message::Service::make_device;
+    using msg = ::service::compute::cuda::wire::Service::make_device;
     
     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
         DLOG(ERROR) << "got request without continuation, ignoring";
@@ -125,8 +125,8 @@ void gpu_device_service::handle_make_device(auto args) {
 
 
 void gpu_device_service::handle_get_Device(auto args) {
-    // namespace msg_base = ::service::compute::cuda::message::Service;
-    using msg = ::service::compute::cuda::message::Service::get_Device;
+    // namespace msg_base = ::service::compute::cuda::wire::Service;
+    using msg = ::service::compute::cuda::wire::Service::get_Device;
 
     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
         LOG(ERROR) << "no continuation";

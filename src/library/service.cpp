@@ -85,7 +85,7 @@ fractos::service::compute::cuda::make_service(fractos::core::gns::service& gns, 
  *  makes a request for make_device and sets the continuation of the response
  */
 core::future<std::shared_ptr<Device>> Service::make_device(uint8_t value) {
-    using msg = ::service::compute::cuda::message::Service::make_device;
+    using msg = ::service::compute::cuda::wire::Service::make_device;
 
     DVLOG(logging::SERVICE) << "Service::make_device <-";
 
@@ -130,7 +130,7 @@ core::future<std::shared_ptr<Device>> Service::make_device(uint8_t value) {
  */
 core::future<std::shared_ptr<Device>> Service::get_Device(fractos::core::gns::service& gns, 
                                                                                uint8_t value) {
-    using msg = ::service::compute::cuda::message::Service::get_Device;
+    using msg = ::service::compute::cuda::wire::Service::get_Device;
 
     DVLOG(logging::SERVICE) << "Service::get_Device <-";
 

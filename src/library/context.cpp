@@ -54,7 +54,7 @@ Context::~Context() {
 core::future<std::shared_ptr<Memory>> Context::make_memory(
                     uint64_t size) {
 
-    using msg = ::service::compute::cuda::message::Context::make_memory;
+    using msg = ::service::compute::cuda::wire::Context::make_memory;
 
     DVLOG(logging::SERVICE) << "Context::make_memory <-";
     auto& pimpl = Context_impl::get(*this);
@@ -99,7 +99,7 @@ core::future<std::shared_ptr<Module>> Context::make_module_file(
 // core::future<void> Context::make_module_file(
             const std::string& file_name) {
 
-    using msg = ::service::compute::cuda::message::Context::make_module_file;
+    using msg = ::service::compute::cuda::wire::Context::make_module_file;
 
     DVLOG(logging::SERVICE) << "Context::make_module_file <-";
 
@@ -142,7 +142,7 @@ core::future<std::shared_ptr<Module>> Context::make_module_file(
 
 
 core::future<void> Context::synchronize() {
-    using msg = ::service::compute::cuda::message::Context::synchronize;
+    using msg = ::service::compute::cuda::wire::Context::synchronize;
 
     DVLOG(logging::SERVICE) << "Context::synchronize <-";
 
@@ -170,7 +170,7 @@ core::future<void> Context::synchronize() {
 }
 
 core::future<void> Context::destroy() {
-    using msg = ::service::compute::cuda::message::Context::destroy;
+    using msg = ::service::compute::cuda::wire::Context::destroy;
 
     DVLOG(logging::SERVICE) << "Context::destroy <-";
 

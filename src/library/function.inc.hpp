@@ -21,7 +21,7 @@ static inline void append_call_arg(size_t &offset, size_t &count, T &req,
                                     std::tuple<Args...> args) {
     if constexpr (N < std::tuple_size<decltype(args)>()) {
     auto size = sizeof(std::get<N>(args));
-    using msg = ::service::compute::cuda::message::Function::call;
+    using msg = ::service::compute::cuda::wire::Function::call;
     msg::kernel_arg_info arg_info;
     arg_info.size = size;
     req.set_imm(offset, &arg_info, sizeof(arg_info));
@@ -36,7 +36,7 @@ static inline void append_call_arg(size_t &offset, size_t &count, T &req,
 
 template<class... Args>
 core::future<void> Function::call(std::pair<size_t, size_t>& gpu_grid, Args&&... ker_args) {
-    using msg = ::service::compute::cuda::message::Function::call;
+    using msg = ::service::compute::cuda::wire::Function::call;
 
     DVLOG(logging::SERVICE) << "Function::call <-";
 

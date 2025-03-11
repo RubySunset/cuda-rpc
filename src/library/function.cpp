@@ -48,7 +48,7 @@ Function::~Function() {
 //                                     std::tuple<Args...> args) {
 //     if constexpr (N < std::tuple_size<decltype(args)>()) {
 //     auto size = sizeof(std::get<N>(args));
-//     using msg = ::service::compute::cuda::message::Function::call;
+//     using msg = ::service::compute::cuda::wire::Function::call;
 //     msg::kernel_arg_info arg_info;
 //     arg_info.size = size;
 //     req.set_imm(offset, &arg_info, sizeof(arg_info));
@@ -64,7 +64,7 @@ Function::~Function() {
 // template<class... Args>
 // core::future<void> Function::call(Args&&... ker_args) {
 // // core::future<void> Function::call(std::pair<size_t, size_t>& gpu_grid, Args&&... ker_args) {
-//     using msg = ::service::compute::cuda::message::Function::call;
+//     using msg = ::service::compute::cuda::wire::Function::call;
 
 //     DVLOG(logging::SERVICE) << "Function::call <-";
 
@@ -109,7 +109,7 @@ Function::~Function() {
 
 
 core::future<void> Function::func_destroy() {
-    using msg = ::service::compute::cuda::message::Function::func_destroy;
+    using msg = ::service::compute::cuda::wire::Function::func_destroy;
 
     DVLOG(logging::SERVICE) << "Function::func_destroy <-";
 

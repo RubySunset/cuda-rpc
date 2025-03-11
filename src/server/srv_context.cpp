@@ -65,7 +65,7 @@ void gpu_Context::context_destroy(CUcontext& context) {
  */
 core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> ch)
 {
-    namespace msg_base = ::service::compute::cuda::message::Context;
+    namespace msg_base = ::service::compute::cuda::wire::Context;
 
     auto self = _self;
 
@@ -130,7 +130,7 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
 void gpu_Context::handle_memory(auto args_) {
     VLOG(fractos::logging::SERVICE) << "CALL handle handle_memory";
     std::shared_ptr<typename decltype(args_)::element_type> args(std::move(args_));
-    using msg = ::service::compute::cuda::message::Context::make_memory;
+    using msg = ::service::compute::cuda::wire::Context::make_memory;
     
     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
         DLOG(ERROR) << "got request without continuation, ignoring";
@@ -210,7 +210,7 @@ void gpu_Context::handle_memory(auto args_) {
 void gpu_Context::handle_module_file(auto args) {
     VLOG(fractos::logging::SERVICE) << "CALL handle_module_file";
 
-    using msg = ::service::compute::cuda::message::Context::make_module_file;
+    using msg = ::service::compute::cuda::wire::Context::make_module_file;
     
     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
         LOG(ERROR) << "got request without continuation, ignoring";
@@ -277,7 +277,7 @@ void gpu_Context::handle_module_file(auto args) {
 
 void gpu_Context::handle_synchronize(auto args) {
     VLOG(fractos::logging::SERVICE) << "CALL handle synchronize";
-    using msg = ::service::compute::cuda::message::Context::synchronize;
+    using msg = ::service::compute::cuda::wire::Context::synchronize;
 
     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
         LOG(ERROR) << "no continuation";
@@ -302,7 +302,7 @@ void gpu_Context::handle_synchronize(auto args) {
  */
 void gpu_Context::handle_destroy(auto args) {
     VLOG(fractos::logging::SERVICE) << "CALL handle destroy";
-    using msg = ::service::compute::cuda::message::Context::destroy;
+    using msg = ::service::compute::cuda::wire::Context::destroy;
 
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
     

@@ -42,7 +42,7 @@ void gpu_Memory::memory_free(char* base)
  */
 core::future<void> gpu_Memory::register_methods(std::shared_ptr<core::channel> ch)
 {
-    namespace msg_base = ::service::compute::cuda::message::Memory;
+    namespace msg_base = ::service::compute::cuda::wire::Memory;
 
     auto self = _self;
 
@@ -65,7 +65,7 @@ core::future<void> gpu_Memory::register_methods(std::shared_ptr<core::channel> c
  */
 void gpu_Memory::handle_destroy(auto args) {
     DVLOG(logging::SERVICE) << "CALL handle destroy";
-    using msg = ::service::compute::cuda::message::Memory::destroy;
+    using msg = ::service::compute::cuda::wire::Memory::destroy;
 
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
     

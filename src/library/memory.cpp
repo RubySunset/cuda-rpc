@@ -60,7 +60,7 @@ Memory::~Memory() {
 
 
 core::future<void> Memory::destroy() {
-    using msg = ::service::compute::cuda::message::Memory::destroy;
+    using msg = ::service::compute::cuda::wire::Memory::destroy;
 
     DVLOG(logging::SERVICE) << "Memory::destroy <-";
 

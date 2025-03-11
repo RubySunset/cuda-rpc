@@ -49,7 +49,7 @@ void gpu_Module::module_unload() // current
  */
 core::future<void> gpu_Module::register_methods(std::shared_ptr<core::channel> ch)
 {
-    namespace msg_base = ::service::compute::cuda::message::Module;
+    namespace msg_base = ::service::compute::cuda::wire::Module;
 
     auto self = _self;
 
@@ -83,7 +83,7 @@ core::future<void> gpu_Module::register_methods(std::shared_ptr<core::channel> c
 void gpu_Module::handle_get_function(auto args) {
     VLOG(fractos::logging::SERVICE) << "CALL handle_get_function";
 
-    using msg = ::service::compute::cuda::message::Module::get_function;
+    using msg = ::service::compute::cuda::wire::Module::get_function;
     
     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
         LOG(ERROR) << "got request without continuation, ignoring";
@@ -123,7 +123,8 @@ void gpu_Module::handle_get_function(auto args) {
     VLOG(fractos::logging::SERVICE) << "function name is: " << func_name;
 
 
-    auto func = std::shared_ptr<gpu_Function>(gpu_Function::factory(func_name, _ctx, _module));
+    auto func = std::shared_ptr<gpu_Function>(gpu_Function
+        ::factory(func_name, _ctx, _module));
 
 
     func->register_methods(ch)
@@ -157,7 +158,7 @@ void gpu_Module::handle_get_function(auto args) {
  */
 void gpu_Module::handle_destroy(auto args) {
     DVLOG(logging::SERVICE) << "CALL handle destroy";
-    using msg = ::service::compute::cuda::message::Module::destroy;
+    using msg = ::service::compute::cuda::wire::Module::destroy;
 
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
     

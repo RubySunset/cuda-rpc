@@ -45,7 +45,7 @@ Device::~Device() {
 core::future<std::shared_ptr<Context>> Device::make_context(
                     unsigned int flags) {
 
-    using msg = ::service::compute::cuda::message::Device::make_context;
+    using msg = ::service::compute::cuda::wire::Device::make_context;
 
     DVLOG(logging::SERVICE) << "Device::make_context <-";
 
@@ -87,7 +87,7 @@ core::future<std::shared_ptr<Context>> Device::make_context(
 }
 
 core::future<void> Device::destroy() {
-    using msg = ::service::compute::cuda::message::Device::destroy;
+    using msg = ::service::compute::cuda::wire::Device::destroy;
 
     DVLOG(logging::SERVICE) << "virtual_device::destroy <-";
 
