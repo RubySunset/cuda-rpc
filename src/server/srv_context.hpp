@@ -20,6 +20,7 @@ public:
 protected:
     void handle_memory(auto args);
     void handle_module_file(auto args);
+    void handle_module_data(auto args);
     void handle_synchronize(auto args);
     void handle_destroy(auto args);
 
@@ -38,7 +39,8 @@ private:
 
 public:
     fractos::core::cap::request _req_memory;
-    fractos::core::cap::request _req_module_file;
+    fractos::core::cap::request _req_module_data;
+    // fractos::core::cap::request _req_module_file;
     fractos::core::cap::request _req_synchronize;
     fractos::core::cap::request _req_destroy;
 

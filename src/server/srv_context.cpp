@@ -80,20 +80,20 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
         .make_request()
         .then([ch, self](auto& fut) {
             self->_req_memory = fut.get();
-            VLOG(fractos::logging::SERVICE) << "SET req_memory"; // virtua
-            return ch->make_request_builder<msg_base::make_module_file::request>(
+            VLOG(fractos::logging::SERVICE) << "SET req_memory"; 
+            return ch->make_request_builder<msg_base::make_module_data::request>( // file
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
                     
-                    self->handle_module_file(std::move(args));
+                    self->handle_module_data(std::move(args)); // file
                 })
                 .on_channel()
                 .make_request();
             })
         .unwrap()
         .then([ch, self](auto& fut) {
-            self->_req_module_file = fut.get();
-            VLOG(fractos::logging::SERVICE) << "SET req_module_file"; // virtua
+            self->_req_module_data = fut.get(); // file
+            VLOG(fractos::logging::SERVICE) << "SET req_module_data"; // file
             return ch->make_request_builder<msg_base::synchronize::request>(
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -106,7 +106,7 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
         .unwrap()
         .then([ch, self](auto& fut) {
             self->_req_synchronize = fut.get();
-            VLOG(fractos::logging::SERVICE) << "SET req_synchronize"; // virtua
+            VLOG(fractos::logging::SERVICE) << "SET req_synchronize"; 
             return ch->make_request_builder<msg_base::destroy::request>(
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -207,6 +207,7 @@ void gpu_Context::handle_memory(auto args_) {
 
 }
 
+// not in use.
 void gpu_Context::handle_module_file(auto args) {
     VLOG(fractos::logging::SERVICE) << "CALL handle_module_file";
 
@@ -273,6 +274,75 @@ void gpu_Context::handle_module_file(auto args) {
 }
 
 
+void gpu_Context::handle_module_data(auto args) {
+    VLOG(fractos::logging::SERVICE) << "CALL handle_module_data";
+
+    using msg = ::service::compute::cuda::wire::Context::make_module_data;
+    
+    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+        LOG(ERROR) << "got request without continuation, ignoring";
+        return;
+    }
+    
+    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
+    std::string file_name = args->imms.file_name;
+
+    if (not args->has_exactly_args()) { // file_name
+        if (not args->has_exactly_imms()) {
+            if (args->imms_size() == 8 + file_name.size()) {
+                VLOG(fractos::logging::SERVICE) << "got imms length : " << file_name.size(); // char file_name[] in msg
+            } else {
+                LOG(ERROR) << "got error imms";
+                ch->make_request_builder<msg::response>(args->caps.continuation)
+                    .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+                    .on_channel()
+                    .invoke()
+                    .as_callback();
+                return;
+            }
+        }
+        else
+        {
+            LOG(ERROR) << "got error caps";
+            ch->make_request_builder<msg::response>(args->caps.continuation)
+                    .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+                    .on_channel()
+                    .invoke()
+                    .as_callback();
+                return;
+        }
+    }
+
+    auto self = _self;
+    VLOG(fractos::logging::SERVICE) << "module name is: " << file_name;
+
+    auto size = args->caps.cuda_file.get_size();
+    char* buffer = (char*)malloc(size);
+    auto copied_mem = ch->make_memory(buffer, size).get();
+    ch->copy(args->caps.cuda_file, copied_mem).get();
+
+
+    auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(file_name, _ctx, buffer, size));
+
+
+    mod->register_methods(ch)
+        .then([this, ch, self, mod, args=std::move(args) ](auto& fut) { //, args=std::move(args),  mr_=std::move(mr_)
+            fut.get();
+            _mod = mod;
+
+            ch->make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
+                .set_cap(&msg::response::caps::get_function, mod->_req_get_func)
+                .set_cap(&msg::response::caps::destroy, mod->_req_destroy)
+                .on_channel()
+                .invoke()
+                .as_callback();
+            })
+        .as_callback();
+
+
+
+}
 
 
 void gpu_Context::handle_synchronize(auto args) {
@@ -326,12 +396,12 @@ void gpu_Context::handle_destroy(auto args) {
         .then([ch, self](auto& fut) {
                   fut.get();
                   VLOG(fractos::logging::SERVICE) << "Revoke _req_memory";
-                  return ch->revoke(self->_req_module_file);
+                  return ch->revoke(self->_req_module_data); // file
         })
         .unwrap()
         .then([ch, self](auto& fut) {
             fut.get();
-            VLOG(fractos::logging::SERVICE) << "Revoke _req_module_file";
+            VLOG(fractos::logging::SERVICE) << "Revoke _req_module_data"; // file
             return ch->revoke(self->_req_synchronize);
         })
         .unwrap()

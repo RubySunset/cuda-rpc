@@ -63,7 +63,7 @@ namespace service::compute::cuda::wire{
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::request make_memory;
-                    fractos::core::cap::request make_module_file;
+                    fractos::core::cap::request make_module_data; // make_module_file
                     fractos::core::cap::request synchronize;
                     fractos::core::cap::request destroy;
                 };
@@ -120,6 +120,30 @@ namespace service::compute::cuda::wire{
                     char file_name[];
                 } __attribute__((packed));
                 struct caps {
+                    fractos::core::cap::request continuation; 
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    // fractos::wire::endian::uint64_t address;
+                } __attribute__ ((packed));
+                struct caps {
+                    // fractos::core::cap::cap::memory memory;
+                    fractos::core::cap::request get_function;
+                    fractos::core::cap::request destroy;
+                };
+            };
+        };
+
+        struct make_module_data {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t file_name_size;
+                    char file_name[];
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::memory cuda_file;
                     fractos::core::cap::request continuation; 
                 };
             };

@@ -9,6 +9,24 @@ using namespace fractos;
 using namespace ::test;
 // using namespace impl;
 
+gpu_Module::gpu_Module(std::string& name, CUcontext& ctx, char* buffer, size_t size) {
+    //fork();
+    // 
+    _name = name;  // std::string 
+    _destroyed = false;
+    _ctx = ctx;
+
+    CUmodule module;
+    checkCudaErrors(cuCtxSetCurrent(_ctx));
+    checkCudaErrors(cuModuleLoadData(&module, buffer));
+    // checkCudaErrors(cuModuleGetFunction(&function, module, func_name.c_str()));
+    _module = module;
+
+    VLOG(fractos::logging::SERVICE) << "load module :  name = " << _name;
+   
+}
+
+
 gpu_Module::gpu_Module(std::string& name, CUcontext& ctx) {
     //fork();
     // 
@@ -27,6 +45,12 @@ gpu_Module::gpu_Module(std::string& name, CUcontext& ctx) {
 
 std::shared_ptr<gpu_Module> gpu_Module::factory(std::string& name, CUcontext& ctx){
     auto res = std::shared_ptr<gpu_Module>(new gpu_Module(name, ctx));
+    res->_self = res;
+    return res;
+}
+
+std::shared_ptr<gpu_Module> gpu_Module::factory(std::string& name, CUcontext& ctx, char* buffer, size_t size){
+    auto res = std::shared_ptr<gpu_Module>(new gpu_Module(name, ctx, buffer, size));
     res->_self = res;
     return res;
 }

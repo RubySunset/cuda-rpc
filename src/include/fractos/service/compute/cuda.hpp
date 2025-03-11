@@ -166,13 +166,13 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              * @brief Wrapper for cuModuleLoad()
              */
             [[nodiscard]] core::future<std::shared_ptr<Module>>
-            make_module_file(const std::string& file_name); // cubin PTX fatbin 
+            make_module_file(const std::string& file_path); // cubin PTX fatbin 
 
-            // /**
-            //  * @brief Wrapper for cuModuleLoad()
-            //  */
-            // [[nodiscard]] core::future<void>
-            // make_module_file(const std::string& file_path); // cubin PTX fatbin 
+            /**
+             * @brief TODO:Wrapper for cuModuleLoadData()
+             */
+            [[nodiscard]] core::future<std::shared_ptr<Module>>
+            make_module_data(const core::cap::memory& contents, const std::string& file_name);
 
             /**
              * @brief Wrapper for cuMemAlloc()
@@ -180,11 +180,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Memory>>
             make_memory(uint64_t size); // size_t make_memory(size_t size);
 
-             /**
-             * @brief TODO:Wrapper for cuModuleLoadData()
-             */
-            [[nodiscard]] core::future<std::shared_ptr<Module>>
-            make_module(const core::cap::memory& contents);
+            
 
             /**
              * @brief TODO:Wrapper for cuStreamCreate()
@@ -270,6 +266,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
         public:
             Module(std::shared_ptr<void> pimpl, std::string name);
+            Module(std::shared_ptr<void> pimpl, core::cap::memory contents, std::string name);
             ~Module();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;

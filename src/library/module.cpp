@@ -27,13 +27,16 @@ const Module_impl& Module_impl::get(const Module& obj)
 }
 
 
-
-
 Module::Module(std::shared_ptr<void> pimpl, std::string name) : _pimpl(pimpl) {
 
-    DLOG(INFO) << "initialize module : " << name;
+    DLOG(INFO) << "initialize module : " << name << " from file path";
 }
 
+
+// Module::Module(std::shared_ptr<void> pimpl, core::cap::memory contents, std::string name) : _pimpl(pimpl) {
+
+//     DLOG(INFO) << "initialize module : " << name << " from data buffer";
+// }
 
 Module::~Module() {
     DLOG(INFO) << "Module: i am free";

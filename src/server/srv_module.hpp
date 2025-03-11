@@ -15,6 +15,7 @@ namespace test {
 class gpu_Module {
 public:
     static std::shared_ptr<gpu_Module> factory(std::string& name, CUcontext& ctx);
+    static std::shared_ptr<gpu_Module> factory(std::string& name, CUcontext& ctx, char* buffer, size_t size);
 
     fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
@@ -38,6 +39,7 @@ public:
     std::shared_ptr<test::gpu_Function> _func; 
 
     gpu_Module(std::string& name, CUcontext& ctx);
+    gpu_Module(std::string& name, CUcontext& ctx,  char* buffer, size_t size);
 
     ~gpu_Module();
 
