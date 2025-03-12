@@ -10,8 +10,8 @@
 #include <context_impl.hpp>
 #include <module_impl.hpp>
 #include <memory_impl.hpp>
+#include <stream_impl.hpp>
 
-#include <nvtx3/nvToolsExt.h>
 
 // #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
@@ -90,6 +90,51 @@ core::future<std::shared_ptr<Memory>> Context::make_memory(
             pimpl_->self = pimpl_;
             auto pimpl = static_pointer_cast<void>(pimpl_);
             std::shared_ptr<Memory> res(new Memory{pimpl, size});
+            return res;
+        });
+}
+
+
+core::future<std::shared_ptr<Stream>> Context::make_stream(
+                CUstream_flags stream_flags, fractos::wire::endian::uint8_t id) {
+
+    using msg = ::service::compute::cuda::wire::Context::make_stream;
+
+    DVLOG(logging::SERVICE) << "Context::make_stream <-";
+    auto& pimpl = Context_impl::get(*this);
+
+    unsigned int flag = (unsigned int) stream_flags;
+    DLOG(INFO) << "stream flag is " << flag;
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_stream)
+        .set_imm(&msg::request::imms::flags, flag) // unsigned int vs uint32_t
+        // .set_imm(&msg::request::imms::stream_id, id) // unsigned int vs uint32_t
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp) // wait for srv_handle
+        .unwrap()
+        .then([flag, id](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            if (not args->has_exactly_args()) {
+                // throw core::other_error("invalvalue response format for  Context::make_stream");
+                DVLOG(logging::SERVICE) << "Context::make_stream ->"
+                <<" error= OTHER args";
+            }
+
+            DVLOG(logging::SERVICE) << "Context::make_stream ->"
+                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
+            wire::error_raise_exception_maybe(args->imms.error);
+
+            // get Device object
+            std::shared_ptr<Stream_impl> pimpl_(
+                new Stream_impl{{}, ch, args->imms.error, 
+                        std::move(args->caps.destroy), id}
+                );
+            pimpl_->self = pimpl_;
+            auto pimpl = static_pointer_cast<void>(pimpl_);
+            std::shared_ptr<Stream> res(new Stream{pimpl, flag, id});
             return res;
         });
 }

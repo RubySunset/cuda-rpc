@@ -6,11 +6,12 @@
 // #include <fractos/service/compute/cuda_msg.hpp>
 #include "./srv_memory.hpp"
 #include "./srv_module.hpp"
+#include "./srv_stream.hpp"
 using namespace fractos;
 
 
 namespace test {
-
+    
 class gpu_Context {
 public:
     static std::shared_ptr<gpu_Context> factory(fractos::wire::endian::uint32_t id, CUdevice& device);
@@ -19,6 +20,7 @@ public:
 
 protected:
     void handle_memory(auto args);
+    void handle_stream(auto args);
     void handle_module_file(auto args);
     void handle_module_data(auto args);
     void handle_synchronize(auto args);
@@ -39,6 +41,7 @@ private:
 
 public:
     fractos::core::cap::request _req_memory;
+    fractos::core::cap::request _req_stream;
     fractos::core::cap::request _req_module_data;
     // fractos::core::cap::request _req_module_file;
     fractos::core::cap::request _req_synchronize;
@@ -46,9 +49,12 @@ public:
 
     gpu_Context(fractos::wire::endian::uint32_t value, CUdevice& device);
     std::shared_ptr<test::gpu_Memory> _dev_mem;
+    std::shared_ptr<test::gpu_Stream> _stream; 
     std::shared_ptr<test::gpu_Module> _mod; 
 
     ~gpu_Context();
+private:
+    std::unordered_map<uint8_t, std::shared_ptr<gpu_Stream>> _vstream_map;
 
     //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
 };

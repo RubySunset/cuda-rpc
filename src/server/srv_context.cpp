@@ -81,6 +81,19 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
         .then([ch, self](auto& fut) {
             self->_req_memory = fut.get();
             VLOG(fractos::logging::SERVICE) << "SET req_memory"; 
+            return ch->make_request_builder<msg_base::make_stream::request>( // file
+                ch->get_default_endpoint(), 
+                [self](auto ch, auto args) {
+                    
+                    self->handle_stream(std::move(args)); // file
+                })
+                .on_channel()
+                .make_request();
+            })
+        .unwrap()
+        .then([ch, self](auto& fut) {
+            self->_req_stream = fut.get();
+            VLOG(fractos::logging::SERVICE) << "SET req_stream"; 
             return ch->make_request_builder<msg_base::make_module_data::request>( // file
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -206,6 +219,57 @@ void gpu_Context::handle_memory(auto args_) {
 
 
 }
+
+
+/*
+ *  Destroy a Device, revoke all of its caps
+ */
+void gpu_Context::handle_stream(auto args) {
+    DVLOG(logging::SERVICE) << "CALL handle_stream";
+    using msg = ::service::compute::cuda::wire::Context::make_stream;
+    
+    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+        DLOG(ERROR) << "got request without continuation, ignoring";
+        return;
+    }
+
+    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
+
+    if (not args->has_exactly_args()) {
+        ch->make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .on_channel()
+            .invoke()
+            .as_callback();
+        return;
+    }
+
+    unsigned int flag = args->imms.flags; // uint32_t
+    uint8_t id = 1;
+
+    auto self = _self; // lock()
+
+    VLOG(fractos::logging::SERVICE) << "vstream flag is: " << (uint32_t)flag;
+    VLOG(fractos::logging::SERVICE) << "vstream id is: " << (uint8_t)id;
+
+    auto stream = std::shared_ptr<gpu_Stream>(gpu_Stream::factory(flag, id, _ctx));
+
+    stream->register_methods(ch)
+        .then([this, ch, self, stream, args=std::move(args), flag, id](auto& fut) {
+            fut.get();
+            _stream = stream;
+            _vstream_map.insert({id, stream});
+            // _vdev_map.insert({value, vdev});
+            ch->make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
+                .set_cap(&msg::response::caps::destroy, stream->_req_destroy)
+                .on_channel()
+                .invoke()
+                .as_callback();
+              })
+        .as_callback();
+}
+
 
 // not in use.
 void gpu_Context::handle_module_file(auto args) {
@@ -396,7 +460,13 @@ void gpu_Context::handle_destroy(auto args) {
         .then([ch, self](auto& fut) {
                   fut.get();
                   VLOG(fractos::logging::SERVICE) << "Revoke _req_memory";
-                  return ch->revoke(self->_req_module_data); // file
+                  return ch->revoke(self->_req_stream); // file
+        })
+        .unwrap()
+        .then([ch, self](auto& fut) {
+            fut.get();
+            VLOG(fractos::logging::SERVICE) << "Revoke _req_stream";
+            return ch->revoke(self->_req_module_data); // file
         })
         .unwrap()
         .then([ch, self](auto& fut) {

@@ -109,6 +109,7 @@ void gpu_Device::handle_make_context(auto args) {
             ch->make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
                 .set_cap(&msg::response::caps::make_memory, vctx->_req_memory)
+                .set_cap(&msg::response::caps::make_stream, vctx->_req_stream)
                 .set_cap(&msg::response::caps::make_module_data, vctx->_req_module_data) // file
                 .set_cap(&msg::response::caps::synchronize, vctx->_req_synchronize)
                 .set_cap(&msg::response::caps::destroy, vctx->_req_destroy)

@@ -3,6 +3,7 @@
 #include <queue>
 #include <chrono>
 #include <fractos/service/compute/cuda.hpp>
+// #include <./srv_stream.hpp>
 // #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
 
@@ -27,6 +28,8 @@ private:
     CUcontext _ctx;
     CUmodule _mod;
     CUfunction _func;
+
+    // std::weak_ptr<test::gpu_Context> _vctx;
 
 public:
     fractos::core::cap::request _req_call;

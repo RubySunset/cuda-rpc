@@ -147,8 +147,7 @@ void gpu_Module::handle_get_function(auto args) {
     VLOG(fractos::logging::SERVICE) << "function name is: " << func_name;
 
 
-    auto func = std::shared_ptr<gpu_Function>(gpu_Function
-        ::factory(func_name, _ctx, _module));
+    auto func = std::shared_ptr<gpu_Function>(gpu_Function::factory(func_name, _ctx, _module));
 
 
     func->register_methods(ch)

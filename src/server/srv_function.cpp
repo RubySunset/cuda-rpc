@@ -86,6 +86,16 @@ void gpu_Function::handle_call(auto args) {
     auto grid = args->imms.grid;
     auto block = args->imms.block;
 
+    // add stream with id
+    // auto stream_id = 0;
+    // if (args->imms.stream_id)
+    // {
+    //     stream_id = args->imms.stream_id;
+    // }
+
+    // LOG(INFO) << "STREAM ID " << stream_id;
+
+
     auto raw_kernel_args = args->imms.kernel_args;
 
     void* kernel_args[args_num.get()];
@@ -104,6 +114,7 @@ void gpu_Function::handle_call(auto args) {
     // dim3 dimBlock(block);
 
     // CUevent event;
+    // CUstream stream;
 
     checkCudaErrors(cuLaunchKernel(_func, grid, 1, 1, 
         block, 1, 1, 

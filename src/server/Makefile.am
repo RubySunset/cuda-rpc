@@ -17,6 +17,7 @@ fractos_service_compute_cuda_SOURCES =
 fractos_service_compute_cuda_SOURCES += srv_service.cpp
 fractos_service_compute_cuda_SOURCES += srv_device.cpp
 fractos_service_compute_cuda_SOURCES += srv_context.cpp
+fractos_service_compute_cuda_SOURCES += srv_stream.cpp
 fractos_service_compute_cuda_SOURCES += srv_module.cpp
 fractos_service_compute_cuda_SOURCES += srv_memory.cpp
 fractos_service_compute_cuda_SOURCES += srv_function.cpp

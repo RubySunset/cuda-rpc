@@ -186,7 +186,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              * @brief TODO:Wrapper for cuStreamCreate()
              */
             [[nodiscard]] core::future<std::shared_ptr<Stream>>
-            make_stream(CUstream_flags flags);
+            make_stream(CUstream_flags flags, fractos::wire::endian::uint8_t id); // blocking or not
 
             /**
              * @brief TODO:Wrapper for cuMemAllocHost()
@@ -288,6 +288,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]]core::future<void> 
             call(std::pair<size_t, size_t>& gpu_grid, Args&&... ker_args);
 
+            template<class... Args>
+            [[nodiscard]]core::future<void> 
+            call(Stream& stream, std::pair<size_t, size_t>& gpu_grid, Args&&... ker_args);
+
              /**
              * @brief TODO: Wrapper for cuLaunchKernel()
              */
@@ -310,10 +314,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             bool _destroyed;
         
         };
-        std::string to_string(const Function& obj);
+        // std::string to_string(const Function& obj);
 
         /**
-         * @brief Wrapper for CU stream
+         * @brief Wrapper for CUstream operations
          */
         class Stream{
         public:
@@ -339,9 +343,15 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
+            Stream(std::shared_ptr<void> pimpl, wire::endian::uint32_t flags, fractos::wire::endian::uint8_t id);
             ~Stream();
+            fractos::wire::endian::uint8_t get_stream_id();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
+            
+        private:
+            bool _destroyed;
+            fractos::wire::endian::uint8_t _id;
         };
 
         /** 

@@ -1,0 +1,118 @@
+#include "srv_stream.hpp"
+#include <pthread.h>
+#include <glog/logging.h>
+#include <fractos/logging.hpp>
+#include <fractos/wire/error.hpp>
+
+
+using namespace fractos;
+using namespace ::test;
+// using namespace impl;
+
+gpu_Stream::gpu_Stream(fractos::wire::endian::uint32_t flags, fractos::wire::endian::uint8_t id, CUcontext& ctx) {
+    //fork();
+    _id = id;
+    _flags = flags;
+    _destroyed = false;
+    _ctx = ctx;
+
+    checkCudaErrors(cuCtxSetCurrent(_ctx));
+
+    CUstream stream;
+    checkCudaErrors(cuStreamCreate(&stream, flags));
+
+    _stream = stream;
+}
+
+std::shared_ptr<gpu_Stream> gpu_Stream::factory(fractos::wire::endian::uint32_t flags, 
+                                        fractos::wire::endian::uint8_t id, CUcontext& ctx){
+    auto res = std::shared_ptr<gpu_Stream>(new gpu_Stream(flags, id,  ctx));
+    res->_self = res;
+    return res;
+}
+
+gpu_Stream::~gpu_Stream() {
+    // checkCudaErrors(cuCtxDestroy(context));
+}
+
+
+void gpu_Stream::stream_destroy()
+{
+    checkCudaErrors(cuCtxSetCurrent(_ctx));
+
+    // Clean up
+    checkCudaErrors(cuStreamDestroy(_stream));
+    // checkCudaErrors(cuCtxDestroy(context));
+}
+
+/*
+ *  Make handlers for a Stream's caps
+ */
+core::future<void> gpu_Stream::register_methods(std::shared_ptr<core::channel> ch)
+{
+    namespace msg_base = ::service::compute::cuda::wire::Stream;
+
+    auto self = _self;
+
+
+    return ch->make_request_builder<msg_base::destroy::request>(
+        ch->get_default_endpoint(), 
+        [self](auto ch, auto args) {
+            self->handle_destroy(std::move(args));
+        })
+        .on_channel()
+        .make_request()
+        .then([ch, self, this](auto& fut) {
+            self->_req_destroy = fut.get();
+        });
+
+}
+
+/*
+ *  Destroy a Stream, revoke all of its caps
+ */
+void gpu_Stream::handle_destroy(auto args) {
+    DVLOG(logging::SERVICE) << "CALL handle destroy";
+    using msg = ::service::compute::cuda::wire::Stream::destroy;
+
+    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
+    
+    auto self = this->_self;
+
+    if (not args->has_exactly_args() or _destroyed) {
+        ch->make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .on_channel()
+            .invoke()
+            .as_callback();
+
+        return;
+    }
+
+    stream_destroy();
+
+    DVLOG(logging::SERVICE) << "Revoke destroy";
+
+    // ch->revoke(self->_memory)
+    //     .then([ch, self](auto& fut) {
+    //               fut.get();
+    //               DVLOG(fractos::logging::SERVICE) << "Revoke _req_deallocate";
+    //               return ch->revoke(self->_req_destroy);
+    //           })
+    //     .unwrap()
+
+    ch->revoke(self->_req_destroy)
+        .then([this, ch, self, args=std::move(args)](auto& fut) {
+            fut.get();
+            DVLOG(fractos::logging::SERVICE) << "cuda memory destroyed";
+            this->_destroyed = true;
+            ch->make_request_builder<msg::response>(args->caps.continuation) // response
+                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+                .on_channel()
+                .invoke()
+                .as_callback();
+        })
+    .as_callback();
+
+}
+
