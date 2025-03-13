@@ -25,7 +25,7 @@ const Stream_impl& Stream_impl::get(const Stream& obj)
     return *reinterpret_cast<Stream_impl*>(obj._pimpl.get());
 }
 
-Stream::Stream(std::shared_ptr<void> pimpl, wire::endian::uint32_t flags, fractos::wire::endian::uint8_t id) : _pimpl(pimpl) {
+Stream::Stream(std::shared_ptr<void> pimpl, wire::endian::uint32_t flags, fractos::wire::endian::uint32_t id) : _pimpl(pimpl) {
     DLOG(INFO) << "initialize steam flag : " << flags;
 }
 
@@ -40,7 +40,7 @@ Stream::~Stream() {
 }
 
 
-fractos::wire::endian::uint8_t Stream::get_stream_id() {
+fractos::wire::endian::uint32_t Stream::get_stream_id() {
     auto& pimpl = Stream_impl::get(*this);
 
     return pimpl.id;

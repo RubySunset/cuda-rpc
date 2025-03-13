@@ -96,7 +96,7 @@ core::future<std::shared_ptr<Memory>> Context::make_memory(
 
 
 core::future<std::shared_ptr<Stream>> Context::make_stream(
-                CUstream_flags stream_flags, fractos::wire::endian::uint8_t id) {
+                CUstream_flags stream_flags, fractos::wire::endian::uint32_t id) {
 
     using msg = ::service::compute::cuda::wire::Context::make_stream;
 
@@ -109,7 +109,7 @@ core::future<std::shared_ptr<Stream>> Context::make_stream(
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_stream)
         .set_imm(&msg::request::imms::flags, flag) // unsigned int vs uint32_t
-        // .set_imm(&msg::request::imms::stream_id, id) // unsigned int vs uint32_t
+        .set_imm(&msg::request::imms::stream_id, id) // unsigned int vs uint32_t
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp) // wait for srv_handle

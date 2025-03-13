@@ -32,6 +32,10 @@ gpu_Context::~gpu_Context() {
     checkCudaErrors(cuCtxDestroy(_ctx));
 }
 
+const std::unordered_map<int, std::shared_ptr<gpu_Stream>>& gpu_Context::getVStreamMap() const {
+    return _vstream_map;
+}
+
 
 char* gpu_Context::allocate_memory(size_t size, CUcontext& context) {
 
@@ -245,12 +249,12 @@ void gpu_Context::handle_stream(auto args) {
     }
 
     unsigned int flag = args->imms.flags; // uint32_t
-    uint8_t id = 1;
+    int id = (int)args->imms.stream_id;
 
     auto self = _self; // lock()
 
     VLOG(fractos::logging::SERVICE) << "vstream flag is: " << (uint32_t)flag;
-    VLOG(fractos::logging::SERVICE) << "vstream id is: " << (uint8_t)id;
+    LOG(INFO) << "vstream id is: " << id;
 
     auto stream = std::shared_ptr<gpu_Stream>(gpu_Stream::factory(flag, id, _ctx));
 
@@ -386,7 +390,7 @@ void gpu_Context::handle_module_data(auto args) {
     ch->copy(args->caps.cuda_file, copied_mem).get();
 
 
-    auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(file_name, _ctx, buffer, size));
+    auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(file_name, _ctx, buffer, size, self));
 
 
     mod->register_methods(ch)

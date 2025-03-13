@@ -1,4 +1,5 @@
-#include "srv_function.hpp"
+// #include "srv_function.hpp"
+#include "srv_context.hpp"
 #include <pthread.h>
 #include <glog/logging.h>
 #include <fractos/logging.hpp>
@@ -9,12 +10,13 @@ using namespace fractos;
 using namespace ::test;
 // using namespace impl;
 
-gpu_Function::gpu_Function(std::string func_name, CUcontext& ctx, CUmodule& mod) {
+gpu_Function::gpu_Function(std::string func_name, CUcontext& ctx, CUmodule& mod, std::weak_ptr<test::gpu_Context> vctx) {
     //fork();
     _name = func_name;
     _destroyed = false;
     _ctx = ctx;
     _mod = mod;
+    _vctx = vctx;
    
     CUfunction function;
     checkCudaErrors(cuModuleGetFunction(&function, mod, func_name.c_str()));
@@ -22,8 +24,9 @@ gpu_Function::gpu_Function(std::string func_name, CUcontext& ctx, CUmodule& mod)
 
 }
 
-std::shared_ptr<gpu_Function> gpu_Function::factory(std::string func_name, CUcontext& ctx, CUmodule& mod){
-    auto res = std::shared_ptr<gpu_Function>(new gpu_Function(func_name, ctx, mod));
+std::shared_ptr<gpu_Function> gpu_Function::factory(std::string func_name, CUcontext& ctx, CUmodule& mod
+                                                ,std::weak_ptr<test::gpu_Context> vctx){
+    auto res = std::shared_ptr<gpu_Function>(new gpu_Function(func_name, ctx, mod, vctx));
     res->_self = res;
     return res;
 }
@@ -86,14 +89,10 @@ void gpu_Function::handle_call(auto args) {
     auto grid = args->imms.grid;
     auto block = args->imms.block;
 
-    // add stream with id
-    // auto stream_id = 0;
-    // if (args->imms.stream_id)
-    // {
-    //     stream_id = args->imms.stream_id;
-    // }
 
-    // LOG(INFO) << "STREAM ID " << stream_id;
+    
+    
+    
 
 
     auto raw_kernel_args = args->imms.kernel_args;
@@ -102,7 +101,7 @@ void gpu_Function::handle_call(auto args) {
 
     for (uint i = 0; i < args_num; i++) {
         auto info = (msg::kernel_arg_info*)raw_kernel_args;
-        //VLOG(fractos::logging::SERVICE) << (void*)(uintptr_t)*(char*)info->value;
+        // LOG(INFO) << "kernel_args" << (void*)(uintptr_t)*(char*)info->value;
         kernel_args[i] = info->value;
         raw_kernel_args += info->size.get() + sizeof(msg::kernel_arg_info);
 
@@ -110,20 +109,29 @@ void gpu_Function::handle_call(auto args) {
         //raw_kernel_args += 8;
     }
 
+
     // dim3 dimGrid(grid);
     // dim3 dimBlock(block);
 
     // CUevent event;
     // CUstream stream;
 
-    checkCudaErrors(cuLaunchKernel(_func, grid, 1, 1, 
-        block, 1, 1, 
-        0, 0, kernel_args, 0)); // 0 , stream , args, 0
-    // checkCudaErrors(cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z, 
-    //                dimBlock.x, dimBlock.y, dimBlock.z, 
-    //                0, 0, kernel_args, 0)); // 0 , stream , args, 0
-
-
+    LOG(INFO) << "STREAM ID " << (int)args->imms.stream_id;
+    if ((int)args->imms.stream_id)
+    {
+        auto _vstream = _vctx.lock()->getVStreamMap().at((int)args->imms.stream_id); // const qualifier
+        LOG(INFO) << "get STREAM ID " << (int)args->imms.stream_id;
+        checkCudaErrors(cuLaunchKernel(_func, grid, 1, 1, 
+            block, 1, 1, 
+            0, _vstream->getCUStream(), kernel_args, 0)); // 0 , stream , args, 0
+    }
+    else
+    {
+        LOG(INFO) << "get default STREAM ID " << (int)args->imms.stream_id;
+        checkCudaErrors(cuLaunchKernel(_func, grid, 1, 1, 
+            block, 1, 1, 
+            0, 0, kernel_args, 0)); // 0 , stream , args, 0
+    }
 
     ch->make_request_builder<msg::response>(args->caps.continuation)
         .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)

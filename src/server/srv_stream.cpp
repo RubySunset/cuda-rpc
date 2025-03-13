@@ -9,7 +9,7 @@ using namespace fractos;
 using namespace ::test;
 // using namespace impl;
 
-gpu_Stream::gpu_Stream(fractos::wire::endian::uint32_t flags, fractos::wire::endian::uint8_t id, CUcontext& ctx) {
+gpu_Stream::gpu_Stream(fractos::wire::endian::uint32_t flags, fractos::wire::endian::uint32_t id, CUcontext& ctx) {
     //fork();
     _id = id;
     _flags = flags;
@@ -25,7 +25,7 @@ gpu_Stream::gpu_Stream(fractos::wire::endian::uint32_t flags, fractos::wire::end
 }
 
 std::shared_ptr<gpu_Stream> gpu_Stream::factory(fractos::wire::endian::uint32_t flags, 
-                                        fractos::wire::endian::uint8_t id, CUcontext& ctx){
+                                        fractos::wire::endian::uint32_t id, CUcontext& ctx){
     auto res = std::shared_ptr<gpu_Stream>(new gpu_Stream(flags, id,  ctx));
     res->_self = res;
     return res;
@@ -35,6 +35,10 @@ gpu_Stream::~gpu_Stream() {
     // checkCudaErrors(cuCtxDestroy(context));
 }
 
+const CUstream& gpu_Stream::getCUStream() const
+{
+    return _stream;
+}
 
 void gpu_Stream::stream_destroy()
 {

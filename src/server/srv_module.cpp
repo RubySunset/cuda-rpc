@@ -9,12 +9,13 @@ using namespace fractos;
 using namespace ::test;
 // using namespace impl;
 
-gpu_Module::gpu_Module(std::string& name, CUcontext& ctx, char* buffer, size_t size) {
+gpu_Module::gpu_Module(std::string& name, CUcontext& ctx, char* buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx) {
     //fork();
     // 
     _name = name;  // std::string 
     _destroyed = false;
     _ctx = ctx;
+    _vctx = vctx;
 
     CUmodule module;
     checkCudaErrors(cuCtxSetCurrent(_ctx));
@@ -49,8 +50,8 @@ std::shared_ptr<gpu_Module> gpu_Module::factory(std::string& name, CUcontext& ct
     return res;
 }
 
-std::shared_ptr<gpu_Module> gpu_Module::factory(std::string& name, CUcontext& ctx, char* buffer, size_t size){
-    auto res = std::shared_ptr<gpu_Module>(new gpu_Module(name, ctx, buffer, size));
+std::shared_ptr<gpu_Module> gpu_Module::factory(std::string& name, CUcontext& ctx, char* buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx){
+    auto res = std::shared_ptr<gpu_Module>(new gpu_Module(name, ctx, buffer, size, vctx));
     res->_self = res;
     return res;
 }
@@ -147,7 +148,7 @@ void gpu_Module::handle_get_function(auto args) {
     VLOG(fractos::logging::SERVICE) << "function name is: " << func_name;
 
 
-    auto func = std::shared_ptr<gpu_Function>(gpu_Function::factory(func_name, _ctx, _module));
+    auto func = std::shared_ptr<gpu_Function>(gpu_Function::factory(func_name, _ctx, _module, _vctx));
 
 
     func->register_methods(ch)

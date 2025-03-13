@@ -186,7 +186,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              * @brief TODO:Wrapper for cuStreamCreate()
              */
             [[nodiscard]] core::future<std::shared_ptr<Stream>>
-            make_stream(CUstream_flags flags, fractos::wire::endian::uint8_t id); // blocking or not
+            make_stream(CUstream_flags flags, fractos::wire::endian::uint32_t id); // blocking or not
 
             /**
              * @brief TODO:Wrapper for cuMemAllocHost()
@@ -343,15 +343,15 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
-            Stream(std::shared_ptr<void> pimpl, wire::endian::uint32_t flags, fractos::wire::endian::uint8_t id);
+            Stream(std::shared_ptr<void> pimpl, wire::endian::uint32_t flags, fractos::wire::endian::uint32_t id);
             ~Stream();
-            fractos::wire::endian::uint8_t get_stream_id();
+            fractos::wire::endian::uint32_t get_stream_id();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
             
         private:
             bool _destroyed;
-            fractos::wire::endian::uint8_t _id;
+            fractos::wire::endian::uint32_t _id;
         };
 
         /** 

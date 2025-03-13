@@ -24,7 +24,7 @@ namespace impl {
             fractos::wire::endian::uint8_t error;
             
             fractos::core::cap::request req_stream_destroy;
-            uint8_t id;
+            fractos::wire::endian::uint32_t id;
         
             bool destroyed;
             

@@ -48,11 +48,12 @@ core::future<void> Function::call(std::pair<size_t, size_t>& gpu_grid, Args&&...
     auto req =  pimpl.ch->make_request_builder<msg::request>(pimpl.req_func_call)
         .set_imm(&msg::request::imms::grid, (uint64_t)gpu_grid.first)
         .set_imm(&msg::request::imms::block, (uint64_t)gpu_grid.second)
-        .set_cap(&msg::request::caps::continuation, resp);
+        .set_imm(&msg::request::imms::stream_id, (uint32_t)0);
+        // .set_cap(&msg::request::caps::continuation, resp);
         // .set_cap(&msg::request::caps::continuation_success, resp)
         // .set_cap(&msg::request::caps::continuation_failure, resp)
 
-    size_t cur_offset = offsetof(msg::request::imms, block) + sizeof(uint64_t);
+    size_t cur_offset = offsetof(msg::request::imms, stream_id) + sizeof(uint32_t);
     size_t args_num = 0;
     append_call_arg<0>(cur_offset, args_num, req, kargs);
     req.set_imm(&msg::request::imms::args_num, (uint64_t)args_num);
@@ -83,6 +84,7 @@ core::future<void> Function::call(Stream& stream, std::pair<size_t, size_t>& gpu
     using msg = ::service::compute::cuda::wire::Function::call;
 
     DVLOG(logging::SERVICE) << "Function::call <-";
+    LOG(INFO) << "STREAM ID " << (int)stream.get_stream_id(); // 0?
 
     auto& pimpl = Function_impl::get(*this);
 
@@ -92,15 +94,17 @@ core::future<void> Function::call(Stream& stream, std::pair<size_t, size_t>& gpu
     auto req =  pimpl.ch->make_request_builder<msg::request>(pimpl.req_func_call)
         .set_imm(&msg::request::imms::grid, (uint64_t)gpu_grid.first)
         .set_imm(&msg::request::imms::block, (uint64_t)gpu_grid.second)
-        // .set_imm(&msg::request::imms::stream_id, stream.get_stream_id())
-        .set_cap(&msg::request::caps::continuation, resp);
+        .set_imm(&msg::request::imms::stream_id, stream.get_stream_id());
+
+        // .set_cap(&msg::request::caps::continuation, resp);
         // .set_cap(&msg::request::caps::continuation_success, resp)
         // .set_cap(&msg::request::caps::continuation_failure, resp)
 
-    size_t cur_offset = offsetof(msg::request::imms, block) + sizeof(uint64_t);
+    size_t cur_offset = offsetof(msg::request::imms, stream_id) + sizeof(uint32_t); // block
     size_t args_num = 0;
     append_call_arg<0>(cur_offset, args_num, req, kargs);
     req.set_imm(&msg::request::imms::args_num, (uint64_t)args_num);
+    
     
 
     return req

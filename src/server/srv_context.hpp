@@ -53,8 +53,11 @@ public:
     std::shared_ptr<test::gpu_Module> _mod; 
 
     ~gpu_Context();
+
+    const std::unordered_map<int, std::shared_ptr<gpu_Stream>>& getVStreamMap() const;
+
 private:
-    std::unordered_map<uint8_t, std::shared_ptr<gpu_Stream>> _vstream_map;
+    std::unordered_map<int, std::shared_ptr<gpu_Stream>> _vstream_map;
 
     //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
 };

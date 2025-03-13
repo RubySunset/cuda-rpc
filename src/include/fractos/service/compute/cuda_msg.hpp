@@ -115,8 +115,8 @@ namespace service::compute::cuda::wire{
         struct make_stream {
             struct request {
                 struct imms {
-                    // fractos::wire::endian::uint8_t stream_id;
                     fractos::wire::endian::uint32_t flags; // unsigned int
+                    fractos::wire::endian::uint32_t stream_id;
                 } __attribute__((packed));
                 struct caps {
                     fractos::core::cap::request continuation; 
@@ -304,7 +304,7 @@ namespace service::compute::cuda::wire{
                     fractos::wire::endian::uint64_t args_num;
                     fractos::wire::endian::uint64_t grid;
                     fractos::wire::endian::uint64_t block;
-                    // fractos::wire::endian::uint8_t stream_id;
+                    fractos::wire::endian::uint32_t stream_id;
                     char kernel_args[];
                 } __attribute__((packed));
                 struct caps {
