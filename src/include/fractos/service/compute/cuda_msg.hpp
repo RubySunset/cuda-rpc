@@ -64,7 +64,7 @@ namespace service::compute::cuda::wire{
                 struct caps {
                     fractos::core::cap::request make_memory;
                     fractos::core::cap::request make_stream;
-                    fractos::core::cap::request make_module_data; // make_module_file
+                    fractos::core::cap::request make_module_file; //make_module_data; // 
                     fractos::core::cap::request synchronize;
                     fractos::core::cap::request destroy;
                 };

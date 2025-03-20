@@ -98,11 +98,11 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
         .then([ch, self](auto& fut) {
             self->_req_stream = fut.get();
             VLOG(fractos::logging::SERVICE) << "SET req_stream"; 
-            return ch->make_request_builder<msg_base::make_module_data::request>( // file
+            return ch->make_request_builder<msg_base::make_module_file::request>( // file
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
                     
-                    self->handle_module_data(std::move(args)); // file
+                    self->handle_module_file(std::move(args)); // data
                 })
                 .on_channel()
                 .make_request();
