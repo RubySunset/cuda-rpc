@@ -43,37 +43,6 @@ def run(base_dir, output_dir, src_dir, copy):
                 "",
             ],
         )
-    with e.view("benchmark == 'rpc'") as ee:
-        ee.params(
-            # no workload-specific parameters
-            mode=[
-                "manual",
-            ],
-            metric=[
-                "latency",
-            ],
-            placement=[
-                "same_node",
-            ],
-            binary="{{benchmark}}_{{mode}}",
-            exp_template="exp-{{benchmark}}.yaml",
-            workload="_",
-        )
-        # with ee.view("metric == 'latency'") as eee:
-        #     eee.params(
-        #         ctl_threads=["all_rr"],
-        #         workload="mode={{mode}}-placement={{placement}}-ctl_threads={{ctl_threads}}",
-        #         workload_cmd="{{cmd_latency}},target_clock_overhead_perc=1,target_stddev_perc=5,timed_batch_size_warmup=10,timed_batch_size_hint=10",
-        #     )
-
-    # with e.view("benchmark == 'pipeline'") as ee:
-    #     ee.params(
-    #         client_mode=["naive", "optimized"],
-    #         # 0: service uses node0's controller (same as pipeline app)
-    #         # 1: service uses node1's controller (different from pipeline app)
-    #         service_ctl=[0, 1],
-    #         workload="{{client_mode}}_{{service_ctl}}",
-    #     )
 
     # generate files
 
