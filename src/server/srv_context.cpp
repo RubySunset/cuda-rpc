@@ -4,6 +4,7 @@
 #include <fractos/logging.hpp>
 #include <fractos/wire/error.hpp>
 
+#include <fstream>
 
 
 using namespace fractos;
@@ -17,7 +18,7 @@ gpu_Context::gpu_Context(fractos::wire::endian::uint32_t value, CUdevice& device
     _destroyed = false;   
 
     CUcontext ctx;
-    checkCudaErrors(cuCtxCreate(&ctx, CU_CTX_SCHED_SPIN, device)); //(unsigned int)value)); // 
+    checkCudaErrors(cuCtxCreate(&ctx, CU_CTX_SCHED_AUTO, device)); //(unsigned int)value)); // 
     _ctx = ctx;
 }
 
@@ -98,11 +99,11 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
         .then([ch, self](auto& fut) {
             self->_req_stream = fut.get();
             VLOG(fractos::logging::SERVICE) << "SET req_stream"; 
-            return ch->make_request_builder<msg_base::make_module_file::request>( // file
+            return ch->make_request_builder<msg_base::make_module_data::request>( // file
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
                     
-                    self->handle_module_file(std::move(args)); // data
+                    self->handle_module_data(std::move(args)); // data
                 })
                 .on_channel()
                 .make_request();
@@ -145,6 +146,11 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
  *  Destroy a Context, revoke all of its caps
  */
 void gpu_Context::handle_memory(auto args_) {
+    using clock = std::chrono::high_resolution_clock;
+    std::chrono::microseconds t_usec;
+    auto t_start = clock::now();
+
+
     VLOG(fractos::logging::SERVICE) << "CALL handle handle_memory";
     std::shared_ptr<typename decltype(args_)::element_type> args(std::move(args_));
     using msg = ::service::compute::cuda::wire::Context::make_memory;
@@ -220,7 +226,8 @@ void gpu_Context::handle_memory(auto args_) {
         })
         .as_callback();
 
-
+    t_usec = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t_start);
+    LOG(INFO)  << "time for cumemalloc server: "<< t_usec.count() << std::endl;
 
 }
 
@@ -384,13 +391,29 @@ void gpu_Context::handle_module_data(auto args) {
     auto self = _self;
     VLOG(fractos::logging::SERVICE) << "module name is: " << file_name;
 
+    
     auto size = args->caps.cuda_file.get_size();
     char* buffer = (char*)malloc(size);
     auto copied_mem = ch->make_memory(buffer, size).get();
     ch->copy(args->caps.cuda_file, copied_mem).get();
+    LOG(INFO) << "get cuda_file in memory";
 
+    // std::ofstream outfile("module_code.ptx", std::ios::binary | std::ios::app);
+    // if (outfile.is_open()) {
+    //     outfile.write(buffer, size);
+    //     outfile.close();
+    //     std::cout << "Buffer appended to module_code.ptx successfully." << std::endl;
+    // } else {
+    //     std::cerr << "Failed to open file for writing." << std::endl;
+    // }
+    // CUcontext newContext;
+    // checkCudaErrors(cuCtxCreate(&newContext, 0, 0));
+    // CUmodule module;
+    // checkCudaErrors(cuModuleLoadData(&module, buffer));
 
     auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(file_name, _ctx, buffer, size, self));
+
+    // auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(file_name, _ctx));
 
 
     mod->register_methods(ch)

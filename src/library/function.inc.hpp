@@ -46,8 +46,62 @@ core::future<void> Function::call(std::pair<size_t, size_t>& gpu_grid, Args&&...
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     auto req =  pimpl.ch->make_request_builder<msg::request>(pimpl.req_func_call)
-        .set_imm(&msg::request::imms::grid, (uint64_t)gpu_grid.first)
-        .set_imm(&msg::request::imms::block, (uint64_t)gpu_grid.second)
+        .set_imm(&msg::request::imms::grid_x, (uint64_t)gpu_grid.first)
+        .set_imm(&msg::request::imms::grid_y, (uint64_t)1)
+        .set_imm(&msg::request::imms::grid_z, (uint64_t)1)
+        .set_imm(&msg::request::imms::block_x, (uint64_t)gpu_grid.second)
+        .set_imm(&msg::request::imms::block_y, (uint64_t)1)
+        .set_imm(&msg::request::imms::block_z, (uint64_t)1)
+        .set_imm(&msg::request::imms::stream_id, (uint32_t)0);
+        // .set_cap(&msg::request::caps::continuation, resp);
+        // .set_cap(&msg::request::caps::continuation_success, resp)
+        // .set_cap(&msg::request::caps::continuation_failure, resp)
+
+    size_t cur_offset = offsetof(msg::request::imms, stream_id) + sizeof(uint32_t);
+    size_t args_num = 0;
+    append_call_arg<0>(cur_offset, args_num, req, kargs);
+    req.set_imm(&msg::request::imms::args_num, (uint64_t)args_num);
+    
+
+    return req
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp) // wait for handle_sync
+        .unwrap()
+        .then([](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            if (not args->has_exactly_args()) {
+                // throw core::other_error("invalid response format for Function::call");
+                DVLOG(logging::SERVICE) << "Function::call ->"
+                                << " error=OTHER args";
+            }
+
+            DVLOG(logging::SERVICE) << "Function::call ->"
+                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
+            wire::error_raise_exception_maybe(args->imms.error);
+        });
+}
+
+
+template<class... Args>
+core::future<void> Function::call(std::array<size_t, 6>& gpu_grid, Args&&... ker_args) {
+    using msg = ::service::compute::cuda::wire::Function::call;
+
+    DVLOG(logging::SERVICE) << "Function::call <-";
+
+    auto& pimpl = Function_impl::get(*this);
+
+    auto kargs = std::make_tuple<Args...>(std::forward<Args>(ker_args)...);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    auto req =  pimpl.ch->make_request_builder<msg::request>(pimpl.req_func_call)
+        .set_imm(&msg::request::imms::grid_x, (uint64_t)gpu_grid[0])
+        .set_imm(&msg::request::imms::grid_y, (uint64_t)gpu_grid[1])
+        .set_imm(&msg::request::imms::grid_z, (uint64_t)gpu_grid[2])
+        .set_imm(&msg::request::imms::block_x, (uint64_t)gpu_grid[3])
+        .set_imm(&msg::request::imms::block_y, (uint64_t)gpu_grid[4])
+        .set_imm(&msg::request::imms::block_z, (uint64_t)gpu_grid[5])
         .set_imm(&msg::request::imms::stream_id, (uint32_t)0);
         // .set_cap(&msg::request::caps::continuation, resp);
         // .set_cap(&msg::request::caps::continuation_success, resp)
@@ -92,8 +146,12 @@ core::future<void> Function::call(Stream& stream, std::pair<size_t, size_t>& gpu
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     auto req =  pimpl.ch->make_request_builder<msg::request>(pimpl.req_func_call)
-        .set_imm(&msg::request::imms::grid, (uint64_t)gpu_grid.first)
-        .set_imm(&msg::request::imms::block, (uint64_t)gpu_grid.second)
+        .set_imm(&msg::request::imms::grid_x, (uint64_t)gpu_grid.first)
+        .set_imm(&msg::request::imms::grid_y, (uint64_t)1)
+        .set_imm(&msg::request::imms::grid_z, (uint64_t)1)
+        .set_imm(&msg::request::imms::block_x, (uint64_t)gpu_grid.second)
+        .set_imm(&msg::request::imms::block_y, (uint64_t)1)
+        .set_imm(&msg::request::imms::block_z, (uint64_t)1)
         .set_imm(&msg::request::imms::stream_id, stream.get_stream_id());
 
         // .set_cap(&msg::request::caps::continuation, resp);

@@ -4,6 +4,8 @@
 #include <fractos/logging.hpp>
 #include <fractos/wire/error.hpp>
 
+#include <fstream>
+
 
 using namespace fractos;
 using namespace ::test;
@@ -17,10 +19,13 @@ gpu_Module::gpu_Module(std::string& name, CUcontext& ctx, char* buffer, size_t s
     _ctx = ctx;
     _vctx = vctx;
 
-    CUmodule module;
+
     checkCudaErrors(cuCtxSetCurrent(_ctx));
-    checkCudaErrors(cuModuleLoadData(&module, buffer));
-    // checkCudaErrors(cuModuleGetFunction(&function, module, func_name.c_str()));
+    CUmodule module;
+    // CUcontext newContext;
+    // checkCudaErrors(cuCtxCreate(&newContext, 0, 0));
+    // checkCudaErrors(cuModuleLoadData(&module, buffer));
+    checkCudaErrors(cuModuleLoad(&module, _name.c_str()));
     _module = module;
 
     VLOG(fractos::logging::SERVICE) << "load module :  name = " << _name;
@@ -37,6 +42,7 @@ gpu_Module::gpu_Module(std::string& name, CUcontext& ctx) {
 
     CUmodule module;
     checkCudaErrors(cuCtxSetCurrent(_ctx));
+    
     checkCudaErrors(cuModuleLoad(&module, _name.c_str()));
     _module = module;
 
@@ -64,7 +70,7 @@ gpu_Module::~gpu_Module() {
 
 void gpu_Module::module_unload() // current
 {
-    // checkCudaErrors(cuCtxSetCurrent(_ctx));
+    checkCudaErrors(cuCtxSetCurrent(_ctx));
     VLOG(fractos::logging::SERVICE) << "Unload module :  name = " << _name;
     checkCudaErrors(cuModuleUnload(_module));
     // checkCudaErrors(cuCtxDestroy(context));

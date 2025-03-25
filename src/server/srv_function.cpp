@@ -5,6 +5,8 @@
 #include <fractos/logging.hpp>
 #include <fractos/wire/error.hpp>
 
+#include <cuda_runtime.h>
+
 
 using namespace fractos;
 using namespace ::test;
@@ -86,13 +88,14 @@ void gpu_Function::handle_call(auto args) {
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
 
     auto args_num = args->imms.args_num;
-    auto grid = args->imms.grid;
-    auto block = args->imms.block;
-
-
+    auto grid_x = args->imms.grid_x;
+    auto grid_y = args->imms.grid_y;
+    auto grid_z = args->imms.grid_z;
+    auto block_x = args->imms.block_x;
+    auto block_y = args->imms.block_y;
+    auto block_z = args->imms.block_z;
     
-    
-    
+ 
 
 
     auto raw_kernel_args = args->imms.kernel_args;
@@ -110,8 +113,8 @@ void gpu_Function::handle_call(auto args) {
     }
 
 
-    // dim3 dimGrid(grid);
-    // dim3 dimBlock(block);
+    dim3 dimGrid(grid_x, grid_y, grid_z);
+    dim3 dimBlock(block_x, block_y, block_z);
 
     // CUevent event;
     // CUstream stream;
@@ -121,15 +124,15 @@ void gpu_Function::handle_call(auto args) {
     {
         auto _vstream = _vctx.lock()->getVStreamMap().at((int)args->imms.stream_id); // const qualifier
         LOG(INFO) << "get STREAM ID " << (int)args->imms.stream_id;
-        checkCudaErrors(cuLaunchKernel(_func, grid, 1, 1, 
-            block, 1, 1, 
+        checkCudaErrors(cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z, 
+            dimBlock.x, dimBlock.y, dimBlock.z,
             0, _vstream->getCUStream(), kernel_args, 0)); // 0 , stream , args, 0
     }
     else
     {
         LOG(INFO) << "get default STREAM ID " << (int)args->imms.stream_id;
-        checkCudaErrors(cuLaunchKernel(_func, grid, 1, 1, 
-            block, 1, 1, 
+        checkCudaErrors(cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z, 
+            dimBlock.x, dimBlock.y, dimBlock.z,
             0, 0, kernel_args, 0)); // 0 , stream , args, 0
     }
 

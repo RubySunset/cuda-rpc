@@ -92,7 +92,7 @@ profile_experiment(std::unique_ptr<fractos::service::compute::cuda::Service> srv
     auto func = mod->get_function(func_name).get();
 
 
-    std::pair<size_t, size_t> grid = {1024, 1024};
+    std::array<size_t, 6> grid = {1024, 1, 1, 1024, 1, 1};
     func->call(grid, mem_a_addr, mem_b_addr, mem_r_addr, N).get(); // *stream
     vctx->synchronize().get();
 

@@ -187,7 +187,7 @@ core::future<std::shared_ptr<Module>> Context::make_module_file(
 
 
 core::future<std::shared_ptr<Module>> Context::make_module_data(
-            const core::cap::memory& contents, const std::string& file_name) {
+            core::cap::memory& contents, const std::string& file_name) {
 
     using msg = ::service::compute::cuda::wire::Context::make_module_data;
 

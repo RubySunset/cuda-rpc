@@ -172,7 +172,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              * @brief TODO:Wrapper for cuModuleLoadData()
              */
             [[nodiscard]] core::future<std::shared_ptr<Module>>
-            make_module_data(const core::cap::memory& contents, const std::string& file_name);
+            make_module_data(core::cap::memory& contents, const std::string& file_name);
 
             /**
              * @brief Wrapper for cuMemAlloc()
@@ -287,6 +287,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             template<class... Args>
             [[nodiscard]]core::future<void> 
             call(std::pair<size_t, size_t>& gpu_grid, Args&&... ker_args);
+
+            template<class... Args>
+            [[nodiscard]]core::future<void> 
+            call(std::array<size_t, 6>& gpu_grid, Args&&... ker_args);
 
             template<class... Args>
             [[nodiscard]]core::future<void> 

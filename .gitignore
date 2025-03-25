@@ -6,6 +6,7 @@ Makefile.in
 /compile_commands.json
 /config.guess
 /config.h.in
+/config.h.in~
 /config.sub
 /configure
 /.configure.done
@@ -13,6 +14,7 @@ Makefile.in
 /deps
 /install-sh
 /ltmain.sh
-/m4/
+/m4/*
+!m4/ax_check_cuda.m4
 /missing
 /configure~
