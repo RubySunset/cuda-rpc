@@ -63,6 +63,7 @@ namespace service::compute::cuda::wire{
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::request make_memory;
+                    fractos::core::cap::request make_memory_rpc_test;
                     fractos::core::cap::request make_stream;
                     fractos::core::cap::request make_module_data; //make_module_data; // 
                     fractos::core::cap::request synchronize;
@@ -90,6 +91,27 @@ namespace service::compute::cuda::wire{
 
     namespace Context {
 
+        struct make_memory_rpc_test {
+            struct request {
+                struct imms {
+                    // fractos::wire::endian::uint64_t virtual_device_id;
+                    fractos::wire::endian::uint64_t size; // unsigned int
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation; 
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    // fractos::wire::endian::uint64_t address;
+                } __attribute__ ((packed));
+                struct caps {
+                    // fractos::core::cap::memory memory;
+                    // fractos::core::cap::request destroy;
+                };
+            };
+        };
         struct make_memory {
             struct request {
                 struct imms {

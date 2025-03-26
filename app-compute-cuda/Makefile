@@ -36,8 +36,8 @@ LDFLAGS += -L/usr/local/cuda/lib64 -lcudart  -lcuda -L"/usr/local/cuda/lib64/stu
 all: simple 
 # all: pipeline
 
-#simple: simple.cpp
-%: %.cpp
+simple: simple.cpp
+# %: %.cpp
 ifeq ($(V),1)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $< $(LDFLAGS) 
 else

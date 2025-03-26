@@ -77,6 +77,10 @@ core::future<void> gpu_Function::register_methods(std::shared_ptr<core::channel>
 
 
 void gpu_Function::handle_call(auto args) {
+
+    auto t_start = std::chrono::high_resolution_clock::now();
+
+
     VLOG(fractos::logging::SERVICE) << "CALL handle call";
     using msg = ::service::compute::cuda::wire::Function::call;
 
@@ -141,6 +145,9 @@ void gpu_Function::handle_call(auto args) {
         .on_channel()
         .invoke()
         .as_callback();
+
+    auto t_usec = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - t_start);
+    LOG(INFO) << "time for launch kernel server: " << t_usec.count() << std::endl;
 }
 
 

@@ -51,6 +51,50 @@ Context::~Context() {
 
 
 
+
+core::future<void> Context::make_memory_rpc_test(
+                    uint64_t size) {
+
+    using msg = ::service::compute::cuda::wire::Context::make_memory_rpc_test;
+
+    DVLOG(logging::SERVICE) << "Context::make_memory <-";
+    auto& pimpl = Context_impl::get(*this);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_memory_rpc_test)
+        .set_imm(&msg::request::imms::size, size) // unsigned int vs uint32_t
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp) // wait for srv_handle
+        .unwrap()
+        .then([size](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            if (not args->has_exactly_args()) {
+                // throw core::other_error("invalvalue response format for  Context::make_memory");
+                DVLOG(logging::SERVICE) << "Context::make_memory ->"
+                <<" error= OTHER args";
+            }
+
+            DVLOG(logging::SERVICE) << "Context::make_memory ->"
+                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
+            wire::error_raise_exception_maybe(args->imms.error);
+
+            // char* tmp = reinterpret_cast<char*>(args->imms.address.get());
+
+            // // get Device object
+            // std::shared_ptr<Memory_impl> pimpl_(
+            //     new Memory_impl{{}, ch, args->imms.error, 
+            //             std::move(args->caps.destroy), 
+            //         false, tmp, size, std::move(args->caps.memory)}
+            //     );
+            // pimpl_->self = pimpl_;
+            // auto pimpl = static_pointer_cast<void>(pimpl_);
+            // std::shared_ptr<Memory> res(new Memory{pimpl, size});
+            // return res;
+        });
+}
+
 core::future<std::shared_ptr<Memory>> Context::make_memory(
                     uint64_t size) {
 

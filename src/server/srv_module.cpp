@@ -112,6 +112,7 @@ core::future<void> gpu_Module::register_methods(std::shared_ptr<core::channel> c
 }
 
 void gpu_Module::handle_get_function(auto args) {
+    auto t_start = std::chrono::high_resolution_clock::now();
     VLOG(fractos::logging::SERVICE) << "CALL handle_get_function";
 
     using msg = ::service::compute::cuda::wire::Module::get_function;
@@ -178,8 +179,8 @@ void gpu_Module::handle_get_function(auto args) {
     //     .invoke()
     //     .as_callback();
 
-
-
+    auto t_usec = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - t_start);
+    LOG(INFO) << "time for get function server: " << t_usec.count() << std::endl;
 }
 
 

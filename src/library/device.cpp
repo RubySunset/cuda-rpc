@@ -75,6 +75,7 @@ core::future<std::shared_ptr<Context>> Device::make_context(
             std::shared_ptr<Context_impl> pimpl_(
                 new Context_impl{{}, ch, args->imms.error, 
                         std::move(args->caps.make_memory),
+                        std::move(args->caps.make_memory_rpc_test),
                         std::move(args->caps.make_stream),
                         std::move(args->caps.make_module_data),
                         // std::move(args->caps.make_module_file),
