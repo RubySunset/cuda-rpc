@@ -76,7 +76,7 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
 
 
     return ch->make_request_builder<msg_base::make_memory::request>(
-        ch->get_default_endpoint(),
+        ch->get_default_endpoint(), // resv msg
         [self](auto ch, auto args) {
             VLOG(fractos::logging::SERVICE) << "In register_service context handler";
             self->handle_memory(std::move(args));
@@ -162,6 +162,11 @@ void gpu_Context::handle_memory(auto args_) {
     using clock = std::chrono::high_resolution_clock;
     std::chrono::microseconds t_usec;
     auto t_start = clock::now();
+    auto t_end = clock::now();
+    // auto t_temp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    // LOG(INFO) << "time for make_memory server start: " << t_temp << std::endl;
+
+
 
 
     VLOG(fractos::logging::SERVICE) << "CALL handle handle_memory";
@@ -195,9 +200,17 @@ void gpu_Context::handle_memory(auto args_) {
     char* base = allocate_memory(size , _ctx);//, context);
 
 
+    t_usec = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t_start);
+    LOG(INFO)  << "time for make_memory CUDA API server: "<< t_usec.count() << std::endl;
+
+
 
     auto mr_ = ch->make_memory_region(base, size, core::memory_region::translation_type::PIN);
     std::shared_ptr<typename decltype(mr_)::element_type> mr(std::move(mr_)); // element_type??
+
+    auto temp = t_usec.count();
+    t_usec = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t_start);
+    LOG(INFO)  << "time for make_memory make_memory_region server: "<< t_usec.count() - temp << std::endl;
 
 
 
@@ -205,12 +218,9 @@ void gpu_Context::handle_memory(auto args_) {
         .then([ch, args, size, this, base, mr](auto& fut) {
             // auto mem = fut.get();
 
-        
-
         auto self = _self; // lock()
         // VLOG(fractos::logging::SERVICE) << "cuda device addr: " << (void*)base;
         VLOG(fractos::logging::SERVICE) << "mem size is: " << size;
-
 
         auto dev_mem = std::shared_ptr<gpu_Memory>(gpu_Memory::factory(size, _ctx));
         
@@ -219,11 +229,16 @@ void gpu_Context::handle_memory(auto args_) {
         dev_mem->base = (char*)base;
         dev_mem->_mr = mr;
 
+        
+
 
         dev_mem->register_methods(ch)
             .then([this, ch, self, dev_mem, size, args ](auto& fut) { //, args=std::move(args),  mr_=std::move(mr_)
                 fut.get();
                 _dev_mem = dev_mem;
+
+                auto t_temp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+                LOG(INFO)  << "time for make_memory make_memory server: "<< t_temp << std::endl;
 
                 // VLOG(fractos::logging::SERVICE) << "BACKEND memory size is " << dev_mem->_memory.get_size();
 
@@ -240,8 +255,12 @@ void gpu_Context::handle_memory(auto args_) {
         })
         .as_callback();
 
+    // temp = t_usec.count();
+    // t_usec = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t_start);
+    // LOG(INFO)  << "time for make_memory make_memory server: "<< t_usec.count() - temp << std::endl;
+
     t_usec = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t_start);
-    LOG(INFO)  << "time for cumemalloc server: "<< t_usec.count() << std::endl;
+    LOG(INFO)  << "time for make_memory server: "<< t_usec.count() << std::endl;
 
 }
 
@@ -251,7 +270,6 @@ void gpu_Context::handle_memory_rpc_test(auto args) {
     std::chrono::microseconds t_usec;
     auto t_start = clock::now();
 
-    // namespace msg_base = ::service::compute::cuda::message::cuda_service;
     using msg = ::service::compute::cuda::wire::Context::make_memory_rpc_test;
 
     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
@@ -270,9 +288,9 @@ void gpu_Context::handle_memory_rpc_test(auto args) {
             .as_callback();
 
         // return;
-    t_usec = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t_start);
-    LOG(INFO) << "test rpc client time: " << t_usec.count() << std::endl;
 
+    t_usec = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t_start);
+    LOG(INFO)  << "time for memory_rpc_test server: "<< t_usec.count() << std::endl;
 }
 
 /*

@@ -54,6 +54,8 @@ Context::~Context() {
 
 core::future<void> Context::make_memory_rpc_test(
                     uint64_t size) {
+    using clock = std::chrono::high_resolution_clock;
+    auto t_start = clock::now();
 
     using msg = ::service::compute::cuda::wire::Context::make_memory_rpc_test;
 
@@ -67,8 +69,14 @@ core::future<void> Context::make_memory_rpc_test(
         .on_channel()
         .invoke(resp) // wait for srv_handle
         .unwrap()
-        .then([size](auto& fut) {
+        .then([size, t_start](auto& fut) {
             auto [ch, args] = fut.get();
+
+            
+            
+            auto t_usec = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t_start);
+            LOG(INFO) << "time for make_memory_rpc_test server sync at client: " << t_usec.count() << std::endl;
+
 
             if (not args->has_exactly_args()) {
                 // throw core::other_error("invalvalue response format for  Context::make_memory");
@@ -97,7 +105,9 @@ core::future<void> Context::make_memory_rpc_test(
 
 core::future<std::shared_ptr<Memory>> Context::make_memory(
                     uint64_t size) {
-
+    using clock = std::chrono::high_resolution_clock;
+    auto t_start = clock::now();
+    
     using msg = ::service::compute::cuda::wire::Context::make_memory;
 
     DVLOG(logging::SERVICE) << "Context::make_memory <-";
@@ -110,8 +120,13 @@ core::future<std::shared_ptr<Memory>> Context::make_memory(
         .on_channel()
         .invoke(resp) // wait for srv_handle
         .unwrap()
-        .then([size](auto& fut) {
+        .then([size, t_start](auto& fut) {
             auto [ch, args] = fut.get();
+
+            
+            auto t_usec = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t_start);
+
+            LOG(INFO) << "time for make_memory server sync at client: " << t_usec.count() << std::endl;
 
             if (not args->has_exactly_args()) {
                 // throw core::other_error("invalvalue response format for  Context::make_memory");
@@ -274,6 +289,8 @@ core::future<std::shared_ptr<Module>> Context::make_module_data(
             return res;
         });
 }
+
+
 
 
 core::future<void> Context::synchronize() {
