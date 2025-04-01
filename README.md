@@ -31,3 +31,8 @@
 - `cuStreamDestroy`
 - `cuModuleLoadData`
 - `cuEvent...`
+
+### CUDA Driver Error 803
+_Error_: System has unsupported display driver / CUDA driver combination. Container CUDA Driver version is different from HOST. IF host update the driver version.
+
+_Solution_ : Update the driver version by rebuilding the container image. & `modprobe nvidia-peermem` on HOST.

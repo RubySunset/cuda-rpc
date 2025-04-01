@@ -205,7 +205,7 @@ void gpu_Context::handle_memory(auto args_) {
 
 
 
-    auto mr_ = ch->make_memory_region(base, size, core::memory_region::translation_type::PIN);
+    auto mr_ = ch->make_memory_region(base, size, core::memory_region::translation_type::PIN); // PIN
     std::shared_ptr<typename decltype(mr_)::element_type> mr(std::move(mr_)); // element_type??
 
     auto temp = t_usec.count();
