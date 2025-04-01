@@ -32,6 +32,10 @@
 - `cuModuleLoadData`
 - `cuEvent...`
 
+## roadmap feature
+- cuda graph support
+- global service & client service.
+
 ### CUDA Driver Error 803
 _Error_: System has unsupported display driver / CUDA driver combination. Container CUDA Driver version is different from HOST. IF host update the driver version.
 

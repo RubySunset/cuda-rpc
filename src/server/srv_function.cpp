@@ -13,13 +13,15 @@ using namespace ::test;
 // using namespace impl;
 
 gpu_Function::gpu_Function(std::string func_name, CUcontext& ctx, CUmodule& mod, std::weak_ptr<test::gpu_Context> vctx) {
-    //fork();
+
     _name = func_name;
     _destroyed = false;
     _ctx = ctx;
     _mod = mod;
     _vctx = vctx;
-   
+
+    checkCudaErrors(cuCtxSetCurrent(_ctx));
+
     CUfunction function;
     checkCudaErrors(cuModuleGetFunction(&function, mod, func_name.c_str()));
     _func = function;
@@ -126,7 +128,7 @@ void gpu_Function::handle_call(auto args) {
     LOG(INFO) << "STREAM ID " << (int)args->imms.stream_id;
     if ((int)args->imms.stream_id)
     {
-        auto _vstream = _vctx.lock()->getVStreamMap().at((int)args->imms.stream_id); // const qualifier
+        auto _vstream = _vctx.lock()->getVStreamMap().at((int)args->imms.stream_id); // const qualifier _vctx.lock()
         LOG(INFO) << "get STREAM ID " << (int)args->imms.stream_id;
         checkCudaErrors(cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z, 
             dimBlock.x, dimBlock.y, dimBlock.z,

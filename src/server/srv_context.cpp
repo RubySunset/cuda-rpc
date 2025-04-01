@@ -343,71 +343,71 @@ void gpu_Context::handle_stream(auto args) {
 }
 
 
-// not in use.
-void gpu_Context::handle_module_file(auto args) {
-    VLOG(fractos::logging::SERVICE) << "CALL handle_module_file";
+// // not in use.
+// void gpu_Context::handle_module_file(auto args) {
+//     VLOG(fractos::logging::SERVICE) << "CALL handle_module_file";
 
-    using msg = ::service::compute::cuda::wire::Context::make_module_file;
+//     using msg = ::service::compute::cuda::wire::Context::make_module_file;
     
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        LOG(ERROR) << "got request without continuation, ignoring";
-        return;
-    }
+//     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+//         LOG(ERROR) << "got request without continuation, ignoring";
+//         return;
+//     }
     
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
-    std::string file_name = args->imms.file_name;
+//     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
+//     std::string file_name = args->imms.file_name;
 
-    if (not args->has_exactly_args()) { // file_name
-        if (not args->has_exactly_imms()) {
-            if (args->imms_size() == 8 + file_name.size()) {
-                VLOG(fractos::logging::SERVICE) << "got imms length : " << file_name.size(); // char file_name[] in msg
-            } else {
-                LOG(ERROR) << "got error imms";
-                ch->make_request_builder<msg::response>(args->caps.continuation)
-                    .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-                    .on_channel()
-                    .invoke()
-                    .as_callback();
-                return;
-            }
-        }
-        else
-        {
-            LOG(ERROR) << "got error caps";
-            ch->make_request_builder<msg::response>(args->caps.continuation)
-                    .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-                    .on_channel()
-                    .invoke()
-                    .as_callback();
-                return;
-        }
-    }
+//     if (not args->has_exactly_args()) { // file_name
+//         if (not args->has_exactly_imms()) {
+//             if (args->imms_size() == 8 + file_name.size()) {
+//                 VLOG(fractos::logging::SERVICE) << "got imms length : " << file_name.size(); // char file_name[] in msg
+//             } else {
+//                 LOG(ERROR) << "got error imms";
+//                 ch->make_request_builder<msg::response>(args->caps.continuation)
+//                     .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+//                     .on_channel()
+//                     .invoke()
+//                     .as_callback();
+//                 return;
+//             }
+//         }
+//         else
+//         {
+//             LOG(ERROR) << "got error caps";
+//             ch->make_request_builder<msg::response>(args->caps.continuation)
+//                     .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+//                     .on_channel()
+//                     .invoke()
+//                     .as_callback();
+//                 return;
+//         }
+//     }
 
-    auto self = _self;
-    VLOG(fractos::logging::SERVICE) << "module name is: " << file_name;
-
-
-    auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(file_name, _ctx));
+//     auto self = _self;
+//     VLOG(fractos::logging::SERVICE) << "module name is: " << file_name;
 
 
-    mod->register_methods(ch)
-        .then([this, ch, self, mod, args=std::move(args) ](auto& fut) { //, args=std::move(args),  mr_=std::move(mr_)
-            fut.get();
-            _mod = mod;
-
-            ch->make_request_builder<msg::response>(args->caps.continuation)
-                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
-                .set_cap(&msg::response::caps::get_function, mod->_req_get_func)
-                .set_cap(&msg::response::caps::destroy, mod->_req_destroy)
-                .on_channel()
-                .invoke()
-                .as_callback();
-            })
-        .as_callback();
+//     auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(file_name, _ctx));
 
 
+//     mod->register_methods(ch)
+//         .then([this, ch, self, mod, args=std::move(args) ](auto& fut) { //, args=std::move(args),  mr_=std::move(mr_)
+//             fut.get();
+//             _mod = mod;
 
-}
+//             ch->make_request_builder<msg::response>(args->caps.continuation)
+//                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
+//                 .set_cap(&msg::response::caps::get_function, mod->_req_get_func)
+//                 .set_cap(&msg::response::caps::destroy, mod->_req_destroy)
+//                 .on_channel()
+//                 .invoke()
+//                 .as_callback();
+//             })
+//         .as_callback();
+
+
+
+// }
 
 
 void gpu_Context::handle_module_data(auto args) {
@@ -423,36 +423,46 @@ void gpu_Context::handle_module_data(auto args) {
     }
     
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
-    std::string file_name = args->imms.file_name;
 
-    if (not args->has_exactly_args()) { // file_name
-        if (not args->has_exactly_imms()) {
-            if (args->imms_size() == 8 + file_name.size()) {
-                VLOG(fractos::logging::SERVICE) << "got imms length : " << file_name.size(); // char file_name[] in msg
-            } else {
-                LOG(ERROR) << "got error imms";
-                ch->make_request_builder<msg::response>(args->caps.continuation)
-                    .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-                    .on_channel()
-                    .invoke()
-                    .as_callback();
-                return;
-            }
-        }
-        else
-        {
-            LOG(ERROR) << "got error caps";
-            ch->make_request_builder<msg::response>(args->caps.continuation)
-                    .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-                    .on_channel()
-                    .invoke()
-                    .as_callback();
-                return;
-        }
+    if (not args->has_exactly_args()) {
+        ch->make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .on_channel()
+            .invoke()
+            .as_callback();
+        return;
     }
 
+    auto module_id = args->imms.module_id;
+
+    // if (not args->has_exactly_args()) { // file_name
+    //     if (not args->has_exactly_imms()) {
+    //         if (args->imms_size() == 8 + file_name.size()) {
+    //             VLOG(fractos::logging::SERVICE) << "got imms length : " << file_name.size(); // char file_name[] in msg
+    //         } else {
+    //             LOG(ERROR) << "got error imms";
+    //             ch->make_request_builder<msg::response>(args->caps.continuation)
+    //                 .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+    //                 .on_channel()
+    //                 .invoke()
+    //                 .as_callback();
+    //             return;
+    //         }
+    //     }
+    //     else
+    //     {
+    //         LOG(ERROR) << "got error caps";
+    //         ch->make_request_builder<msg::response>(args->caps.continuation)
+    //                 .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+    //                 .on_channel()
+    //                 .invoke()
+    //                 .as_callback();
+    //             return;
+    //     }
+    // }
+
     auto self = _self;
-    VLOG(fractos::logging::SERVICE) << "module name is: " << file_name;
+    VLOG(fractos::logging::SERVICE) << "module id is: " << module_id;
 
     
     auto size = args->caps.cuda_file.get_size();
@@ -474,7 +484,8 @@ void gpu_Context::handle_module_data(auto args) {
     // CUmodule module;
     // checkCudaErrors(cuModuleLoadData(&module, buffer));
 
-    auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(file_name, _ctx, buffer, size, self));
+
+    auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(module_id, _ctx, buffer, size, self));
 
     // auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(file_name, _ctx));
 

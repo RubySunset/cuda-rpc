@@ -199,54 +199,54 @@ core::future<std::shared_ptr<Stream>> Context::make_stream(
 }
 
 
-core::future<std::shared_ptr<Module>> Context::make_module_file(
-// core::future<void> Context::make_module_file(
-            const std::string& file_name) {
+// core::future<std::shared_ptr<Module>> Context::make_module_file(
+// // core::future<void> Context::make_module_file(
+//             const std::string& file_name) {
 
-    using msg = ::service::compute::cuda::wire::Context::make_module_file;
+//     using msg = ::service::compute::cuda::wire::Context::make_module_file;
 
-    DVLOG(logging::SERVICE) << "Context::make_module_file <-";
+//     DVLOG(logging::SERVICE) << "Context::make_module_file <-";
 
-    auto& pimpl = Context_impl::get(*this);
+//     auto& pimpl = Context_impl::get(*this);
 
-    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_module_data)// file
-        // .set_imm(&msg::request::imms::name, name) // unsigned int vs uint32_t
-        .set_imm(&msg::request::imms::file_name_size, file_name.size())
-        .set_imm(offsetof(msg::request::imms, file_name), file_name.c_str(), file_name.size())
-        .set_cap(&msg::request::caps::continuation, resp)
-        .on_channel()
-        .invoke(resp) // wait for srv_handle
-        .unwrap()
-        .then([file_name](auto& fut) { // function_name
-            auto [ch, args] = fut.get();
+//     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+//     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_module_data)// file
+//         // .set_imm(&msg::request::imms::name, name) // unsigned int vs uint32_t
+//         .set_imm(&msg::request::imms::file_name_size, file_name.size())
+//         .set_imm(offsetof(msg::request::imms, file_name), file_name.c_str(), file_name.size())
+//         .set_cap(&msg::request::caps::continuation, resp)
+//         .on_channel()
+//         .invoke(resp) // wait for srv_handle
+//         .unwrap()
+//         .then([file_name](auto& fut) { // function_name
+//             auto [ch, args] = fut.get();
 
-            if (not args->has_exactly_args()) {
-                // throw core::other_error("invalvalue response format for Context::make_module_file");
-                DVLOG(logging::SERVICE) << "Context::make_module_file ->"
-                <<" error= OTHER args";
-            }
+//             if (not args->has_exactly_args()) {
+//                 // throw core::other_error("invalvalue response format for Context::make_module_file");
+//                 DVLOG(logging::SERVICE) << "Context::make_module_file ->"
+//                 <<" error= OTHER args";
+//             }
 
-            DVLOG(logging::SERVICE) << "Context::make_module_file ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+//             DVLOG(logging::SERVICE) << "Context::make_module_file ->"
+//                                     << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
+//             wire::error_raise_exception_maybe(args->imms.error);
 
-            // get Module object
-            std::shared_ptr<Module_impl> pimpl_(
-                new Module_impl{{}, ch, args->imms.error,
-                        std::move(args->caps.get_function),
-                        std::move(args->caps.destroy)}
-                );
-            pimpl_->self = pimpl_;
-            auto pimpl = static_pointer_cast<void>(pimpl_);
-            std::shared_ptr<Module> res(new Module{pimpl, file_name});
-            return res;
-        });
-}
+//             // get Module object
+//             std::shared_ptr<Module_impl> pimpl_(
+//                 new Module_impl{{}, ch, args->imms.error,
+//                         std::move(args->caps.get_function),
+//                         std::move(args->caps.destroy)}
+//                 );
+//             pimpl_->self = pimpl_;
+//             auto pimpl = static_pointer_cast<void>(pimpl_);
+//             std::shared_ptr<Module> res(new Module{pimpl, file_name});
+//             return res;
+//         });
+// }
 
 
 core::future<std::shared_ptr<Module>> Context::make_module_data(
-            core::cap::memory& contents, const std::string& file_name) {
+            core::cap::memory& contents, uint64_t module_id) {
 
     using msg = ::service::compute::cuda::wire::Context::make_module_data;
 
@@ -256,15 +256,14 @@ core::future<std::shared_ptr<Module>> Context::make_module_data(
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_module_data) // file
-        // .set_imm(&msg::request::imms::name, name) // unsigned int vs uint32_t
-        .set_imm(&msg::request::imms::file_name_size, file_name.size())
-        .set_imm(offsetof(msg::request::imms, file_name), file_name.c_str(), file_name.size())
+         .set_imm(&msg::request::imms::module_id, module_id)
+        // .set_imm(offsetof(msg::request::imms, file_name), file_name.c_str(), file_name.size())
         .set_cap(&msg::request::caps::continuation, resp)
         .set_cap(&msg::request::caps::cuda_file, contents)
         .on_channel()
         .invoke(resp) // wait for srv_handle
         .unwrap()
-        .then([file_name](auto& fut) { // function_name
+        .then([module_id](auto& fut) { // function_name
             auto [ch, args] = fut.get();
 
             if (not args->has_exactly_args()) {
@@ -285,7 +284,7 @@ core::future<std::shared_ptr<Module>> Context::make_module_data(
                 );
             pimpl_->self = pimpl_;
             auto pimpl = static_pointer_cast<void>(pimpl_);
-            std::shared_ptr<Module> res(new Module{pimpl, file_name});
+            std::shared_ptr<Module> res(new Module{pimpl, module_id});
             return res;
         });
 }

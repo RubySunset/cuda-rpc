@@ -31,7 +31,7 @@ private:
     CUmodule _mod;
     CUfunction _func;
 
-    std::weak_ptr<test::gpu_Context> _vctx;
+    std::weak_ptr<test::gpu_Context> _vctx; 
     std::weak_ptr<test::gpu_Stream> _vstream;
 
 public:

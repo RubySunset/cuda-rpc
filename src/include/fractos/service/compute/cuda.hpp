@@ -172,7 +172,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              * @brief TODO:Wrapper for cuModuleLoadData()
              */
             [[nodiscard]] core::future<std::shared_ptr<Module>>
-            make_module_data(core::cap::memory& contents, const std::string& file_name);
+            make_module_data(core::cap::memory& contents, uint64_t module_id);
 
             /**
              * @brief Wrapper for cuMemAlloc()
@@ -268,7 +268,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
-            Module(std::shared_ptr<void> pimpl, std::string name);
+            Module(std::shared_ptr<void> pimpl, uint64_t module_id);
             Module(std::shared_ptr<void> pimpl, core::cap::memory contents, std::string name);
             ~Module();
             // NOTE: not for public use

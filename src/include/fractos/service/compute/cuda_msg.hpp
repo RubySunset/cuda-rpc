@@ -182,8 +182,8 @@ namespace service::compute::cuda::wire{
         struct make_module_data {
             struct request {
                 struct imms {
-                    fractos::wire::endian::uint64_t file_name_size;
-                    char file_name[];
+                    fractos::wire::endian::uint64_t module_id;
+                    // char file_name[];
                 } __attribute__((packed));
                 struct caps {
                     fractos::core::cap::request continuation; 

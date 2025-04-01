@@ -27,9 +27,15 @@ const Module_impl& Module_impl::get(const Module& obj)
 }
 
 
-Module::Module(std::shared_ptr<void> pimpl, std::string name) : _pimpl(pimpl) {
+// Module::Module(std::shared_ptr<void> pimpl, std::string name) : _pimpl(pimpl) {
 
-    DLOG(INFO) << "initialize module : " << name << " from file path";
+//     DLOG(INFO) << "initialize module : " << name << " from file path";
+// }
+
+
+Module::Module(std::shared_ptr<void> pimpl, uint64_t module_id) : _pimpl(pimpl) {
+
+    DLOG(INFO) << "initialize module id : " << module_id << " from memory buffer";
 }
 
 

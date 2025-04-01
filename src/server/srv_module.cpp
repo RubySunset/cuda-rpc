@@ -9,12 +9,14 @@
 
 using namespace fractos;
 using namespace ::test;
+
 // using namespace impl;
 
-gpu_Module::gpu_Module(std::string& name, CUcontext& ctx, char* buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx) {
+gpu_Module::gpu_Module(uint64_t module_id, CUcontext& ctx, char* buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx) {
     //fork();
     // 
-    _name = name;  // std::string 
+
+    _id = module_id;  // std::string 
     _destroyed = false;
     _ctx = ctx;
     _vctx = vctx;
@@ -24,11 +26,15 @@ gpu_Module::gpu_Module(std::string& name, CUcontext& ctx, char* buffer, size_t s
     CUmodule module;
     // CUcontext newContext;
     // checkCudaErrors(cuCtxCreate(&newContext, 0, 0));
-    // checkCudaErrors(cuModuleLoadData(&module, buffer));
-    checkCudaErrors(cuModuleLoad(&module, _name.c_str()));
+    checkCudaErrors(cuModuleLoadData(&module, buffer));
+    // checkCudaErrors(cuModuleLoad(&module, _name.c_str()));
+
+    // CUfunction function;
+    // checkCudaErrors_lo(cuModuleGetFunction(&function, module, "add"));
+
     _module = module;
 
-    VLOG(fractos::logging::SERVICE) << "load module :  name = " << _name;
+    VLOG(fractos::logging::SERVICE) << "load module :  id = " << _id;
    
 }
 
@@ -56,11 +62,13 @@ std::shared_ptr<gpu_Module> gpu_Module::factory(std::string& name, CUcontext& ct
     return res;
 }
 
-std::shared_ptr<gpu_Module> gpu_Module::factory(std::string& name, CUcontext& ctx, char* buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx){
-    auto res = std::shared_ptr<gpu_Module>(new gpu_Module(name, ctx, buffer, size, vctx));
+std::shared_ptr<gpu_Module> gpu_Module::factory(uint64_t module_id, CUcontext& ctx, char* buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx){
+    auto res = std::shared_ptr<gpu_Module>(new gpu_Module(module_id, ctx, buffer, size, vctx));
     res->_self = res;
     return res;
 }
+
+
 
 gpu_Module::~gpu_Module() {
     // checkCudaErrors(cuCtxDestroy(context));
@@ -154,6 +162,8 @@ void gpu_Module::handle_get_function(auto args) {
     auto self = _self;
     VLOG(fractos::logging::SERVICE) << "function name is: " << func_name;
 
+
+    // std::shared_ptr<test::gpu_Context> _vctx = _vctx.lock();
 
     auto func = std::shared_ptr<gpu_Function>(gpu_Function::factory(func_name, _ctx, _module, _vctx));
 

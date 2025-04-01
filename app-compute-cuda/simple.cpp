@@ -83,12 +83,31 @@ profile_experiment(std::unique_ptr<fractos::service::compute::cuda::Service> srv
 
     LOG(INFO) << "start module load";
 
-    std::string module_file = "/home/mingxuanyang/fractos/experiments/deps/app-compute-cuda/test.ptx";
-    std::string func_name = "add";
+    std::ifstream so_file ("/home/mingxuanyang/fractos/experiments/deps/app-compute-cuda/test.ptx", std::ios::in | std::ios::binary);
+    size_t length;
+    char* buffer;
+    if (so_file) {
+
+        LOG(INFO) << "find ptx kernel file";
+
+    }
+    so_file.seekg(0, so_file.end);
+    length = static_cast<size_t>(so_file.tellg());
+    so_file.seekg(0, so_file.beg);
 
 
+    buffer = (char*)malloc(length);
+    so_file.read(buffer, length);
+    so_file.close();
+
+    auto mem_so = ch->make_memory(buffer, length).get();
+
+
+    
     LOG(INFO) << "Starting to register function";
-    auto mod = vctx->make_module_file(module_file).get(); // data mem_so
+    auto mod = vctx->make_module_data(mem_so, 2).get(); // data mem_so
+
+    std::string func_name = "add";
     auto func = mod->get_function(func_name).get();
 
 
