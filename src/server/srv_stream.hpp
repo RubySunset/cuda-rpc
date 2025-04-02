@@ -16,9 +16,11 @@ public:
     fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
 protected:
+    void handle_synchronize(auto args);
     void handle_destroy(auto args);
     
 private:
+    void stream_synchronize();  
     void stream_destroy();  
     fractos::wire::endian::uint32_t _flags;
     fractos::wire::endian::uint32_t _id;
@@ -29,6 +31,7 @@ private:
     CUstream _stream;
 
 public:
+    fractos::core::cap::request _req_sync;
     fractos::core::cap::request _req_destroy;
     gpu_Stream(fractos::wire::endian::uint32_t flags, fractos::wire::endian::uint32_t id, CUcontext& ctx);
 

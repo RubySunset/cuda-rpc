@@ -299,6 +299,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]]core::future<void> 
             call(Stream& stream, std::pair<size_t, size_t>& gpu_grid, Args&&... ker_args);
 
+            template<class... Args>
+            [[nodiscard]]core::future<void> 
+            call(Stream& stream,std::array<size_t, 6>& gpu_grid, Args&&... ker_args);
+
              /**
              * @brief TODO: Wrapper for cuLaunchKernel()
              */

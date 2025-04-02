@@ -47,6 +47,35 @@ fractos::wire::endian::uint32_t Stream::get_stream_id() {
 }
 
 
+core::future<void> Stream::synchronize() {
+    using msg = ::service::compute::cuda::wire::Stream::synchronize;
+
+    DVLOG(logging::SERVICE) << "Stream::synchronize <-";
+
+    auto& pimpl = Stream_impl::get(*this);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_stream_sync)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp) // wait for handle_sync
+        .unwrap()
+        .then([](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            if (not args->has_exactly_args()) {
+                DVLOG(logging::SERVICE) << "Stream::synchronize ->"
+                                << " error=OTHER args";
+            }
+
+            DVLOG(logging::SERVICE) << "Stream::synchronize ->"
+                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
+            wire::error_raise_exception_maybe(args->imms.error);
+        });
+}
+
+
+
 core::future<void> Stream::destroy() {
     using msg = ::service::compute::cuda::wire::Stream::destroy;
 

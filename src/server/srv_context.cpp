@@ -334,6 +334,7 @@ void gpu_Context::handle_stream(auto args) {
             // _vdev_map.insert({value, vdev});
             ch->make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
+                .set_cap(&msg::response::caps::synchronize, stream->_req_sync)
                 .set_cap(&msg::response::caps::destroy, stream->_req_destroy)
                 .on_channel()
                 .invoke()
@@ -483,6 +484,8 @@ void gpu_Context::handle_module_data(auto args) {
     // checkCudaErrors(cuCtxCreate(&newContext, 0, 0));
     // CUmodule module;
     // checkCudaErrors(cuModuleLoadData(&module, buffer));
+
+    checkCudaErrors_lo(cuCtxSynchronize());
 
 
     auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(module_id, _ctx, buffer, size, self));

@@ -22,7 +22,8 @@ namespace impl {
             std::shared_ptr<fractos::core::channel> ch;
             
             fractos::wire::endian::uint8_t error;
-            
+
+            fractos::core::cap::request req_stream_sync;
             fractos::core::cap::request req_stream_destroy;
             fractos::wire::endian::uint32_t id;
         

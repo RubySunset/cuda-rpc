@@ -164,6 +164,7 @@ core::future<std::shared_ptr<Stream>> Context::make_stream(
 
     unsigned int flag = (unsigned int) stream_flags;
     DLOG(INFO) << "stream flag is " << flag;
+    DLOG(INFO) << "stream id is " << id;
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_stream)
@@ -189,6 +190,7 @@ core::future<std::shared_ptr<Stream>> Context::make_stream(
             // get Device object
             std::shared_ptr<Stream_impl> pimpl_(
                 new Stream_impl{{}, ch, args->imms.error, 
+                        std::move(args->caps.synchronize),
                         std::move(args->caps.destroy), id}
                 );
             pimpl_->self = pimpl_;

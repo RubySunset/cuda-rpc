@@ -5,12 +5,26 @@
 #include <fractos/wire/error.hpp>
 
 #include <fstream>
+#include <iostream>
+// #include <fstream>
 
 
 using namespace fractos;
 using namespace ::test;
 
 // using namespace impl;
+
+#define checkCudaErrors_lo(err)  handleError_lo(err, __FILE__, __LINE__)
+
+void handleError_lo(CUresult err, const std::string& file, int line) {
+    if (CUDA_SUCCESS != err) {
+        LOG(INFO) << "CUDA Driver API error = " << err
+                    << " from file <" << file << ">, line " << line << ".\n";
+        // exit(-1);
+    }
+    LOG(INFO) << "CUDA Driver API SUCCESS from file <" << file << ">, line " << line << ".\n";
+}
+
 
 gpu_Module::gpu_Module(uint64_t module_id, CUcontext& ctx, char* buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx) {
     //fork();
@@ -22,16 +36,16 @@ gpu_Module::gpu_Module(uint64_t module_id, CUcontext& ctx, char* buffer, size_t 
     _vctx = vctx;
 
 
-    checkCudaErrors(cuCtxSetCurrent(_ctx));
+    checkCudaErrors_lo(cuCtxSetCurrent(_ctx));
+    // checkCudaErrors_lo(cuCtxSynchronize());
     CUmodule module;
     // CUcontext newContext;
     // checkCudaErrors(cuCtxCreate(&newContext, 0, 0));
-    checkCudaErrors(cuModuleLoadData(&module, buffer));
+    checkCudaErrors_lo(cuModuleLoadData(&module, buffer));
     // checkCudaErrors(cuModuleLoad(&module, _name.c_str()));
 
     // CUfunction function;
     // checkCudaErrors_lo(cuModuleGetFunction(&function, module, "add"));
-
     _module = module;
 
     VLOG(fractos::logging::SERVICE) << "load module :  id = " << _id;

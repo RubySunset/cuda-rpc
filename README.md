@@ -13,7 +13,7 @@
 
 - `cuInit`
 - `cuDeviceGet`
-- `cuModuleLoad`
+- `cuModuleLoadData`
 - `cuMemAlloc`
 - `cuMemFree`
 - `cuModuleGetFunction`
@@ -29,12 +29,16 @@
 - `cuStreamCreate`
 - `cuStreamSynchronize`
 - `cuStreamDestroy`
-- `cuModuleLoadData`
 - `cuEvent...`
 
-## roadmap feature
+## Roadmap feature
+
+- cublas
 - cuda graph support
 - global service & client service.
+
+
+## TroubleShooting
 
 ### CUDA Driver Error 803
 _Error_: System has unsupported display driver / CUDA driver combination. Container CUDA Driver version is different from HOST. IF host update the driver version.

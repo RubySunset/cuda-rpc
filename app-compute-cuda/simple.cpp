@@ -39,8 +39,8 @@ profile_experiment(std::unique_ptr<fractos::service::compute::cuda::Service> srv
     LOG(INFO) << "start making ctx";
     auto vctx = vdev->make_context(1).get();
 
-    // LOG(INFO) << "start making stream ";
-    // auto stream = vctx->make_stream(CU_STREAM_DEFAULT, 0).get();
+    LOG(INFO) << "start making stream ";
+    auto stream = vctx->make_stream(CU_STREAM_DEFAULT, 0).get(); // 0 for default
     
 
     LOG(INFO) << "=============================================";
@@ -112,7 +112,8 @@ profile_experiment(std::unique_ptr<fractos::service::compute::cuda::Service> srv
 
 
     std::array<size_t, 6> grid = {1024, 1, 1, 1024, 1, 1};
-    func->call(grid, mem_a_addr, mem_b_addr, mem_r_addr, N).get(); // *stream
+    func->call(*stream, grid, mem_a_addr, mem_b_addr, mem_r_addr, N).get(); // *stream
+    stream->synchronize().get();
     vctx->synchronize().get();
 
     ch->copy(mem_r->get_cap_mem(), mem_r_local).get();
@@ -143,10 +144,11 @@ profile_experiment(std::unique_ptr<fractos::service::compute::cuda::Service> srv
     mem_b->destroy().get();
     mem_r->destroy().get();
 
+
     LOG(INFO) << "destroy others";
     func->func_destroy().get();
     mod->destroy().get();
-    // stream->destroy().get();
+    stream->destroy().get();
     vctx->destroy().get();
     vdev->destroy().get();
     
@@ -197,7 +199,7 @@ int main(int argc, char *argv[])
     LOG(INFO) << "================== start make_service========" ;
 
     
-    size_t N = 1024*1024;
+    size_t N = 1024;
     for(int i = 0; i < 2; i++) // 5
     {
         // // Move srv to a temporary unique_ptr

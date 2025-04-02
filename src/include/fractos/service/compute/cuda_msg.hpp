@@ -149,6 +149,7 @@ namespace service::compute::cuda::wire{
                     fractos::wire::endian::uint8_t error;
                 } __attribute__ ((packed));
                 struct caps {
+                    fractos::core::cap::request synchronize;
                     fractos::core::cap::request destroy;
                 };
             };
@@ -239,6 +240,23 @@ namespace service::compute::cuda::wire{
     }
 
     namespace Stream {
+
+        struct synchronize {
+            struct request {
+                struct imms {
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
 
         struct destroy {
             struct request {

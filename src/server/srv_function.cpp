@@ -12,6 +12,19 @@ using namespace fractos;
 using namespace ::test;
 // using namespace impl;
 
+#define checkCudaErrors_lo(err)  handleError(err, __FILE__, __LINE__)
+
+void handleError(CUresult err, const std::string& file, int line) {
+    if (CUDA_SUCCESS != err) {
+        LOG(INFO) << "CUDA Driver API error = " << err
+                    << " from file <" << file << ">, line " << line << ".\n";
+        // exit(-1);
+    }
+    LOG(INFO) << "CUDA Driver API SUCCESS from file <" << file << ">, line " << line << ".\n";
+}
+
+
+
 gpu_Function::gpu_Function(std::string func_name, CUcontext& ctx, CUmodule& mod, std::weak_ptr<test::gpu_Context> vctx) {
 
     _name = func_name;
@@ -20,10 +33,10 @@ gpu_Function::gpu_Function(std::string func_name, CUcontext& ctx, CUmodule& mod,
     _mod = mod;
     _vctx = vctx;
 
-    checkCudaErrors(cuCtxSetCurrent(_ctx));
+    checkCudaErrors_lo(cuCtxSetCurrent(_ctx));
 
     CUfunction function;
-    checkCudaErrors(cuModuleGetFunction(&function, mod, func_name.c_str()));
+    checkCudaErrors_lo(cuModuleGetFunction(&function, mod, func_name.c_str()));
     _func = function;
 
 }
