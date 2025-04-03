@@ -143,14 +143,14 @@ void gpu_Function::handle_call(auto args) {
     {
         auto _vstream = _vctx.lock()->getVStreamMap().at((int)args->imms.stream_id); // const qualifier _vctx.lock()
         LOG(INFO) << "get STREAM ID " << (int)args->imms.stream_id;
-        checkCudaErrors(cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z, 
+        checkCudaErrors_lo(cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z, 
             dimBlock.x, dimBlock.y, dimBlock.z,
             0, _vstream->getCUStream(), kernel_args, 0)); // 0 , stream , args, 0
     }
     else
     {
         LOG(INFO) << "get default STREAM ID " << (int)args->imms.stream_id;
-        checkCudaErrors(cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z, 
+        checkCudaErrors_lo(cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z, 
             dimBlock.x, dimBlock.y, dimBlock.z,
             0, 0, kernel_args, 0)); // 0 , stream , args, 0
     }

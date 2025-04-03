@@ -25,12 +25,12 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         class Module;
         class Function;
         class Stream;
+        class Event;
         class Memory;
         class MemoryAllocation;
         class MemoryReservation;
-        //event
         //graph
-        //module
+
         
 
         struct no_Service_error : public std::runtime_error {
@@ -162,11 +162,11 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class Context {
         public:
-            /**
-             * @brief Wrapper for cuModuleLoad()
-             */
-            [[nodiscard]] core::future<std::shared_ptr<Module>>
-            make_module_file(const std::string& file_path); // cubin PTX fatbin 
+            // /**
+            //  * @brief Wrapper for cuModuleLoad() - not in use
+            //  */
+            // [[nodiscard]] core::future<std::shared_ptr<Module>>
+            // make_module_file(const std::string& file_path); // cubin PTX fatbin 
 
             /**
              * @brief TODO:Wrapper for cuModuleLoadData()
@@ -180,10 +180,14 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Memory>>
             make_memory(uint64_t size); // size_t make_memory(size_t size);
 
-            [[nodiscard]] core::future<void>
+            [[nodiscard]] core::future<void> 
             make_memory_rpc_test(uint64_t size); // size_t make_memory(size_t size);
 
-            
+            /**
+             * @brief TODO:Wrapper for cuEventCreate()
+             */
+            [[nodiscard]] core::future<std::shared_ptr<Event>>
+            make_event(CUstream_flags flags, fractos::wire::endian::uint32_t id); // blocking or not
 
             /**
              * @brief TODO:Wrapper for cuStreamCreate()
@@ -332,13 +336,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class Stream{
         public:
-
-            [[nodiscard]] fractos::core::future<void>
-            copy(const Memory& src, core::cap::memory& dst);
-
-            [[nodiscard]] fractos::core::future<void>
-            copy(const core::cap::memory& src, Memory& dst);
-
             /**
              * @brief Wrapper for cuStreamSynchronize()
              */
@@ -364,6 +361,52 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             bool _destroyed;
             fractos::wire::endian::uint32_t _id;
         };
+
+        /**
+         * @brief Wrapper for CUevent operations
+         */
+        class Event{
+        public:
+            /**
+             * @brief Wrapper for cuEventElapsedTime()
+             */
+            [[nodiscard]] fractos::core::future<fractos::wire::endian::uint32_t> // memcpy uint32 to float in IEEE 754 format
+            make_event_time(Event& evt1, Event& evt2);
+
+
+            /**
+             * @brief Wrapper for cuEventRecord()
+             */
+            [[nodiscard]] fractos::core::future<void>
+            make_record(Stream& stream);
+
+
+            /**
+             * @brief Wrapper for cuEventSynchronize()
+             */
+            [[nodiscard]] fractos::core::future<void>
+            synchronize();
+
+            /**
+             * @brief Wrapper for cuEventDestroy()
+             *
+             * @todo what about pending operations?
+             */
+            [[nodiscard]] core::future<void>
+            destroy();
+
+        public:
+            Event(std::shared_ptr<void> pimpl, wire::endian::uint32_t flags, fractos::wire::endian::uint32_t id);
+            ~Event();
+            fractos::wire::endian::uint32_t get_event_id();
+            // NOTE: not for public use
+            std::shared_ptr<void> _pimpl;
+            
+        private:
+            bool _destroyed;
+            fractos::wire::endian::uint32_t _id;
+        };
+
 
         /** 
          *  @brief :Wrapper for CUdeviceptr reservations

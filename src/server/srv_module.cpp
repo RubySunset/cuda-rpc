@@ -6,6 +6,9 @@
 
 #include <fstream>
 #include <iostream>
+
+
+
 // #include <fstream>
 
 
@@ -25,8 +28,48 @@ void handleError_lo(CUresult err, const std::string& file, int line) {
     LOG(INFO) << "CUDA Driver API SUCCESS from file <" << file << ">, line " << line << ".\n";
 }
 
+void check_memory()
+{
 
-gpu_Module::gpu_Module(uint64_t module_id, CUcontext& ctx, char* buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx) {
+    size_t freeMem;
+    size_t totalMem;
+
+    cuMemGetInfo(&freeMem, &totalMem);
+
+    // Print memory info
+    LOG(INFO) << "Free memory: " << freeMem / (1024 * 1024) << " MB" << std::endl;
+    LOG(INFO) << "Total memory: " << totalMem / (1024 * 1024) << " MB" << std::endl;
+
+    // const char* command = "nvidia-smi -q | grep -A 3 \"BAR1 Memory Usage\"";
+    // std::array<char, 128> buffer;
+    // std::string result;
+
+    // // Open a pipe to run the command
+    // std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command, "r"), pclose);
+    // if (!pipe) {
+    //     LOG(ERROR) << "Failed to run command." << std::endl;
+    //     // exit(-1);
+    // }
+
+    // // Read the output of the command
+    // while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+    //     result += buffer.data();
+    // }
+
+    // // Write the result to a file
+    // std::ofstream outFile("bar1_memory_usage.txt",  std::ios::binary | std::ios::app);
+    // if (outFile.is_open()) {
+    //     outFile << result;
+    //     outFile.close();
+    //     LOG(INFO) << "Output written to bar1_memory_usage.txt" << std::endl;
+    // } else {
+    //     LOG(ERROR) << "Failed to open file for writing." << std::endl;
+    // }
+
+}
+
+
+gpu_Module::gpu_Module(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char>& buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx) {
     //fork();
     // 
 
@@ -35,13 +78,14 @@ gpu_Module::gpu_Module(uint64_t module_id, CUcontext& ctx, char* buffer, size_t 
     _ctx = ctx;
     _vctx = vctx;
 
-
     checkCudaErrors_lo(cuCtxSetCurrent(_ctx));
     // checkCudaErrors_lo(cuCtxSynchronize());
+    
+
+    check_memory();
+
     CUmodule module;
-    // CUcontext newContext;
-    // checkCudaErrors(cuCtxCreate(&newContext, 0, 0));
-    checkCudaErrors_lo(cuModuleLoadData(&module, buffer));
+    checkCudaErrors_lo(cuModuleLoadData(&module, buffer.get()));
     // checkCudaErrors(cuModuleLoad(&module, _name.c_str()));
 
     // CUfunction function;
@@ -76,7 +120,7 @@ std::shared_ptr<gpu_Module> gpu_Module::factory(std::string& name, CUcontext& ct
     return res;
 }
 
-std::shared_ptr<gpu_Module> gpu_Module::factory(uint64_t module_id, CUcontext& ctx, char* buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx){
+std::shared_ptr<gpu_Module> gpu_Module::factory(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char>& buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx){
     auto res = std::shared_ptr<gpu_Module>(new gpu_Module(module_id, ctx, buffer, size, vctx));
     res->_self = res;
     return res;

@@ -9,6 +9,8 @@ using namespace fractos;
 using namespace ::test;
 // using namespace impl;
 
+
+
 gpu_Stream::gpu_Stream(fractos::wire::endian::uint32_t flags, fractos::wire::endian::uint32_t id, CUcontext& ctx) {
     //fork();
     _id = id;

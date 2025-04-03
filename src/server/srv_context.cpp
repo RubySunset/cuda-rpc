@@ -12,6 +12,19 @@ using namespace ::test;
 // using namespace impl;
 #define MAX_IO_SIZE    (1024 * 1024 * 16)   
 
+#define checkCudaErrors_lo(err)  handleError_llo(err, __FILE__, __LINE__)
+
+void handleError_llo(CUresult err, const std::string& file, int line) {
+    if (CUDA_SUCCESS != err) {
+        LOG(INFO) << "CUDA Driver API error = " << err
+                    << " from file <" << file << ">, line " << line << ".\n";
+        // exit(-1);
+    }
+    LOG(INFO) << "CUDA Driver API SUCCESS from file <" << file << ">, line " << line << ".\n";
+}
+
+
+
 gpu_Context::gpu_Context(fractos::wire::endian::uint32_t value, CUdevice& device) {
     //fork();
     _id = value;
@@ -229,9 +242,6 @@ void gpu_Context::handle_memory(auto args_) {
         dev_mem->base = (char*)base;
         dev_mem->_mr = mr;
 
-        
-
-
         dev_mem->register_methods(ch)
             .then([this, ch, self, dev_mem, size, args ](auto& fut) { //, args=std::move(args),  mr_=std::move(mr_)
                 fut.get();
@@ -436,57 +446,41 @@ void gpu_Context::handle_module_data(auto args) {
 
     auto module_id = args->imms.module_id;
 
-    // if (not args->has_exactly_args()) { // file_name
-    //     if (not args->has_exactly_imms()) {
-    //         if (args->imms_size() == 8 + file_name.size()) {
-    //             VLOG(fractos::logging::SERVICE) << "got imms length : " << file_name.size(); // char file_name[] in msg
-    //         } else {
-    //             LOG(ERROR) << "got error imms";
-    //             ch->make_request_builder<msg::response>(args->caps.continuation)
-    //                 .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-    //                 .on_channel()
-    //                 .invoke()
-    //                 .as_callback();
-    //             return;
-    //         }
-    //     }
-    //     else
-    //     {
-    //         LOG(ERROR) << "got error caps";
-    //         ch->make_request_builder<msg::response>(args->caps.continuation)
-    //                 .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-    //                 .on_channel()
-    //                 .invoke()
-    //                 .as_callback();
-    //             return;
-    //     }
-    // }
-
     auto self = _self;
     VLOG(fractos::logging::SERVICE) << "module id is: " << module_id;
 
     
     auto size = args->caps.cuda_file.get_size();
-    char* buffer = (char*)malloc(size);
-    auto copied_mem = ch->make_memory(buffer, size).get();
+
+    std::shared_ptr<char> buffer(new char[size], std::default_delete<char[]>());
+    // char* buffer = (char*)malloc(size);
+
+    auto mr_lo = ch->make_memory_region(buffer.get(), size, core::memory_region::translation_type::PIN);
+
+    auto copied_mem = ch->make_memory(buffer.get(), size, *mr_lo).get();
     ch->copy(args->caps.cuda_file, copied_mem).get();
     LOG(INFO) << "get cuda_file in memory";
 
     // std::ofstream outfile("module_code.ptx", std::ios::binary | std::ios::app);
     // if (outfile.is_open()) {
-    //     outfile.write(buffer, size);
+    //     outfile.write(buffer.get(), size);
     //     outfile.close();
     //     std::cout << "Buffer appended to module_code.ptx successfully." << std::endl;
     // } else {
     //     std::cerr << "Failed to open file for writing." << std::endl;
     // }
+
     // CUcontext newContext;
     // checkCudaErrors(cuCtxCreate(&newContext, 0, 0));
     // CUmodule module;
-    // checkCudaErrors(cuModuleLoadData(&module, buffer));
-
-    checkCudaErrors_lo(cuCtxSynchronize());
-
+    // checkCudaErrors_lo(cuModuleLoadData(&module, buffer.get()));
+    if (buffer) //buffer.get()[0] 
+    {
+        std::cout << "Buffer for ptx file is valid." << std::endl;
+    }
+    else{
+        std::cerr << "ptx buffer is not valid for load" << std::endl;
+    }
 
     auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(module_id, _ctx, buffer, size, self));
 
