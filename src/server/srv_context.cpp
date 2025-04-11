@@ -125,6 +125,19 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
         .then([ch, self](auto& fut) {
             self->_req_stream = fut.get();
             VLOG(fractos::logging::SERVICE) << "SET req_stream"; 
+            return ch->make_request_builder<msg_base::make_event::request>( // file
+                ch->get_default_endpoint(), 
+                [self](auto ch, auto args) {
+                    
+                    self->handle_event(std::move(args)); // file
+                })
+                .on_channel()
+                .make_request();
+            })
+        .unwrap()
+        .then([ch, self](auto& fut) {
+            self->_req_event = fut.get();
+            VLOG(fractos::logging::SERVICE) << "SET req_event"; 
             return ch->make_request_builder<msg_base::make_module_data::request>( // file
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -303,9 +316,7 @@ void gpu_Context::handle_memory_rpc_test(auto args) {
     LOG(INFO)  << "time for memory_rpc_test server: "<< t_usec.count() << std::endl;
 }
 
-/*
- *  Destroy a Device, revoke all of its caps
- */
+
 void gpu_Context::handle_stream(auto args) {
     DVLOG(logging::SERVICE) << "CALL handle_stream";
     using msg = ::service::compute::cuda::wire::Context::make_stream;
@@ -346,6 +357,51 @@ void gpu_Context::handle_stream(auto args) {
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
                 .set_cap(&msg::response::caps::synchronize, stream->_req_sync)
                 .set_cap(&msg::response::caps::destroy, stream->_req_destroy)
+                .on_channel()
+                .invoke()
+                .as_callback();
+              })
+        .as_callback();
+}
+
+
+void gpu_Context::handle_event(auto args) {
+    DVLOG(logging::SERVICE) << "CALL handle_event";
+    using msg = ::service::compute::cuda::wire::Context::make_event;
+    
+    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+        DLOG(ERROR) << "got request without continuation, ignoring";
+        return;
+    }
+
+    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
+
+    if (not args->has_exactly_args()) {
+        ch->make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .on_channel()
+            .invoke()
+            .as_callback();
+        return;
+    }
+
+    unsigned int flag = args->imms.flags; // uint32_t
+
+    auto self = _self; // lock()
+
+    VLOG(fractos::logging::SERVICE) << "event flag is: " << (uint32_t)flag;
+
+    auto event = std::shared_ptr<gpu_Event>(gpu_Event::factory(flag, _ctx));
+
+    event->register_methods(ch)
+        .then([this, ch, self, event, args=std::move(args), flag](auto& fut) {
+            fut.get();
+            _event = event;
+            // _vdev_map.insert({value, vdev});
+            ch->make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
+                // .set_cap(&msg::response::caps::synchronize, event->_req_sync)
+                .set_cap(&msg::response::caps::destroy, event->_req_destroy)
                 .on_channel()
                 .invoke()
                 .as_callback();
@@ -471,10 +527,11 @@ void gpu_Context::handle_module_data(auto args) {
     // }
 
     // CUcontext newContext;
-    // checkCudaErrors(cuCtxCreate(&newContext, 0, 0));
-    // CUmodule module;
-    // checkCudaErrors_lo(cuModuleLoadData(&module, buffer.get()));
-    if (buffer) //buffer.get()[0] 
+    // checkCudaErrors(cuCtxSetCurrent(_ctx));
+    CUmodule module;
+    checkCudaErrors_lo(cuModuleLoadData(&module, buffer.get()));
+    
+    if (buffer.get()[0] ) //buffer.get()[0] 
     {
         std::cout << "Buffer for ptx file is valid." << std::endl;
     }
@@ -497,13 +554,16 @@ void gpu_Context::handle_module_data(auto args) {
                 .set_cap(&msg::response::caps::get_function, mod->_req_get_func)
                 .set_cap(&msg::response::caps::destroy, mod->_req_destroy)
                 .on_channel()
-                .invoke()
+                .invoke() // op . then
                 .as_callback();
+            // auto t_usec = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - t_start);
+            // LOG(INFO) << "time for load module server: " << t_usec.count() << std::endl;
             })
         .as_callback();
+
     auto t_usec = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - t_start);
     LOG(INFO) << "time for load module server: " << t_usec.count() << std::endl;
-
+    
 }
 
 
@@ -565,6 +625,12 @@ void gpu_Context::handle_destroy(auto args) {
             fut.get();
             VLOG(fractos::logging::SERVICE) << "Revoke _req_memory";
             return ch->revoke(self->_req_stream); // file
+        })
+        .unwrap()
+        .then([ch, self](auto& fut) {
+            fut.get();
+            VLOG(fractos::logging::SERVICE) << "Revoke _req_memory";
+            return ch->revoke(self->_req_event); // file
         })
         .unwrap()
         .then([ch, self](auto& fut) {

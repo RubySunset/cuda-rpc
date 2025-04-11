@@ -26,6 +26,7 @@ namespace impl {
             fractos::core::cap::request req_memory;
             fractos::core::cap::request req_memory_rpc_test;
             fractos::core::cap::request req_stream;
+            fractos::core::cap::request req_event;
             fractos::core::cap::request req_module_data; // file
             fractos::core::cap::request req_ctx_sync;
             fractos::core::cap::request req_ctx_destroy;

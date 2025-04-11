@@ -11,6 +11,7 @@
 #include <module_impl.hpp>
 #include <memory_impl.hpp>
 #include <stream_impl.hpp>
+#include <event_impl.hpp>
 
 
 // #include <fractos/service/compute/cuda_msg.hpp>
@@ -199,6 +200,52 @@ core::future<std::shared_ptr<Stream>> Context::make_stream(
             return res;
         });
 }
+
+
+core::future<std::shared_ptr<Event>> Context::make_event(
+                fractos::wire::endian::uint32_t flags) {
+
+    using msg = ::service::compute::cuda::wire::Context::make_event;
+
+    DVLOG(logging::SERVICE) << "Context::make_event <-";
+    auto& pimpl = Context_impl::get(*this);
+
+    unsigned int flag = flags;
+    DVLOG(logging::SERVICE) << "event flag is " << flag;
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_event)
+        .set_imm(&msg::request::imms::flags, flag) // unsigned int vs uint32_t
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp) // wait for srv_handle
+        .unwrap()
+        .then([flag](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            if (not args->has_exactly_args()) {
+                // throw core::other_error("invalvalue response format for  Context::make_event");
+                DVLOG(logging::SERVICE) << "Context::make_event ->"
+                <<" error= OTHER args";
+            }
+
+            DVLOG(logging::SERVICE) << "Context::make_event ->"
+                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
+            wire::error_raise_exception_maybe(args->imms.error);
+
+            // get Device object
+            std::shared_ptr<Event_impl> pimpl_(
+                new Event_impl{{}, ch, args->imms.error, 
+                        // std::move(args->caps.synchronize),std::move(args->caps.record),
+                        std::move(args->caps.destroy)}
+                );
+            pimpl_->self = pimpl_;
+            auto pimpl = static_pointer_cast<void>(pimpl_);
+            std::shared_ptr<Event> res(new Event{pimpl, flag});
+            return res;
+        });
+}
+
 
 
 // core::future<std::shared_ptr<Module>> Context::make_module_file(

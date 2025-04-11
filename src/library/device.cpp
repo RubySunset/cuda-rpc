@@ -77,6 +77,7 @@ core::future<std::shared_ptr<Context>> Device::make_context(
                         std::move(args->caps.make_memory),
                         std::move(args->caps.make_memory_rpc_test),
                         std::move(args->caps.make_stream),
+                        std::move(args->caps.make_event),
                         std::move(args->caps.make_module_data),
                         // std::move(args->caps.make_module_file),
                         std::move(args->caps.synchronize),

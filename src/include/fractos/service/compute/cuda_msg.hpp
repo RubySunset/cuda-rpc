@@ -65,6 +65,7 @@ namespace service::compute::cuda::wire{
                     fractos::core::cap::request make_memory;
                     fractos::core::cap::request make_memory_rpc_test;
                     fractos::core::cap::request make_stream;
+                    fractos::core::cap::request make_event;
                     fractos::core::cap::request make_module_data; //make_module_data; // 
                     fractos::core::cap::request synchronize;
                     fractos::core::cap::request destroy;
@@ -150,6 +151,27 @@ namespace service::compute::cuda::wire{
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::request synchronize;
+                    fractos::core::cap::request destroy;
+                };
+            };
+        };
+
+        struct make_event {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint32_t flags; // unsigned int
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation; 
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                } __attribute__ ((packed));
+                struct caps {
+                    // fractos::core::cap::request record;
+                    // fractos::core::cap::request synchronize;
                     fractos::core::cap::request destroy;
                 };
             };
@@ -275,6 +297,45 @@ namespace service::compute::cuda::wire{
             };
         };
     }
+
+    
+    namespace Event {
+
+        // struct synchronize {
+        //     struct request {
+        //         struct imms {
+        //         } __attribute__((packed));
+        //         struct caps {
+        //             fractos::core::cap::request continuation;
+        //         };
+        //     };
+        //     struct response {
+        //         struct imms {
+        //             fractos::wire::endian::uint8_t error;
+        //         } __attribute__ ((packed));
+        //         struct caps {
+        //         };
+        //     };
+        // };
+
+        struct destroy {
+            struct request {
+                struct imms {
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
+    }
+
 
     namespace Memory {
 

@@ -187,7 +187,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              * @brief TODO:Wrapper for cuEventCreate()
              */
             [[nodiscard]] core::future<std::shared_ptr<Event>>
-            make_event(CUstream_flags flags, fractos::wire::endian::uint32_t id); // blocking or not
+            make_event(fractos::wire::endian::uint32_t flags); // blocking or not
 
             /**
              * @brief TODO:Wrapper for cuStreamCreate()
@@ -396,7 +396,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
-            Event(std::shared_ptr<void> pimpl, wire::endian::uint32_t flags, fractos::wire::endian::uint32_t id);
+            Event(std::shared_ptr<void> pimpl, wire::endian::uint32_t flags);
             ~Event();
             fractos::wire::endian::uint32_t get_event_id();
             // NOTE: not for public use

@@ -21,15 +21,18 @@
 - `cuCtxCreate`
 - `cuCtxSynchronize`
 - `cuCtxDestroy`
+- `cuStreamCreate`
+- `cuStreamSynchronize`
+- `cuStreamDestroy`
 
 ## To Be Confirmed (TBC)
 
 - `cuMemsetD8 `
 - `cuMemGetInfo`
-- `cuStreamCreate`
-- `cuStreamSynchronize`
-- `cuStreamDestroy`
-- `cuEvent...`
+- `cuEventCreate`
+- `cuEventDestroy`
+- `cuEventRecord`
+- `cudaEventSynchronize`
 
 ## Roadmap feature
 
