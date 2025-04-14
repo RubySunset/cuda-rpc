@@ -23,4 +23,4 @@ fractos_service_compute_cuda_SOURCES += srv_module.cpp
 fractos_service_compute_cuda_SOURCES += srv_memory.cpp
 fractos_service_compute_cuda_SOURCES += srv_function.cpp
 fractos_service_compute_cuda_SOURCES += main.cpp
-fractos_service_compute_cuda_LDADD = ../library/libfractos-service-compute-cuda.la
+fractos_service_compute_cuda_SOURCES += ../library/error.cpp
