@@ -156,7 +156,7 @@ fi
 PKG_LIBS="$PKG_LIBS $BOOST_PROGRAM_OPTIONS_LIB"
 
 # NOTE: set at the very end so 3rd-party tests don't fail with it
-# AX_CHECK_COMPILE_FLAG([-Werror],        [CXXFLAGS="$CXXFLAGS -Werror"])
+AX_CHECK_COMPILE_FLAG([-Werror],        [CXXFLAGS="$CXXFLAGS -Werror"])
 
 AC_SUBST(PKG_CPPFLAGS)
 AC_SUBST(PKG_LDFLAGS)
