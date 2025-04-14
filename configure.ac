@@ -41,6 +41,8 @@ AC_CONFIG_FILES([fractos-service-compute-cuda.pc])
 AC_CONFIG_FILES([src/server/Makefile])
 AC_CONFIG_FILES([src/library/Makefile])
 AC_CONFIG_FILES([src/include/Makefile])
+AC_CONFIG_FILES([src/wrapper/Makefile])
+
 
 # Put configuration results in this file for us to #include in our program.
 AC_CONFIG_HEADERS([config.h])
@@ -79,6 +81,7 @@ then
    CUDA_LIBS="-L$with_cuda/lib64 -L$with_cuda/lib -lcudart"
    NVCC="$with_cuda/bin/nvcc"
    CUDA_PATH="$with_cuda"
+   LIBCUDA=$(readlink -f $CUDA_PATH/targets/*/lib/stubs/libcuda.so)
 else
    AC_MSG_ERROR([B: $with_cuda])
 fi
@@ -88,6 +91,7 @@ AC_SUBST(CUDA_INCLUDE_FLAGS)
 AC_SUBST(CUDA_LIBS)
 AC_SUBST(NVCC)
 AC_SUBST(CUDA_PATH)
+AC_SUBST(LIBCUDA)
 
 #CXX=$NVCC
 #AC_SUBST(CXX)

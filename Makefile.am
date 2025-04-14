@@ -4,6 +4,7 @@ SUBDIRS =
 SUBDIRS += src/include
 SUBDIRS += src/library
 SUBDIRS += src/server
+SUBDIRS += src/wrapper
 
 
 pkgconfig_DATA =
