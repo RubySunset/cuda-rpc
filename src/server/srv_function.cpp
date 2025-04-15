@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <glog/logging.h>
 #include <fractos/logging.hpp>
+#include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
 
 #include <cuda_runtime.h>

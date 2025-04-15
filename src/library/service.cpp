@@ -5,7 +5,7 @@
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
-// #include <fractos/service/compute/cuda_msg.hpp>
+#include <fractos/service/compute/cuda_msg.hpp>
 #include <service_impl.hpp>
 #include <device_impl.hpp>
 

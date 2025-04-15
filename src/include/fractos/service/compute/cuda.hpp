@@ -474,6 +474,4 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         };
 
     } // namespace cuda
-} // namespace fractos::Service::compute
-// #include "/home/mingxuanyang/fractos/experiments/deps/service-compute-cuda/src/library/functio.inc.hpp" // Include the implementation
-#include "function.inc.hpp"
+} // namespace fractos::service::compute

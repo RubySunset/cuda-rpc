@@ -2,6 +2,8 @@
 #include <glog/logging.h>
 #include <srv_service.hpp>
 // #include <srv_device.hpp>
+#include <fractos/logging.hpp>
+#include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
 
 using namespace fractos;
