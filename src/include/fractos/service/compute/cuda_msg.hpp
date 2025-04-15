@@ -4,7 +4,7 @@
 #include <fractos/core/cap.hpp>
 #include <fractos/wire/endian.hpp>
 
-namespace fractos::service::compute::cuda::wire{
+namespace fractos::service::compute::cuda::wire {
 
     namespace Service {
         struct get_driver_version {
@@ -66,7 +66,7 @@ namespace fractos::service::compute::cuda::wire{
         };
     }
 
-    std::string to_string(const fractos::core::receive_args<Service::get_driver_version::request>& req);
+    std::string to_string(const core::receive_args<Service::get_driver_version::request>& req);
     std::string to_string(const core::receive_args<Service::get_driver_version::response>& resp);
 
     namespace Device {
