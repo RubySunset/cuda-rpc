@@ -5,10 +5,14 @@
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
+#include <string>
+
+#include "./common.hpp"
 
 using namespace fractos;
 using namespace ::test;
-// using namespace impl;
+namespace srv = fractos::service::compute::cuda;
+
 
 gpu_device_service::gpu_device_service() {
 
@@ -38,7 +42,8 @@ gpu_device_service::~gpu_device_service() {
  *  The handler for make_device request
  *  Registers all methods that a Device has
  */
-core::future<void> gpu_device_service::register_service(std::shared_ptr<core::channel> ch)
+core::future<void>
+gpu_device_service::register_service(std::shared_ptr<core::channel> ch)
 {
     // namespace msg_base = ::service::compute::detail::device_service;
     namespace msg_base = ::service::compute::cuda::wire::Service;
@@ -68,12 +73,73 @@ core::future<void> gpu_device_service::register_service(std::shared_ptr<core::ch
                       .make_request();
         })
         .unwrap()
-        .then([self](auto& fut) {
+        .then([ch, self](auto& fut) {
                   self->req_get_Device = fut.get();
                   DVLOG(fractos::logging::SERVICE) << "SET req_get_Device";
-              });
+
+                  return ch->make_request_builder<msg_base::get_driver_version::request>(
+                      ch->get_default_endpoint(),
+                      [self](auto ch, auto args) {
+                          self->handle_get_driver_version(ch, std::move(args));
+                      })
+                      .on_channel()
+                      .make_request();
+              })
+        .unwrap()
+        .then([self](auto& fut) {
+            self->req_get_driver_version = fut.get();
+        });
 }
 
+void
+gpu_device_service::handle_get_driver_version(auto ch, auto args)
+{
+    static const std::string method = "handle_get_driver_version";
+    using msg = ::service::compute::cuda::wire::Service::get_driver_version;
+
+    LOG_REQ(method)
+        << srv::wire::to_string(*args);
+
+    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+        LOG_RES(method)
+            << " [error] request without continuation, ignoring";
+        return;
+    }
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+
+    if (not args->has_exactly_args()) {
+        LOG_RES(method)
+            << " error=ERR_OTHER";
+
+        reqb_cont
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .on_channel()
+            .invoke()
+            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+
+        return;
+    }
+
+    int version;
+    auto res = cuDriverGetVersion(&version);
+
+    auto error = wire::ERR_SUCCESS;
+    if (res != CUDA_SUCCESS) {
+        error = wire::ERR_OTHER;
+    }
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " value=" << version;
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::value, version)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+}
 
 /*
  *  Actual handler of the make_device request

@@ -22,6 +22,7 @@ namespace test {
     
         static std::shared_ptr<gpu_device_service> factory();
     
+        fractos::core::cap::request req_get_driver_version;
         fractos::core::cap::request req_make_device;
         fractos::core::cap::request req_get_Device;
     
@@ -34,6 +35,7 @@ namespace test {
         ~gpu_device_service();
     
     protected:
+        void handle_get_driver_version(auto ch, auto args);
         void handle_make_device(auto args);
         void handle_get_Device(auto args);
     
