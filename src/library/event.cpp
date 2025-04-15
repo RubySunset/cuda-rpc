@@ -10,27 +10,29 @@
 
 // #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
-using namespace fractos::service::compute::cuda;
-using namespace impl;
+namespace srv = fractos::service::compute::cuda;
 
 inline
-Event_impl& Event_impl::get(Event& obj)
+impl::Event& impl::Event::get(srv::Event& obj)
 {
-    return *reinterpret_cast<Event_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<impl::Event*>(obj._pimpl.get());
 }
 
 inline
-const Event_impl& Event_impl::get(const Event& obj) 
+const impl::Event& impl::Event::get(const srv::Event& obj)
 {
-    return *reinterpret_cast<Event_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<impl::Event*>(obj._pimpl.get());
 }
 
-Event::Event(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t flags) : _pimpl(pimpl) {
+srv::Event::Event(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t flags)
+    :_pimpl(pimpl)
+{
     DLOG(INFO) << "initialize event flag : " << flags;
 }
 
 
-Event::~Event() {
+srv::Event::~Event()
+{
     DLOG(INFO) << "Event: i am free";
     if (not _destroyed) {
         _destroyed = true;
@@ -44,7 +46,7 @@ Event::~Event() {
 
 //     DVLOG(logging::SERVICE) << "Event::synchronize <-";
 
-//     auto& pimpl = Event_impl::get(*this);
+//     auto& pimpl = impl::Event::get(*this);
 
 //     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
 //     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_stream_sync)
@@ -68,12 +70,14 @@ Event::~Event() {
 
 
 
-core::future<void> Event::destroy() {
+core::future<void>
+srv::Event::destroy()
+{
     using msg = ::service::compute::cuda::wire::Event::destroy;
 
     DVLOG(logging::SERVICE) << "Event::destroy <-";
 
-    auto& pimpl = Event_impl::get(*this);
+    auto& pimpl = impl::Event::get(*this);
     _destroyed = true;
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
@@ -92,8 +96,8 @@ core::future<void> Event::destroy() {
             }
 
             DVLOG(logging::SERVICE) << "Event::destroy ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
         });
 }
 

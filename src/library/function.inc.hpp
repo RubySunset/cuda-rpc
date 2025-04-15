@@ -13,8 +13,7 @@
 
 // #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
-using namespace fractos::service::compute::cuda;
-using namespace impl;
+namespace srv = fractos::service::compute::cuda;
 
 template <size_t N, class T, class... Args>
 static inline void append_call_arg(size_t &offset, size_t &count, T &req,

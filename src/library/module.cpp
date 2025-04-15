@@ -1,4 +1,3 @@
-
 #include <utility>
 
 #include <fractos/wire/error.hpp>
@@ -9,21 +8,21 @@
 #include <module_impl.hpp>
 #include <function_impl.hpp>
 
-// #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
-using namespace fractos::service::compute::cuda;
-using namespace impl;
+namespace srv = fractos::service::compute::cuda;
 
 inline
-Module_impl& Module_impl::get(Module& obj)
+impl::Module&
+impl::Module::get(srv::Module& obj)
 {
-    return *reinterpret_cast<Module_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<impl::Module*>(obj._pimpl.get());
 }
 
 inline
-const Module_impl& Module_impl::get(const Module& obj) 
+const impl::Module&
+impl::Module::get(const srv::Module& obj)
 {
-    return *reinterpret_cast<Module_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<impl::Module*>(obj._pimpl.get());
 }
 
 
@@ -33,8 +32,9 @@ const Module_impl& Module_impl::get(const Module& obj)
 // }
 
 
-Module::Module(std::shared_ptr<void> pimpl, uint64_t module_id) : _pimpl(pimpl) {
-
+srv::Module::Module(std::shared_ptr<void> pimpl, uint64_t module_id)
+    : _pimpl(pimpl)
+{
     DLOG(INFO) << "initialize module id : " << module_id << " from memory buffer";
 }
 
@@ -44,7 +44,7 @@ Module::Module(std::shared_ptr<void> pimpl, uint64_t module_id) : _pimpl(pimpl) 
 //     DLOG(INFO) << "initialize module : " << name << " from data buffer";
 // }
 
-Module::~Module() {
+srv::Module::~Module() {
     DLOG(INFO) << "Module: i am free";
     if (not _destroyed) {
         _destroyed = true;
@@ -53,14 +53,14 @@ Module::~Module() {
     }
 }
 
-core::future<std::shared_ptr<Function>> Module::get_function(
-            const std::string& func_name) {
-    
+core::future<std::shared_ptr<srv::Function>>
+srv::Module::get_function(const std::string& func_name)
+{
         using msg = ::service::compute::cuda::wire::Module::get_function;
     
         DVLOG(logging::SERVICE) << "Module::get_function <-";
     
-        auto& pimpl = Module_impl::get(*this);
+        auto& pimpl = impl::Module::get(*this);
     
         auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
         return pimpl.ch->make_request_builder<msg::request>(pimpl.req_get_func)
@@ -81,12 +81,12 @@ core::future<std::shared_ptr<Function>> Module::get_function(
                 }
     
                 DVLOG(logging::SERVICE) << "Context::get_function ->"
-                                        << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-                wire::error_raise_exception_maybe(args->imms.error);
+                                        << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+                fractos::wire::error_raise_exception_maybe(args->imms.error);
     
                 //get Function object
-                std::shared_ptr<Function_impl> pimpl_(
-                    new Function_impl{{}, ch, args->imms.error,
+                std::shared_ptr<impl::Function> pimpl_(
+                    new impl::Function{{}, ch, args->imms.error,
                             std::move(args->caps.call),
                             std::move(args->caps.func_destroy)}
                     );
@@ -97,12 +97,14 @@ core::future<std::shared_ptr<Function>> Module::get_function(
             });
     }
 
-core::future<void> Module::destroy() {
+core::future<void>
+srv::Module::destroy()
+{
     using msg = ::service::compute::cuda::wire::Module::destroy;
 
     DVLOG(logging::SERVICE) << "Module::destroy <-";
 
-    auto& pimpl = Module_impl::get(*this);
+    auto& pimpl = impl::Module::get(*this);
     _destroyed = true;
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
@@ -121,8 +123,7 @@ core::future<void> Module::destroy() {
             }
 
             DVLOG(logging::SERVICE) << "Module::destroy ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
         });
 }
-

@@ -56,10 +56,11 @@ srv::Service::set_default_channel(std::shared_ptr<core::channel> ch)
 
 
 core::future<std::unique_ptr<srv::Service>>
-srv::make_service(fractos::core::gns::service& gns, const std::string& name,
-                    std::shared_ptr<core::channel> ch)
+srv::make_service(std::shared_ptr<core::channel> ch,
+                  core::gns::service& gns, const std::string& name,
+                  const std::chrono::microseconds& wait_time)
 {
-    return gns.get_wait_for<core::cap::request>(ch, name, std::chrono::seconds{0})
+    return gns.get_wait_for<core::cap::request>(ch, name, wait_time)
         .then([ch, name](auto& fut) {
             core::cap::request req;
                 try {
@@ -78,7 +79,7 @@ srv::make_service(fractos::core::gns::service& gns, const std::string& name,
                 return res;
               });
 
-} 
+}
 
 
 /*
@@ -111,12 +112,12 @@ srv::Service::make_device(uint8_t value)
             }
 
             DVLOG(logging::SERVICE) << "Service::make_device ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             // get Device object
-            std::shared_ptr<impl::Device_impl> pimpl_(
-                new impl::Device_impl{{}, ch, args->imms.error, 
+            std::shared_ptr<impl::Device> pimpl_(
+                new impl::Device{{}, ch, args->imms.error, 
                         std::move(args->caps.make_context),
                         std::move(args->caps.destroy)}
                 );
@@ -131,7 +132,7 @@ srv::Service::make_device(uint8_t value)
 /*
  *  Get published Device
  */
-core::future<std::shared_ptr<Device>>
+core::future<std::shared_ptr<srv::Device>>
 srv::Service::get_Device(fractos::core::gns::service& gns, uint8_t value)
 {
     using msg = ::service::compute::cuda::wire::Service::get_Device;
@@ -164,11 +165,11 @@ srv::Service::get_Device(fractos::core::gns::service& gns, uint8_t value)
                         }
 
                         DVLOG(logging::SERVICE) << "Service::get_Device ->"
-                                                << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-                        wire::error_raise_exception_maybe(args->imms.error);
+                                                << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+                        fractos::wire::error_raise_exception_maybe(args->imms.error);
 
-                        std::shared_ptr<impl::Device_impl> pimpl_ (
-                            new impl::Device_impl{{}, ch, args->imms.error, 
+                        std::shared_ptr<impl::Device> pimpl_ (
+                            new impl::Device{{}, ch, args->imms.error, 
                                     // move(args->caps.allocate_memory),
                                     // move(args->caps.register_function),
                                     std::move(args->caps.make_context),

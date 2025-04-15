@@ -1,4 +1,3 @@
-
 #include <utility>
 
 #include <fractos/wire/error.hpp>
@@ -8,48 +7,51 @@
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <memory_impl.hpp>
 
-// #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
-using namespace fractos::service::compute::cuda;
-using namespace impl;
+namespace srv = fractos::service::compute::cuda;
+
 
 inline
-Memory_impl& Memory_impl::get(Memory& obj)
+impl::Memory&
+impl::Memory::get(srv::Memory& obj)
 {
-    return *reinterpret_cast<Memory_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<impl::Memory*>(obj._pimpl.get());
 }
 
 inline
-const Memory_impl& Memory_impl::get(const Memory& obj) 
+const impl::Memory&
+impl::Memory::get(const srv::Memory& obj)
 {
-    return *reinterpret_cast<Memory_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<impl::Memory*>(obj._pimpl.get());
 }
 
 
 
 
-Memory::Memory(std::shared_ptr<void> pimpl, wire::endian::uint64_t size) : _pimpl(pimpl) {
-
-
-
+srv::Memory::Memory(std::shared_ptr<void> pimpl, fractos::wire::endian::uint64_t size)
+    :_pimpl(pimpl)
+{
     DLOG(INFO) << "initialize memory : " << size;
 }
 
-char* Memory::get_addr() {
-    auto& pimpl = Memory_impl::get(*this);
-    
+char*
+srv::Memory::get_addr()
+{
+    auto& pimpl = impl::Memory::get(*this);
 
     return pimpl.addr;
 }
 
-core::cap::memory& Memory::get_cap_mem() {
-    auto& pimpl = Memory_impl::get(*this);
+core::cap::memory&
+srv::Memory::get_cap_mem()
+{
+    auto& pimpl = impl::Memory::get(*this);
 
     return pimpl.memory;
 }
 
 
-Memory::~Memory() {
+srv::Memory::~Memory() {
     DLOG(INFO) << "Memory: i am free";
     if (not _destroyed) {
         _destroyed = true;
@@ -59,12 +61,14 @@ Memory::~Memory() {
 }
 
 
-core::future<void> Memory::destroy() {
+core::future<void>
+srv::Memory::destroy()
+{
     using msg = ::service::compute::cuda::wire::Memory::destroy;
 
     DVLOG(logging::SERVICE) << "Memory::destroy <-";
 
-    auto& pimpl = Memory_impl::get(*this);
+    auto& pimpl = impl::Memory::get(*this);
     _destroyed = true;
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
@@ -83,8 +87,7 @@ core::future<void> Memory::destroy() {
             }
 
             DVLOG(logging::SERVICE) << "Memory::destroy ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
         });
 }
-

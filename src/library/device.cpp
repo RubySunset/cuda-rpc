@@ -10,30 +10,34 @@
 
 #include <device_impl.hpp>
 #include <context_impl.hpp>
-// #include <fractos/service/compute/cuda_msg.hpp>
+
 using namespace fractos;
-using namespace fractos::service::compute::cuda;
-using namespace impl;
+namespace srv = fractos::service::compute::cuda;
+
 
 inline
-Device_impl& Device_impl::get(Device& obj)
+impl::Device&
+impl::Device::get(srv::Device& obj)
 {
-    return *reinterpret_cast<Device_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<impl::Device*>(obj._pimpl.get());
 }
 
 inline
-const Device_impl& Device_impl::get(const Device& obj) 
+const impl::Device&
+impl::Device::get(const srv::Device& obj)
 {
-    return *reinterpret_cast<Device_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<impl::Device*>(obj._pimpl.get());
 }
 
-Device::Device(std::shared_ptr<void> pimpl, wire::endian::uint8_t id) : _pimpl(pimpl){ // value
-
+srv::Device::Device(std::shared_ptr<void> pimpl, fractos::wire::endian::uint8_t id)
+    :_pimpl(pimpl)
+{
     DLOG(INFO) << "initialize device : " << id;
 }
 
 
-Device::~Device() {
+srv::Device::~Device()
+{
     DLOG(INFO) << "Device: i am free";
     if (not _destroyed) {
         _destroyed = true;
@@ -42,14 +46,14 @@ Device::~Device() {
     }
 }
 
-core::future<std::shared_ptr<Context>> Device::make_context(
-                    unsigned int flags) {
-
+core::future<std::shared_ptr<srv::Context>>
+srv::Device::make_context(unsigned int flags)
+{
     using msg = ::service::compute::cuda::wire::Device::make_context;
 
     DVLOG(logging::SERVICE) << "Device::make_context <-";
 
-    auto& pimpl = Device_impl::get(*this);
+    auto& pimpl = impl::Device::get(*this);
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_make_context)
@@ -68,12 +72,12 @@ core::future<std::shared_ptr<Context>> Device::make_context(
             }
 
             DVLOG(logging::SERVICE) << "Device::make_context ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             // get Device object
-            std::shared_ptr<Context_impl> pimpl_(
-                new Context_impl{{}, ch, args->imms.error, 
+            std::shared_ptr<impl::Context> pimpl_(
+                new impl::Context{{}, ch, args->imms.error, 
                         std::move(args->caps.make_memory),
                         std::move(args->caps.make_memory_rpc_test),
                         std::move(args->caps.make_stream),
@@ -90,12 +94,14 @@ core::future<std::shared_ptr<Context>> Device::make_context(
         });
 }
 
-core::future<void> Device::destroy() {
+core::future<void>
+srv::Device::destroy()
+{
     using msg = ::service::compute::cuda::wire::Device::destroy;
 
     DVLOG(logging::SERVICE) << "virtual_device::destroy <-";
 
-    auto& pimpl = Device_impl::get(*this);
+    auto& pimpl = impl::Device::get(*this);
     _destroyed = true;
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
@@ -114,8 +120,7 @@ core::future<void> Device::destroy() {
             }
 
             DVLOG(logging::SERVICE) << "Device::destroy ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
         });
 }
-

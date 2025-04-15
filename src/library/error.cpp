@@ -7,14 +7,15 @@
 
 
 using namespace fractos;
-using namespace fractos::service::compute::cuda;
+namespace srv = fractos::service::compute::cuda;
 
-fractos::service::compute::cuda::ErrorChecker::ErrorChecker(CUresult err, const std::string& file, int line) 
+
+srv::ErrorChecker::ErrorChecker(CUresult err, const std::string& file, int line) 
     :err(err){
     handleError(err, file, line);
 }
 
-void fractos::service::compute::cuda::ErrorChecker::handleError(CUresult err, const std::string& file, int line) {
+void srv::ErrorChecker::handleError(CUresult err, const std::string& file, int line) {
     if (CUDA_SUCCESS != err) {
         DLOG(ERROR) << "CUDA Driver API error = " << err
                   << " from file <" << file << ">, line " << line << ".\n";

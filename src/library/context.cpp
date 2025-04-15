@@ -1,4 +1,3 @@
-
 #include <utility>
 
 #include <fractos/wire/error.hpp>
@@ -14,34 +13,33 @@
 #include <event_impl.hpp>
 
 
-// #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
-using namespace fractos::service::compute::cuda;
-using namespace impl;
+namespace srv = fractos::service::compute::cuda;
+
 
 inline
-Context_impl& Context_impl::get(Context& obj)
+impl::Context& impl::Context::get(srv::Context& obj)
 {
-    return *reinterpret_cast<Context_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<impl::Context*>(obj._pimpl.get());
 }
 
 inline
-const Context_impl& Context_impl::get(const Context& obj) 
+const impl::Context&
+impl::Context::get(const srv::Context& obj)
 {
-    return *reinterpret_cast<Context_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<impl::Context*>(obj._pimpl.get());
 }
 
 
 
-
-Context::Context(std::shared_ptr<void> pimpl, wire::endian::uint32_t value) : 
-    _pimpl(pimpl) {
-
-
+srv::Context::Context(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t value)
+    :_pimpl(pimpl)
+{
     DLOG(INFO) << "initialize context : " << value;
 }
 
-Context::~Context() {
+srv::Context::~Context()
+{
     DLOG(INFO) << "Context: i am free";
     if (not _destroyed) {
         _destroyed = true;
@@ -53,15 +51,16 @@ Context::~Context() {
 
 
 
-core::future<void> Context::make_memory_rpc_test(
-                    uint64_t size) {
+core::future<void>
+srv::Context::make_memory_rpc_test(uint64_t size)
+{
     using clock = std::chrono::high_resolution_clock;
     auto t_start = clock::now();
 
     using msg = ::service::compute::cuda::wire::Context::make_memory_rpc_test;
 
     DVLOG(logging::SERVICE) << "Context::make_memory <-";
-    auto& pimpl = Context_impl::get(*this);
+    auto& pimpl = impl::Context::get(*this);
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_memory_rpc_test)
@@ -86,8 +85,8 @@ core::future<void> Context::make_memory_rpc_test(
             }
 
             DVLOG(logging::SERVICE) << "Context::make_memory ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             // char* tmp = reinterpret_cast<char*>(args->imms.address.get());
 
@@ -104,15 +103,16 @@ core::future<void> Context::make_memory_rpc_test(
         });
 }
 
-core::future<std::shared_ptr<Memory>> Context::make_memory(
-                    uint64_t size) {
+core::future<std::shared_ptr<srv::Memory>>
+srv::Context::make_memory(uint64_t size)
+{
     using clock = std::chrono::high_resolution_clock;
     auto t_start = clock::now();
     
     using msg = ::service::compute::cuda::wire::Context::make_memory;
 
     DVLOG(logging::SERVICE) << "Context::make_memory <-";
-    auto& pimpl = Context_impl::get(*this);
+    auto& pimpl = impl::Context::get(*this);
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_memory)
@@ -136,14 +136,14 @@ core::future<std::shared_ptr<Memory>> Context::make_memory(
             }
 
             DVLOG(logging::SERVICE) << "Context::make_memory ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             char* tmp = reinterpret_cast<char*>(args->imms.address.get());
 
             // get Device object
-            std::shared_ptr<Memory_impl> pimpl_(
-                new Memory_impl{{}, ch, args->imms.error, 
+            std::shared_ptr<impl::Memory> pimpl_(
+                new impl::Memory{{}, ch, args->imms.error, 
                         std::move(args->caps.destroy), 
                     false, tmp, size, std::move(args->caps.memory)}
                 );
@@ -155,13 +155,13 @@ core::future<std::shared_ptr<Memory>> Context::make_memory(
 }
 
 
-core::future<std::shared_ptr<Stream>> Context::make_stream(
-                CUstream_flags stream_flags, fractos::wire::endian::uint32_t id) {
-
+core::future<std::shared_ptr<srv::Stream>>
+srv::Context::make_stream(CUstream_flags stream_flags, fractos::wire::endian::uint32_t id)
+{
     using msg = ::service::compute::cuda::wire::Context::make_stream;
 
     DVLOG(logging::SERVICE) << "Context::make_stream <-";
-    auto& pimpl = Context_impl::get(*this);
+    auto& pimpl = impl::Context::get(*this);
 
     unsigned int flag = (unsigned int) stream_flags;
     DLOG(INFO) << "stream flag is " << flag;
@@ -185,12 +185,12 @@ core::future<std::shared_ptr<Stream>> Context::make_stream(
             }
 
             DVLOG(logging::SERVICE) << "Context::make_stream ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             // get Device object
-            std::shared_ptr<Stream_impl> pimpl_(
-                new Stream_impl{{}, ch, args->imms.error, 
+            std::shared_ptr<impl::Stream> pimpl_(
+                new impl::Stream{{}, ch, args->imms.error, 
                         std::move(args->caps.synchronize),
                         std::move(args->caps.destroy), id}
                 );
@@ -202,13 +202,13 @@ core::future<std::shared_ptr<Stream>> Context::make_stream(
 }
 
 
-core::future<std::shared_ptr<Event>> Context::make_event(
-                fractos::wire::endian::uint32_t flags) {
-
+core::future<std::shared_ptr<srv::Event>>
+srv::Context::make_event(fractos::wire::endian::uint32_t flags)
+{
     using msg = ::service::compute::cuda::wire::Context::make_event;
 
     DVLOG(logging::SERVICE) << "Context::make_event <-";
-    auto& pimpl = Context_impl::get(*this);
+    auto& pimpl = impl::Context::get(*this);
 
     unsigned int flag = flags;
     DVLOG(logging::SERVICE) << "event flag is " << flag;
@@ -230,12 +230,12 @@ core::future<std::shared_ptr<Event>> Context::make_event(
             }
 
             DVLOG(logging::SERVICE) << "Context::make_event ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             // get Device object
-            std::shared_ptr<Event_impl> pimpl_(
-                new Event_impl{{}, ch, args->imms.error, 
+            std::shared_ptr<impl::Event> pimpl_(
+                new impl::Event{{}, ch, args->imms.error, 
                         // std::move(args->caps.synchronize),std::move(args->caps.record),
                         std::move(args->caps.destroy)}
                 );
@@ -256,7 +256,7 @@ core::future<std::shared_ptr<Event>> Context::make_event(
 
 //     DVLOG(logging::SERVICE) << "Context::make_module_file <-";
 
-//     auto& pimpl = Context_impl::get(*this);
+//     auto& pimpl = impl::Context::get(*this);
 
 //     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
 //     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_module_data)// file
@@ -278,7 +278,7 @@ core::future<std::shared_ptr<Event>> Context::make_event(
 
 //             DVLOG(logging::SERVICE) << "Context::make_module_file ->"
 //                                     << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-//             wire::error_raise_exception_maybe(args->imms.error);
+//             fractos::wire::error_raise_exception_maybe(args->imms.error);
 
 //             // get Module object
 //             std::shared_ptr<Module_impl> pimpl_(
@@ -294,14 +294,14 @@ core::future<std::shared_ptr<Event>> Context::make_event(
 // }
 
 
-core::future<std::shared_ptr<Module>> Context::make_module_data(
-            core::cap::memory& contents, uint64_t module_id) {
-
+core::future<std::shared_ptr<srv::Module>>
+srv::Context::make_module_data(core::cap::memory& contents, uint64_t module_id)
+{
     using msg = ::service::compute::cuda::wire::Context::make_module_data;
 
     DVLOG(logging::SERVICE) << "Context::make_module_data <-";
 
-    auto& pimpl = Context_impl::get(*this);
+    auto& pimpl = impl::Context::get(*this);
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_module_data) // file
@@ -322,12 +322,12 @@ core::future<std::shared_ptr<Module>> Context::make_module_data(
             }
 
             DVLOG(logging::SERVICE) << "Context::make_module_data ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             // get Module object
-            std::shared_ptr<Module_impl> pimpl_(
-                new Module_impl{{}, ch, args->imms.error,
+            std::shared_ptr<impl::Module> pimpl_(
+                new impl::Module{{}, ch, args->imms.error,
                         std::move(args->caps.get_function),
                         std::move(args->caps.destroy)}
                 );
@@ -338,15 +338,14 @@ core::future<std::shared_ptr<Module>> Context::make_module_data(
         });
 }
 
-
-
-
-core::future<void> Context::synchronize() {
+core::future<void>
+srv::Context::synchronize()
+{
     using msg = ::service::compute::cuda::wire::Context::synchronize;
 
     DVLOG(logging::SERVICE) << "Context::synchronize <-";
 
-    auto& pimpl = Context_impl::get(*this);
+    auto& pimpl = impl::Context::get(*this);
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_ctx_sync)
@@ -364,17 +363,19 @@ core::future<void> Context::synchronize() {
             }
 
             DVLOG(logging::SERVICE) << "Context::synchronize ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
         });
 }
 
-core::future<void> Context::destroy() {
+core::future<void>
+srv::Context::destroy()
+{
     using msg = ::service::compute::cuda::wire::Context::destroy;
 
     DVLOG(logging::SERVICE) << "Context::destroy <-";
 
-    auto& pimpl = Context_impl::get(*this);
+    auto& pimpl = impl::Context::get(*this);
     _destroyed = true;
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
@@ -393,8 +394,8 @@ core::future<void> Context::destroy() {
             }
 
             DVLOG(logging::SERVICE) << "Context::destroy ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
         });
 }
 

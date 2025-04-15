@@ -1,6 +1,6 @@
-
 #include <utility>
 
+#include <fractos/wire/endian.hpp>
 #include <fractos/wire/error.hpp>
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
@@ -8,29 +8,33 @@
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <stream_impl.hpp>
 
-// #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
-using namespace fractos::service::compute::cuda;
-using namespace impl;
+namespace srv = fractos::service::compute::cuda;
 
 inline
-Stream_impl& Stream_impl::get(Stream& obj)
+impl::Stream&
+impl::Stream::get(srv::Stream& obj)
 {
-    return *reinterpret_cast<Stream_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<impl::Stream*>(obj._pimpl.get());
 }
 
 inline
-const Stream_impl& Stream_impl::get(const Stream& obj) 
+const impl::Stream&
+impl::Stream::get(const srv::Stream& obj)
 {
-    return *reinterpret_cast<Stream_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<impl::Stream*>(obj._pimpl.get());
 }
 
-Stream::Stream(std::shared_ptr<void> pimpl, wire::endian::uint32_t flags, fractos::wire::endian::uint32_t id) : _pimpl(pimpl) {
+srv::Stream::Stream(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t flags,
+                    fractos::wire::endian::uint32_t id)
+    :_pimpl(pimpl)
+{
     DLOG(INFO) << "initialize steam flag : " << flags;
 }
 
 
-Stream::~Stream() {
+srv::Stream::~Stream()
+{
     DLOG(INFO) << "Stream: i am free";
     if (not _destroyed) {
         _destroyed = true;
@@ -40,19 +44,23 @@ Stream::~Stream() {
 }
 
 
-fractos::wire::endian::uint32_t Stream::get_stream_id() {
-    auto& pimpl = Stream_impl::get(*this);
+fractos::wire::endian::uint32_t
+srv::Stream::get_stream_id()
+{
+    auto& pimpl = impl::Stream::get(*this);
 
     return pimpl.id;
 }
 
 
-core::future<void> Stream::synchronize() {
+core::future<void>
+srv::Stream::synchronize()
+{
     using msg = ::service::compute::cuda::wire::Stream::synchronize;
 
     DVLOG(logging::SERVICE) << "Stream::synchronize <-";
 
-    auto& pimpl = Stream_impl::get(*this);
+    auto& pimpl = impl::Stream::get(*this);
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_stream_sync)
@@ -69,19 +77,21 @@ core::future<void> Stream::synchronize() {
             }
 
             DVLOG(logging::SERVICE) << "Stream::synchronize ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
         });
 }
 
 
 
-core::future<void> Stream::destroy() {
+core::future<void>
+srv::Stream::destroy()
+{
     using msg = ::service::compute::cuda::wire::Stream::destroy;
 
     DVLOG(logging::SERVICE) << "Stream::destroy <-";
 
-    auto& pimpl = Stream_impl::get(*this);
+    auto& pimpl = impl::Stream::get(*this);
     _destroyed = true;
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
@@ -100,8 +110,7 @@ core::future<void> Stream::destroy() {
             }
 
             DVLOG(logging::SERVICE) << "Stream::destroy ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
         });
 }
-

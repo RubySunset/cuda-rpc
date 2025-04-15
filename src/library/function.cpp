@@ -11,30 +11,31 @@
 
 // #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
-using namespace fractos::service::compute::cuda;
-using namespace impl;
+namespace srv = fractos::service::compute::cuda;
 
 inline
-Function_impl& Function_impl::get(Function& obj)
+impl::Function&
+impl::Function::get(srv::Function& obj)
 {
-    return *reinterpret_cast<Function_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<impl::Function*>(obj._pimpl.get());
 }
 
 inline
-const Function_impl& Function_impl::get(const Function& obj) 
+const impl::Function& impl::Function::get(const srv::Function& obj) 
 {
-    return *reinterpret_cast<Function_impl*>(obj._pimpl.get());
+    return *reinterpret_cast<impl::Function*>(obj._pimpl.get());
 }
 
-Function::Function(std::shared_ptr<void> pimpl, std::string func_name) : _pimpl(pimpl) {
-
+srv::Function::Function(std::shared_ptr<void> pimpl, std::string func_name)
+    :_pimpl(pimpl)
+{
     DLOG(INFO) << "initialize function : " << func_name;
 }
 
 
 
 
-Function::~Function() {
+srv::Function::~Function() {
     DLOG(INFO) << "Function: i am free";
     if (not _destroyed) {
         _destroyed = true;
@@ -68,7 +69,7 @@ Function::~Function() {
 
 //     DVLOG(logging::SERVICE) << "Function::call <-";
 
-//     auto& pimpl = Function_impl::get(*this);
+//     auto& pimpl = impl::Function::get(*this);
 
 //     // auto kargs = std::make_tuple<Args...>(std::forward<Args>(ker_args)...);
 
@@ -108,12 +109,13 @@ Function::~Function() {
 
 
 
-core::future<void> Function::func_destroy() {
+core::future<void>
+srv::Function::func_destroy() {
     using msg = ::service::compute::cuda::wire::Function::func_destroy;
 
     DVLOG(logging::SERVICE) << "Function::func_destroy <-";
 
-    auto& pimpl = Function_impl::get(*this);
+    auto& pimpl = impl::Function::get(*this);
     _destroyed = true;
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
@@ -132,8 +134,8 @@ core::future<void> Function::func_destroy() {
             }
 
             DVLOG(logging::SERVICE) << "Function::func_destroy ->"
-                                    << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-            wire::error_raise_exception_maybe(args->imms.error);
+                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
         });
 }
 
