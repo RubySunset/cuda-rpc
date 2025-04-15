@@ -49,6 +49,7 @@ namespace test {
         std::atomic<bool> _requested_exit;
     
     };
-    
-    }
-    
+
+    std::string to_string(const gpu_device_service& obj);
+
+}

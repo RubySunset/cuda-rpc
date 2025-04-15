@@ -156,3 +156,11 @@ void gpu_device_service::handle_get_Device(auto args) {
             .as_callback();
     }
 }
+
+std::string
+test::to_string(const gpu_device_service& obj)
+{
+    std::stringstream ss;
+    ss << "Service(" << &obj << ")";
+    return ss.str();
+}
