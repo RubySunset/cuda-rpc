@@ -52,19 +52,12 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
 
         /**
-         * @brief Connect to the CUDA Service with given name
+         * @brief Connect to the CUDA Service
          */
         [[nodiscard]] core::future<std::unique_ptr<Service>>
         make_service(std::shared_ptr<core::channel> ch,
                      core::gns::service& gns, const std::string& name,
                      const std::chrono::microseconds& wait_time = std::chrono::seconds{60});
-
-        /**
-         * @brief Connect to the CUDA Service with given name
-         */             
-        [[nodiscard]] core::future<std::unique_ptr<Service>>
-        make_service(fractos::core::gns::service& gns, const std::string& name,
-                    std::shared_ptr<core::channel> ch);
 
         /**
          * @brief Connect to the CUDA Service
@@ -88,10 +81,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             ch);
 
             const core::cap::request& get_connect() const;
-
-            // [[nodiscard]] static fractos::core::future<std::unique_ptr<Service>>
-            // make_service(fractos::core::gns::service& gns, const std::string& name,
-            //                 std::shared_ptr<fractos::core::channel> ch);
 
             [[nodiscard]] fractos::core::future<std::shared_ptr<Device>> get_Device(
                 fractos::core::gns::service& gns, uint8_t id);

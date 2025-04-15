@@ -63,25 +63,20 @@ srv::make_service(std::shared_ptr<core::channel> ch,
                   core::gns::service& gns, const std::string& name,
                   const std::chrono::microseconds& wait_time)
 {
+    static const std::string method = "service::compute::cuda::make_service[gns]";
+
+    LOG_OP(method)
+        << " name=" << name
+        << " <- {}";
+
     return gns.get_wait_for<core::cap::request>(ch, name, wait_time)
         .then([ch, name](auto& fut) {
-            core::cap::request req;
-                try {
-                    req = std::move(fut.get()); 
-                    DLOG(INFO) << "Found service";
-                } catch (const fractos::core::gns::token_error& e) {
-                    LOG(INFO) << "Can't find service";
-                }
-
-                std::shared_ptr<impl::Service> pimpl_(
-                    new impl::Service{{}, ch, std::move(req)});
-                pimpl_->self = pimpl_;
-                auto pimpl = std::static_pointer_cast<void>(pimpl_);
-                std::unique_ptr<Service> res(new Service{pimpl});
-
-                return res;
-              });
-
+            auto req = fut.get();
+            LOG_OP(method)
+                << " -> " << wire::to_string(req);
+            return make_service(ch, req);
+        })
+        .unwrap();
 }
 
 core::future<std::unique_ptr<srv::Service>>
