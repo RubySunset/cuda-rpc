@@ -6,8 +6,53 @@ using namespace fractos;
 namespace srv = fractos::service::compute::cuda;
 
 
+#define print_imm(name, func)                                           \
+    if (obj.has_imm(&msg::imms_type:: name)) {                          \
+        ss << " imms." #name "=" << func(obj.imms. name);               \
+    } else {                                                            \
+        ss << " imms." #name "=<missing>";                              \
+    }
+
+#define print_imm_identity(name)                                        \
+    print_imm(name, [](auto& val){ return val; })
+
+#define print_imm_error(name)                                           \
+    print_imm(name, [](auto& val){                                      \
+        return fractos::wire::to_string(static_cast<fractos::wire::error_type>(val.get())); })
+
+#define print_extra_imm_error()                                         \
+    if (obj.has_all_imms() and not obj.has_exactly_imms()) {            \
+        ss << " imms=<malformed: size=" << obj.imms_size() << ">";      \
+    }
+
+#define print_empty_imms()                                              \
+    if (obj.imms_size() == 0) {                                         \
+        ss << "imms=<empty>";                                           \
+    } else {                                                            \
+        ss << "imms=<malformed: size=" << obj.imms_size() << ">";       \
+    }
+
+#define print_cap(name)                                                 \
+    if (obj.has_cap(&msg::caps_type:: name)) {                          \
+        ss << " caps." #name "=" << to_string(obj.caps. name);          \
+    } else {                                                            \
+        ss << " caps." #name "=<missing>";                              \
+    }
+
+#define print_extra_cap_error()                                         \
+    if (obj.has_all_caps() and not obj.has_exactly_caps()) {            \
+        ss << " caps=<malformed: count=" << obj.caps_count() << ">";    \
+    }
+
+#define print_empty_caps()                                              \
+    if (obj.caps_count() == 0) {                                        \
+        ss << "caps=<empty>";                                           \
+    } else {                                                            \
+        ss << "caps=<malformed: count=" << obj.caps_count() << ">";     \
+    }
+
 std::string
-to_string(const core::cap::generic& obj)
+srv::wire::to_string(const core::cap::generic& obj)
 {
     std::stringstream ss;
 
@@ -31,21 +76,10 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::get_driver_ver
 
     std::stringstream ss;
 
-    if (obj.imms_size() == 0) {
-        ss << "imms=<empty>";
-    } else {
-        ss << "imms=<malformed: size=" << obj.imms_size() << ">";
-    }
+    print_empty_imms();
 
-    if (obj.has_cap(&msg::caps_type::continuation)) {
-        ss << " caps.continuation=" << ::to_string(obj.caps.continuation);
-    } else {
-        ss << " caps.continuation=<missing>";
-    }
-
-    if (obj.has_all_caps() and not obj.has_exactly_caps()) {
-        ss << " caps=<malformed: count=" << obj.caps_count() << ">";
-    }
+    print_cap(continuation);
+    print_extra_cap_error();
 
     return ss.str();
 }
@@ -57,28 +91,11 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::get_driver_ver
 
     std::stringstream ss;
 
-    if (obj.has_imm(&msg::imms_type::error)) {
-        auto error = static_cast<fractos::wire::error_type>(obj.imms.error.get());
-        ss << "imms.error=" << fractos::wire::to_string(error);
-    } else {
-        ss << "imms.error=<missing>";
-    }
+    print_imm_error(error);
+    print_imm_identity(value);
+    print_extra_imm_error();
 
-    if (obj.has_imm(&msg::imms_type::value)) {
-        ss << "imms.value=" << obj.imms.value;
-    } else {
-        ss << "imms.value=<missing>";
-    }
-
-    if (obj.has_all_imms() and not obj.has_exactly_imms()) {
-        ss << " imms=<malformed: size=" << obj.imms_size() << ">";
-    }
-
-    if (obj.caps_count() == 0) {
-        ss << "caps=<empty>";
-    } else {
-        ss << "caps=<malformed: count=" << obj.caps_count() << ">";
-    }
+    print_empty_caps();
 
     return ss.str();
 }

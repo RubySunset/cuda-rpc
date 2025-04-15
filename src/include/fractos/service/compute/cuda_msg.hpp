@@ -6,6 +6,8 @@
 
 namespace fractos::service::compute::cuda::wire {
 
+    std::string to_string(const core::cap::generic& obj);
+
     namespace Service {
         struct get_driver_version {
             struct request {
