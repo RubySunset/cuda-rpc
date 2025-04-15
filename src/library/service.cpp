@@ -9,7 +9,6 @@
 #include <device_impl.hpp>
 
 using namespace fractos;
-using namespace std;
 namespace srv = fractos::service::compute::cuda;
 
 
@@ -141,10 +140,10 @@ srv::Service::get_Device(fractos::core::gns::service& gns, uint8_t value)
 
     auto& pimpl = impl::Service::get(*this);
 
-    const string name = "get_vdev";
+    const std::string name = "get_vdev";
     auto ch = pimpl.ch;
 
-    return gns.get_wait_for<core::cap::request>(ch, name, chrono::seconds{0})
+    return gns.get_wait_for<core::cap::request>(ch, name, std::chrono::seconds{0})
         .then([ch, name, value](auto& fut) {
             core::cap::request get_vdev = std::move(fut.get());
 
@@ -168,16 +167,16 @@ srv::Service::get_Device(fractos::core::gns::service& gns, uint8_t value)
                                                 << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
                         wire::error_raise_exception_maybe(args->imms.error);
 
-                        shared_ptr<impl::Device_impl> pimpl_ (
+                        std::shared_ptr<impl::Device_impl> pimpl_ (
                             new impl::Device_impl{{}, ch, args->imms.error, 
                                     // move(args->caps.allocate_memory),
                                     // move(args->caps.register_function),
-                                    move(args->caps.make_context),
-                                    move(args->caps.destroy)}
+                                    std::move(args->caps.make_context),
+                                    std::move(args->caps.destroy)}
                             ); 
                         pimpl_->self = pimpl_;
                         auto pimpl = static_pointer_cast<void>(pimpl_);
-                        shared_ptr<Device> res(new Device{pimpl, value});
+                        std::shared_ptr<Device> res(new Device{pimpl, value});
                         return res;
                     });
         })
