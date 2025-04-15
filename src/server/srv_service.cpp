@@ -86,9 +86,72 @@ gpu_device_service::register_service(std::shared_ptr<core::channel> ch)
                       .make_request();
               })
         .unwrap()
-        .then([self](auto& fut) {
+        .then([ch, self](auto& fut) {
             self->req_get_driver_version = fut.get();
+
+            return ch->make_request_builder<msg_base::connect::request>(
+                ch->get_default_endpoint(),
+                [self](auto ch, auto args) {
+                    self->handle_connect(ch, std::move(args));
+                })
+                .on_channel()
+                .make_request();
+        })
+        .unwrap()
+        .then([self](auto& fut) {
+            self->req_connect = fut.get();
         });
+}
+
+void
+gpu_device_service::handle_connect(auto ch, auto args)
+{
+    static const std::string method = "handle_connect";
+    using msg = ::service::compute::cuda::wire::Service::connect;
+
+    LOG_REQ(method)
+        << srv::wire::to_string(*args);
+
+    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+        LOG_RES(method)
+            << " [error] request without continuation, ignoring";
+        return;
+    }
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+
+    if (not args->has_exactly_args()) {
+        LOG_RES(method)
+            << " error=ERR_OTHER";
+
+        reqb_cont
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .on_channel()
+            .invoke()
+            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+
+        return;
+    }
+
+    auto error = wire::ERR_SUCCESS;
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " connect=" << srv::wire::to_string(req_connect)
+        << " get_driver_version=" << srv::wire::to_string(req_get_driver_version)
+        << " make_device=" << srv::wire::to_string(req_make_device)
+        << " get_device=" << srv::wire::to_string(req_get_Device)
+        ;
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_cap(&msg::response::caps::connect, req_connect)
+        .set_cap(&msg::response::caps::get_driver_version, req_get_driver_version)
+        .set_cap(&msg::response::caps::make_device, req_make_device)
+        .set_cap(&msg::response::caps::get_device, req_get_Device)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
 }
 
 void
