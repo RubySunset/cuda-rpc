@@ -60,11 +60,11 @@ cuGetProcAddress(const char *symbol, void **pfn, int cudaVersion, cuuint64_t fla
 }
 
 
-static void __attribute__((constructor)) init_lib();
+static void init_symbols() __attribute__((constructor));
 
 static
 void
-init_lib()
+init_symbols()
 {
     std::string lib("libcuda.so");
 
