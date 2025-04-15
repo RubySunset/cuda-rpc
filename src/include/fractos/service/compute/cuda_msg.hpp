@@ -1,11 +1,30 @@
+#pragma once
 
+#include <fractos/core/builder.hpp>
 #include <fractos/core/cap.hpp>
 #include <fractos/wire/endian.hpp>
-using namespace fractos;
 
-namespace service::compute::cuda::wire{
-  
+namespace fractos::service::compute::cuda::wire{
+
     namespace Service {
+        struct get_driver_version {
+            struct request {
+                struct imms {
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t value;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
+
         struct make_device {
             struct request {
                 struct imms {
@@ -46,6 +65,9 @@ namespace service::compute::cuda::wire{
             };
         };
     }
+
+    std::string to_string(const fractos::core::receive_args<Service::get_driver_version::request>& req);
+    std::string to_string(const core::receive_args<Service::get_driver_version::response>& resp);
 
     namespace Device {
         struct make_context {
@@ -451,7 +473,4 @@ namespace service::compute::cuda::wire{
         };
     }
 
-    
-    
-    
 }
