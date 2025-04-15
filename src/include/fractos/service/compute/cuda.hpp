@@ -86,6 +86,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             
             void set_default_channel(std::shared_ptr<fractos::core::channel>
             ch);
+
+            const core::cap::request& get_connect() const;
+
             // [[nodiscard]] static fractos::core::future<std::unique_ptr<Service>>
             // make_service(fractos::core::gns::service& gns, const std::string& name,
             //                 std::shared_ptr<fractos::core::channel> ch);

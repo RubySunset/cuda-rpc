@@ -123,6 +123,13 @@ srv::make_service(std::shared_ptr<core::channel> ch,
         });
 }
 
+const core::cap::request&
+srv::Service::get_connect() const
+{
+    auto& pimpl = impl::Service::get(*this);
+    return pimpl.req_connect;
+}
+
 
 /*
  *  Make Device frontend function
