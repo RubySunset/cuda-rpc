@@ -1,32 +1,24 @@
 #pragma once
 
-#include <any>
-#include <cuda.h>
-#include <fractos/core/future.hpp>
+#include <fractos/core/cap.hpp>
 #include <fractos/core/channel.hpp>
-#include <fractos/core/gns.hpp>
+#include <fractos/service/compute/cuda.hpp>
 #include <memory>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
-using namespace fractos::service::compute::cuda;
 
-namespace impl { 
-        
-        struct Service_impl {
-            static Service_impl& get(fractos::service::compute::cuda::Service& service);
-            static const Service_impl& get(const fractos::service::compute::cuda::Service& service);
-        
-            std::weak_ptr<Service_impl> self;
-            std::shared_ptr<fractos::core::channel>
-         ch;
-            fractos::core::cap::request req_make_device;
-        };
+namespace impl {
 
-        
+    namespace srv = fractos::service::compute::cuda;
 
-        
+    struct Service {
+        static Service& get(srv::Service& service);
+        static const Service& get(const srv::Service& service);
 
-    } // namespace cuda
+        std::weak_ptr<Service> self;
+        std::shared_ptr<fractos::core::channel> ch;
 
+        fractos::core::cap::request req_driver_get_version;
+        fractos::core::cap::request req_make_device;
+    };
+
+}
