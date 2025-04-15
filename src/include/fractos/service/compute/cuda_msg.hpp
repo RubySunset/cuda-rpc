@@ -9,6 +9,28 @@ namespace fractos::service::compute::cuda::wire {
     std::string to_string(const core::cap::generic& obj);
 
     namespace Service {
+
+        struct connect {
+            struct request {
+                struct imms {
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                } __attribute__ ((packed));
+                struct caps {
+                    fractos::core::cap::request connect;
+                    fractos::core::cap::request get_driver_version;
+                    fractos::core::cap::request make_device;
+                    fractos::core::cap::request get_device;
+                };
+            };
+        };
+
         struct get_driver_version {
             struct request {
                 struct imms {
@@ -67,6 +89,9 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
     }
+
+    std::string to_string(const core::receive_args<Service::connect::request>& req);
+    std::string to_string(const core::receive_args<Service::connect::response>& resp);
 
     std::string to_string(const core::receive_args<Service::get_driver_version::request>& req);
     std::string to_string(const core::receive_args<Service::get_driver_version::response>& resp);

@@ -70,6 +70,40 @@ srv::wire::to_string(const core::cap::generic& obj)
 }
 
 std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Service::connect::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_empty_imms();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Service::connect::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_extra_imm_error();
+
+    print_cap(connect);
+    print_cap(get_driver_version);
+    print_cap(make_device);
+    print_cap(get_device);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
 srv::wire::to_string(const core::receive_args<srv::wire::Service::get_driver_version::request>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
