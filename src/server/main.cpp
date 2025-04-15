@@ -24,9 +24,10 @@ int main(int argc, char *argv[])
     //  Parse command line
     auto odesc = common::cmdline::options();
     odesc.add_options()
-        ("service-name", common::cmdline::po::value<std::string>()->default_value("service"),
+        ("service-name", common::cmdline::po::value<std::string>()
+         ->default_value("fractos::service::compute::cuda"),
          "name used to publish the service in GNS");
-        
+
     auto [args, ch] = common::cmdline::parse(odesc, argc, argv);
 
     // Retrieve additional command line arguments
