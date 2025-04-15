@@ -59,19 +59,19 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
                      core::gns::service& gns, const std::string& name,
                      const std::chrono::microseconds& wait_time = std::chrono::seconds{60});
 
-        [[nodiscard]] core::future<std::unique_ptr<Service>>
-        make_service(std::shared_ptr<core::channel> ch,
-                     core::cap::request& Service_req);
-        
-
         /**
          * @brief Connect to the CUDA Service with given name
          */             
         [[nodiscard]] core::future<std::unique_ptr<Service>>
         make_service(fractos::core::gns::service& gns, const std::string& name,
                     std::shared_ptr<core::channel> ch);
-      
-                     
+
+        /**
+         * @brief Connect to the CUDA Service
+         */
+        [[nodiscard]] core::future<std::unique_ptr<Service>>
+        make_service(std::shared_ptr<core::channel> ch,
+                     const core::cap::request& connect);
 
         /**
          * The Service implicitly calls cuInit() when started.

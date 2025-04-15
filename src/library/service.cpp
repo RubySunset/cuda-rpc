@@ -1,10 +1,13 @@
 #include <utility>
 
 #include <fractos/wire/error.hpp>
+#include <fractos/core/error.hpp>
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
+
+#include <./common.hpp>
 #include <service_impl.hpp>
 #include <device_impl.hpp>
 
@@ -79,6 +82,45 @@ srv::make_service(std::shared_ptr<core::channel> ch,
                 return res;
               });
 
+}
+
+core::future<std::unique_ptr<srv::Service>>
+srv::make_service(std::shared_ptr<core::channel> ch,
+                  const core::cap::request& connect)
+{
+    static const std::string method = "service::compute::cuda::make_service[connect]";
+    using msg = srv::wire::Service::connect;
+
+    LOG_OP(method)
+        << " connect=" << wire::to_string(connect)
+        << " <- {}";
+
+    auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
+    return ch->make_request_builder<msg::request>(connect)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp) // wait for srv_handle
+        .unwrap()
+        .then([](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            LOG_OP(method)
+                << " -> " << wire::to_string(*args);
+
+            if (not args->has_exactly_args()) {
+                throw core::other_error(method + ": invalid response format");
+            }
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
+
+            std::shared_ptr<impl::Service> pimpl_(new impl::Service({
+                        {}, ch, std::move(args->caps.connect),
+                            std::move(args->caps.make_device)}));
+            pimpl_->self = pimpl_;
+            auto pimpl = std::static_pointer_cast<void>(pimpl_);
+            std::unique_ptr<Service> res(new Service{pimpl});
+
+            return res;
+        });
 }
 
 
