@@ -19,7 +19,6 @@ nodist_libfractos_service_compute_cuda_wrapper_la_SOURCES += default.cpp
 CLEANFILES = default.cpp
 BUILT_SOURCES =
 BUILT_SOURCES += default.cpp
-#BUILT_SOURCES += $(CUDA_PATH)/lib64/libcuda.so
 
 default.cpp: $(abs_srcdir)/cuda-generate-funcs.sh
 default.cpp: $(LIBCUDA)
