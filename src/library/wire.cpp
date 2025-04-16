@@ -78,8 +78,6 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::connect::respo
 
     print_cap(connect);
     print_cap(generic);
-    print_cap(make_device);
-    print_cap(get_device);
     print_extra_cap_error();
 
     return ss.str();
@@ -149,6 +147,41 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::init::response
     return ss.str();
 }
 
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Service::device_get::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(opcode);
+    print_imm_identity(ordinal);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Service::device_get::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_imm_identity(device);
+    print_extra_imm_error();
+
+    print_cap(make_context);
+    print_cap(destroy);
+    print_extra_cap_error();
+
+    return ss.str();
+}
 
 std::string
 srv::wire::to_string(const core::receive_args<srv::wire::Service::device_get_count::request>& obj)

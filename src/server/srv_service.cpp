@@ -50,42 +50,13 @@ gpu_device_service::register_service(std::shared_ptr<core::channel> ch)
 
     auto self = _self.lock();
 
-    return ch->make_request_builder<msg_base::make_device::request>(
+    return ch->make_request_builder<msg_base::connect::request>(
         ch->get_default_endpoint(),
         [self](auto ch, auto args) {
-            // Call local service method with the actual handler
-            // implementation. We must std::move args since it is a
-            // unique_ptr.
-            DVLOG(fractos::logging::SERVICE) << "In register_service handler";
-            self->handle_make_device(std::move(args));
+            self->handle_connect(ch, std::move(args));
         })
         .on_channel()
         .make_request()
-        .then([self, ch](auto& fut) {
-                  self->req_make_device = fut.get();
-                  DVLOG(fractos::logging::SERVICE) << "SET req_make_device"; // virtual
-                  return ch->make_request_builder<msg_base::get_Device::request>(
-                      ch->get_default_endpoint(),
-                      [self](auto ch, auto args) {
-                          self->handle_get_Device(std::move(args));
-                      })
-                      .on_channel()
-                      .make_request();
-        })
-        .unwrap()
-        .then([ch, self](auto& fut) {
-                  self->req_get_Device = fut.get();
-                  DVLOG(fractos::logging::SERVICE) << "SET req_get_Device";
-
-            return ch->make_request_builder<msg_base::connect::request>(
-                ch->get_default_endpoint(),
-                [self](auto ch, auto args) {
-                    self->handle_connect(ch, std::move(args));
-                })
-                .on_channel()
-                .make_request();
-        })
-        .unwrap()
         .then([ch, self](auto& fut) {
             self->req_connect = fut.get();
 
@@ -139,17 +110,12 @@ gpu_device_service::handle_connect(auto ch, auto args)
         << " error=" << wire::to_string(error)
         << " connect=" << core::to_string(req_connect)
         << " generic=" << core::to_string(req_generic)
-        << " get_driver_version=" << core::to_string(req_get_driver_version)
-        << " make_device=" << core::to_string(req_make_device)
-        << " get_device=" << core::to_string(req_get_Device)
         ;
 
     reqb_cont
         .set_imm(&msg::response::imms::error, error)
         .set_cap(&msg::response::caps::connect, req_connect)
         .set_cap(&msg::response::caps::generic, req_generic)
-        .set_cap(&msg::response::caps::make_device, req_make_device)
-        .set_cap(&msg::response::caps::get_device, req_get_Device)
         .on_channel()
         .invoke()
         .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
@@ -188,6 +154,9 @@ gpu_device_service::handle_generic(auto ch, auto args)
         HANDLE(init);
         break;
 
+    case srv::wire::Service::OP_DEVICE_GET:
+        HANDLE(device_get);
+        break;
     case srv::wire::Service::OP_DEVICE_GET_COUNT:
         HANDLE(device_get_count);
         break;
@@ -292,6 +261,54 @@ gpu_device_service::handle_init(auto ch, auto args)
 
 
 void
+gpu_device_service::handle_device_get(auto ch, auto args)
+{
+    METHOD(device_get);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT();
+
+    LOG(WARNING) << "TODO: move cuDeviceGet here";
+
+    auto self = _self.lock();
+
+    auto return_device = [this, self, ch](auto args, auto dev) {
+        auto error = wire::ERR_SUCCESS;
+        LOG_RES(method)
+            << " error=" << wire::to_string(error)
+            << " device=" << dev->device
+            << " make_context=" << core::to_string(dev->req_make_context)
+            << " destroy=" << core::to_string(dev->req_destroy);
+
+        ch->template make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, error)
+            .set_imm(&msg::response::imms::device, dev->device)
+            .set_cap(&msg::response::caps::make_context, dev->req_make_context)
+            .set_cap(&msg::response::caps::destroy, dev->req_destroy)
+            .on_channel()
+            .invoke()
+            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+    };
+
+    if (not _vdev) {
+        auto vdev = std::shared_ptr<gpu_Device>(gpu_Device::factory(args->imms.ordinal));
+        vdev->register_methods(ch)
+            .then([this, self, return_device, vdev, args=std::move(args)](auto& fut) mutable {
+                fut.get();
+
+                LOG(WARNING) << "TODO: track all devices atomically";
+                self->_vdev = vdev;
+
+                return_device(std::move(args), _vdev);
+            })
+            .as_callback();
+    } else {
+        return_device(std::move(args), _vdev);
+    }
+}
+
+void
 gpu_device_service::handle_device_get_count(auto ch, auto args)
 {
     METHOD(device_get_count);
@@ -350,88 +367,6 @@ gpu_device_service::handle_module_get_loading_mode(auto ch, auto args)
         .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
 }
 
-
-/*
- *  Actual handler of the make_device request
- *  Initialize a Device and assign caps to it
- *  Return this Device to the frontend service
- */
-void gpu_device_service::handle_make_device(auto args) {
-    using msg = ::service::compute::cuda::wire::Service::make_device;
-    
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        DLOG(ERROR) << "got request without continuation, ignoring";
-        return;
-    }
-
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
-
-    if (not args->has_exactly_args()) {
-        ch->make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-            .on_channel()
-            .invoke()
-            .as_callback();
-        return;
-    }
-
-    wire::endian::uint8_t value = args->imms.value;
-
-    auto self = _self.lock();
-
-    VLOG(fractos::logging::SERVICE) << "vdev value is: " << (uint64_t)value;
-
-    auto vdev = std::shared_ptr<gpu_Device>(gpu_Device::factory(value));
-
-    vdev->register_methods(ch)
-        .then([this, ch, self, vdev, args=std::move(args), value](auto& fut) {
-            fut.get();
-            _vdev = vdev;
-            // _vdev_map.insert({value, vdev});
-            ch->make_request_builder<msg::response>(args->caps.continuation)
-                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
-                .set_cap(&msg::response::caps::make_context, vdev->_req_make_context) // test
-                .set_cap(&msg::response::caps::destroy, vdev->_req_destroy)
-                .on_channel()
-                .invoke()
-                .as_callback();
-              })
-        .as_callback();
-
-}
-
-
-
-void gpu_device_service::handle_get_Device(auto args) {
-    // namespace msg_base = ::service::compute::cuda::wire::Service;
-    using msg = ::service::compute::cuda::wire::Service::get_Device;
-
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        LOG(ERROR) << "no continuation";
-        return;
-    }
-
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
-    auto vdev = _vdev;//_map[args->imms.value];
-
-    if (args->has_exactly_args() and
-        ch->has_object(vdev->_req_destroy).get()) {
-
-        ch->make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
-            .set_cap(&msg::response::caps::destroy, vdev->_req_destroy)
-            .on_channel()
-            .invoke()
-            .as_callback();
-
-    } else {
-        ch->make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-            .on_channel()
-            .invoke()
-            .as_callback();
-    }
-}
 
 std::string
 test::to_string(const gpu_device_service& obj)

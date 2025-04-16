@@ -11,6 +11,9 @@ std::shared_ptr<fractos::core::channel> get_channel_ptr();
 
 struct State {
     std::shared_ptr<fractos::service::compute::cuda::Service> service;
+
+    std::mutex devices_mutex;
+    std::list<std::shared_ptr<fractos::service::compute::cuda::Device>> devices;
 };
 
 State& get_state();

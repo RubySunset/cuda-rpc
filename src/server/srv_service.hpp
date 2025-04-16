@@ -21,13 +21,10 @@ namespace test {
     public:
     
         static std::shared_ptr<gpu_device_service> factory();
-    
+
         fractos::core::cap::request req_connect;
         fractos::core::cap::request req_generic;
-        fractos::core::cap::request req_get_driver_version;
-        fractos::core::cap::request req_make_device;
-        fractos::core::cap::request req_get_Device;
-    
+
         fractos::core::future<void> register_service(std::shared_ptr<fractos::core::channel> ch);
     
         void request_exit();
@@ -43,13 +40,11 @@ namespace test {
         void handle_get_driver_version(auto ch, auto args);
         void handle_init(auto ch, auto args);
 
+        void handle_device_get(auto ch, auto args);
         void handle_device_get_count(auto ch, auto args);
 
         void handle_module_get_loading_mode(auto ch, auto args);
 
-        void handle_make_device(auto args);
-        void handle_get_Device(auto args);
-    
     public:
         std::shared_ptr<void> _pimpl;
     

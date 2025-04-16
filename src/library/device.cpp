@@ -29,10 +29,20 @@ impl::Device::get(const srv::Device& obj)
     return *reinterpret_cast<impl::Device*>(obj._pimpl.get());
 }
 
-srv::Device::Device(std::shared_ptr<void> pimpl, fractos::wire::endian::uint8_t id)
+impl::Device::Device(std::shared_ptr<fractos::core::channel> channel,
+                     CUdevice device,
+                     fractos::core::cap::request req_make_context,
+                     fractos::core::cap::request req_destroy)
+    :ch(channel)
+    ,device(device)
+    ,req_make_context(std::move(req_make_context))
+    ,req_destroy(std::move(req_destroy))
+{
+}
+
+srv::Device::Device(std::shared_ptr<void> pimpl)
     :_pimpl(pimpl)
 {
-    DLOG(INFO) << "initialize device : " << id;
 }
 
 
@@ -44,6 +54,13 @@ srv::Device::~Device()
         // TODO: check why calling ::get() sometimes gets stuck
         destroy().as_callback();
     }
+}
+
+CUdevice
+srv::Device::get_device() const
+{
+    auto& pimpl = impl::Device::get(*this);
+    return pimpl.device;
 }
 
 core::future<std::shared_ptr<srv::Context>>

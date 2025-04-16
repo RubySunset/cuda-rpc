@@ -23,8 +23,6 @@ namespace fractos::service::compute::cuda::wire {
                 struct caps {
                     fractos::core::cap::request connect;
                     fractos::core::cap::request generic;
-                    fractos::core::cap::request make_device;
-                    fractos::core::cap::request get_device;
                 };
             };
         };
@@ -33,6 +31,7 @@ namespace fractos::service::compute::cuda::wire {
             OP_GET_DRIVER_VERSION,
             OP_INIT,
 
+            OP_DEVICE_GET,
             OP_DEVICE_GET_COUNT,
 
             OP_MODULE_GET_LOADING_MODE,
@@ -110,6 +109,28 @@ namespace fractos::service::compute::cuda::wire {
 
     namespace Service {
 
+        struct device_get {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint8_t ordinal;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t device;
+                } __attribute__ ((packed));
+                struct caps {
+                    fractos::core::cap::request make_context;
+                    fractos::core::cap::request destroy;
+                };
+            };
+        };
+
         struct device_get_count {
             struct request {
                 struct imms {
@@ -130,6 +151,9 @@ namespace fractos::service::compute::cuda::wire {
         };
 
     }
+
+    std::string to_string(const core::receive_args<Service::device_get::request>& req);
+    std::string to_string(const core::receive_args<Service::device_get::response>& resp);
 
     std::string to_string(const core::receive_args<Service::device_get_count::request>& req);
     std::string to_string(const core::receive_args<Service::device_get_count::response>& resp);
@@ -161,48 +185,6 @@ namespace fractos::service::compute::cuda::wire {
     std::string to_string(const core::receive_args<Service::module_get_loading_mode::request>& req);
     std::string to_string(const core::receive_args<Service::module_get_loading_mode::response>& resp);
 
-    namespace Service {
-
-        struct make_device {
-            struct request {
-                struct imms {
-                    fractos::wire::endian::uint8_t value;
-                } __attribute__((packed));
-                struct caps {
-                    fractos::core::cap::request continuation; 
-                };
-            };
-            struct response {
-                struct imms {
-                    fractos::wire::endian::uint8_t error;
-                } __attribute__ ((packed));
-                struct caps {
-                    fractos::core::cap::request make_context;
-                    fractos::core::cap::request destroy;
-                };
-            };
-        };
-
-        struct get_Device {
-            struct request {
-                struct imms {
-                    fractos::wire::endian::uint8_t value;
-                } __attribute__((packed));
-                struct caps {
-                    fractos::core::cap::request continuation; 
-                };
-            };
-            struct response {
-                struct imms {
-                    fractos::wire::endian::uint8_t error;
-                } __attribute__ ((packed));
-                struct caps {
-                    fractos::core::cap::request make_context;
-                    fractos::core::cap::request destroy;
-                };
-            };
-        };
-    }
 
     namespace Device {
         struct make_context {

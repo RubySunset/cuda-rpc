@@ -47,12 +47,10 @@ impl::Service::get(const srv::Service& obj)
 
 impl::Service::Service(std::shared_ptr<fractos::core::channel> ch,
                        fractos::core::cap::request req_connect,
-                       fractos::core::cap::request req_generic,
-                       fractos::core::cap::request req_make_device)
+                       fractos::core::cap::request req_generic)
     :ch(ch)
     ,req_connect(std::move(req_connect))
     ,req_generic(std::move(req_generic))
-    ,req_make_device(std::move(req_make_device))
 {
 }
 
@@ -139,8 +137,7 @@ srv::make_service(std::shared_ptr<core::channel> ch,
             auto pimpl_ = std::make_shared<impl::Service>(
                 ch,
                 std::move(args->caps.connect),
-                std::move(args->caps.generic),
-                std::move(args->caps.make_device));
+                std::move(args->caps.generic));
             pimpl_->self = pimpl_;
             auto pimpl = std::static_pointer_cast<void>(pimpl_);
             std::unique_ptr<Service> res(new Service{pimpl});
@@ -220,6 +217,41 @@ srv::Service::init(unsigned int flags)
 }
 
 
+core::future<std::shared_ptr<srv::Device>>
+srv::Service::device_get(int ordinal)
+{
+    METHOD(device_get);
+    LOG_REQ(method)
+        << " ordinal=" << ordinal;
+
+    auto& pimpl = impl::Service::get(*this);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+        .set_imm(&msg::request::imms::opcode, srv::wire::Service::OP_DEVICE_GET)
+        .set_imm(&msg::request::imms::ordinal, ordinal)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then([self=pimpl.self.lock(), ordinal](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            LOG_RES_PTR(method, self)
+                << wire::to_string(*args);
+            CHECK_RESP();
+
+            // get Device object
+            auto pimpl_ = std::make_shared<impl::Device>(
+                ch, args->imms.device,
+                std::move(args->caps.make_context),
+                std::move(args->caps.destroy));
+            pimpl_->self = pimpl_;
+            auto pimpl = static_pointer_cast<void>(pimpl_);
+            return std::make_shared<Device>(pimpl);
+        });
+}
+
 core::future<int>
 srv::Service::device_get_count()
 {
@@ -273,107 +305,4 @@ srv::Service::module_get_loading_mode()
 
             return static_cast<CUmoduleLoadingMode>(args->imms.mode.get());
         });
-}
-
-
-/*
- *  Make Device frontend function
- *  makes a request for make_device and sets the continuation of the response
- */
-core::future<std::shared_ptr<srv::Device>>
-srv::Service::make_device(uint8_t value)
-{
-    using msg = ::service::compute::cuda::wire::Service::make_device;
-
-    DVLOG(logging::SERVICE) << "Service::make_device <-";
-
-    auto& pimpl = impl::Service::get(*this);
-
-    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_make_device)
-        .set_imm(&msg::request::imms::value, value)
-        .set_cap(&msg::request::caps::continuation, resp)
-        .on_channel()
-        .invoke(resp) // wait for srv_handle
-        .unwrap()
-        .then([value](auto& fut) {
-            auto [ch, args] = fut.get();
-
-            if (not args->has_exactly_args()) {
-                // throw core::other_error("invalvalue response format for Service::make_device");
-                DVLOG(logging::SERVICE) << "Service::make_device ->"
-                <<" error= OTHER args";
-            }
-
-            DVLOG(logging::SERVICE) << "Service::make_device ->"
-                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
-            fractos::wire::error_raise_exception_maybe(args->imms.error);
-
-            // get Device object
-            std::shared_ptr<impl::Device> pimpl_(
-                new impl::Device{{}, ch, args->imms.error, 
-                        std::move(args->caps.make_context),
-                        std::move(args->caps.destroy)}
-                );
-            pimpl_->self = pimpl_;
-            auto pimpl = static_pointer_cast<void>(pimpl_);
-            std::shared_ptr<Device> res(new Device{pimpl, value});
-            return res;
-        });
-}
-
-
-/*
- *  Get published Device
- */
-core::future<std::shared_ptr<srv::Device>>
-srv::Service::get_Device(fractos::core::gns::service& gns, uint8_t value)
-{
-    using msg = ::service::compute::cuda::wire::Service::get_Device;
-
-    DVLOG(logging::SERVICE) << "Service::get_Device <-";
-
-    auto& pimpl = impl::Service::get(*this);
-
-    const std::string name = "get_vdev";
-    auto ch = pimpl.ch;
-
-    return gns.get_wait_for<core::cap::request>(ch, name, std::chrono::seconds{0})
-        .then([ch, name, value](auto& fut) {
-            core::cap::request get_vdev = std::move(fut.get());
-
-                auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
-                return ch->make_request_builder<msg::request>(get_vdev)
-                    .set_imm(&msg::request::imms::value, value)
-                    .set_cap(&msg::request::caps::continuation, resp)
-                    .on_channel()
-                    .invoke(resp)
-                    .unwrap()
-                    .then([ch, value](auto& fut) {
-                        auto [ch, args] = fut.get();
-
-                        if (not args->has_exactly_args()) {
-                            // throw core::other_error("invalvalue response format for Service::get_Device");
-                            DVLOG(logging::SERVICE) << "Service::get_Device ->"
-                                                << " error=OTHER args" ;
-                        }
-
-                        DVLOG(logging::SERVICE) << "Service::get_Device ->"
-                                                << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
-                        fractos::wire::error_raise_exception_maybe(args->imms.error);
-
-                        std::shared_ptr<impl::Device> pimpl_ (
-                            new impl::Device{{}, ch, args->imms.error, 
-                                    // move(args->caps.allocate_memory),
-                                    // move(args->caps.register_function),
-                                    std::move(args->caps.make_context),
-                                    std::move(args->caps.destroy)}
-                            ); 
-                        pimpl_->self = pimpl_;
-                        auto pimpl = static_pointer_cast<void>(pimpl_);
-                        std::shared_ptr<Device> res(new Device{pimpl, value});
-                        return res;
-                    });
-        })
-        .unwrap();
 }

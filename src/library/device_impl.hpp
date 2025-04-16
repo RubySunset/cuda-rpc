@@ -13,10 +13,15 @@ namespace impl {
         static Device& get(srv::Device& device);
         static const Device& get(const srv::Device& device);
 
+        Device(std::shared_ptr<fractos::core::channel> channel,
+               CUdevice device,
+               fractos::core::cap::request req_make_context,
+               fractos::core::cap::request req_destroy);
+
         std::weak_ptr<Device> self;
         std::shared_ptr<fractos::core::channel> ch;
 
-        fractos::wire::endian::uint8_t error;
+        const CUdevice device;
         fractos::core::cap::request req_make_context; // new
         // fractos::core::cap::request req_test;
         fractos::core::cap::request req_destroy;

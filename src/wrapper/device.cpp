@@ -7,6 +7,21 @@
 
 extern "C" [[gnu::visibility("default")]]
 CUresult
+cuDeviceGet(CUdevice* device, int  ordinal)
+{
+    auto& state = get_state();
+    LOG(WARNING) << "TODO: must keep a map of unique devices";
+    auto device_ptr = state.service->device_get(ordinal).get();
+    *device = device_ptr->get_device();
+    {
+        auto devices_lock = std::unique_lock(state.devices_mutex);
+        state.devices.push_back(device_ptr);
+    }
+    return CUDA_SUCCESS;
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
 cuDeviceGetCount(int* count)
 {
     auto& state = get_state();

@@ -91,6 +91,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             init(unsigned int flags);
 
 
+            // cuDeviceGet
+            [[nodiscard]] fractos::core::future<std::shared_ptr<Device>>
+            device_get(int ordinal);
+
             // cuDeviceGetCount
             [[nodiscard]] fractos::core::future<int>
             device_get_count();
@@ -100,19 +104,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] fractos::core::future<CUmoduleLoadingMode>
             module_get_loading_mode();
 
-
-            [[nodiscard]] fractos::core::future<std::shared_ptr<Device>> get_Device(
-                fractos::core::gns::service& gns, uint8_t id);
-
-            
-            /**
-             * @brief TODO: make_device with channel
-             * @brief Wrapper for cuDeviceGet()
-             */
-            // [[nodiscard]] core::future<std::shared_ptr<Device>>
-            // make_device(std::shared_ptr<core::channel> ch, uint64_t value);
-            [[nodiscard]] core::future<std::shared_ptr<Device>>
-            make_device(uint8_t value);
 
             /**
              * @brief Destroy Service connection, and all created objects
@@ -133,7 +124,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class Device {
         public:
-                                                                     
+
+            CUdevice get_device() const;
+
             /**
              * @brief TODO: transfer vector<CUctxCreateParams> through message
              * @brief Wrapper for cuCtxCreate_v4()
