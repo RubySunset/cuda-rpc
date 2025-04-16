@@ -121,9 +121,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
-            // Service();
-            // ~Service();
-            // // NOTE: not for public use
+            // NOTE: not for public use
             Service(std::shared_ptr<void> pimpl);
             std::shared_ptr<void> _pimpl;
         };
@@ -157,9 +155,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
-           Device(std::shared_ptr<void> pimpl, fractos::wire::endian::uint8_t id);
-           ~Device();
             // NOTE: not for public use
+            Device(std::shared_ptr<void> pimpl);
+            ~Device();
             std::shared_ptr<void> _pimpl;
         private:
 
