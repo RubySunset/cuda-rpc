@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
         });
     intr_handler.detach();
     
-    auto srv_published = gns->publish_named(ch, srv->req_make_device, name)
+    auto srv_published = gns->publish_named(ch, srv->req_connect, name)
         .get();
 
 
