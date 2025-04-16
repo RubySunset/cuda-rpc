@@ -27,9 +27,9 @@ namespace srv = fractos::service::compute::cuda;
 
 #define print_empty_imms()                                              \
     if (obj.imms_size() == 0) {                                         \
-        ss << "imms=<empty>";                                           \
+        ss << " imms=<empty>";                                           \
     } else {                                                            \
-        ss << "imms=<malformed: size=" << obj.imms_size() << ">";       \
+        ss << " imms=<malformed: size=" << obj.imms_size() << ">";       \
     }
 
 #define print_cap(name)                                                 \
@@ -46,9 +46,9 @@ namespace srv = fractos::service::compute::cuda;
 
 #define print_empty_caps()                                              \
     if (obj.caps_count() == 0) {                                        \
-        ss << "caps=<empty>";                                           \
+        ss << " caps=<empty>";                                           \
     } else {                                                            \
-        ss << "caps=<malformed: count=" << obj.caps_count() << ">";     \
+        ss << " caps=<malformed: count=" << obj.caps_count() << ">";     \
     }
 
 std::string
