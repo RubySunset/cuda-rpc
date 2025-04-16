@@ -137,10 +137,10 @@ gpu_device_service::handle_connect(auto ch, auto args)
 
     LOG_RES(method)
         << " error=" << wire::to_string(error)
-        << " connect=" << srv::wire::to_string(req_connect)
-        << " get_driver_version=" << srv::wire::to_string(req_get_driver_version)
-        << " make_device=" << srv::wire::to_string(req_make_device)
-        << " get_device=" << srv::wire::to_string(req_get_Device)
+        << " connect=" << core::to_string(req_connect)
+        << " get_driver_version=" << core::to_string(req_get_driver_version)
+        << " make_device=" << core::to_string(req_make_device)
+        << " get_device=" << core::to_string(req_get_Device)
         ;
 
     reqb_cont

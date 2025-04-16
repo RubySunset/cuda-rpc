@@ -73,7 +73,7 @@ srv::make_service(std::shared_ptr<core::channel> ch,
         .then([ch, name](auto& fut) {
             auto req = fut.get();
             LOG_OP(method)
-                << " -> " << wire::to_string(req);
+                << " -> " << core::to_string(req);
             return make_service(ch, req);
         })
         .unwrap();
@@ -87,7 +87,7 @@ srv::make_service(std::shared_ptr<core::channel> ch,
     using msg = srv::wire::Service::connect;
 
     LOG_OP(method)
-        << " connect=" << wire::to_string(connect)
+        << " connect=" << core::to_string(connect)
         << " <- {}";
 
     auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());

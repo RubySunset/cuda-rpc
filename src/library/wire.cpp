@@ -34,7 +34,7 @@ namespace srv = fractos::service::compute::cuda;
 
 #define print_cap(name)                                                 \
     if (obj.has_cap(&msg::caps_type:: name)) {                          \
-        ss << " caps." #name "=" << to_string(obj.caps. name);          \
+        ss << " caps." #name "=" << core::to_string(obj.caps. name);    \
     } else {                                                            \
         ss << " caps." #name "=<missing>";                              \
     }
@@ -50,24 +50,6 @@ namespace srv = fractos::service::compute::cuda;
     } else {                                                            \
         ss << "caps=<malformed: count=" << obj.caps_count() << ">";     \
     }
-
-std::string
-srv::wire::to_string(const core::cap::generic& obj)
-{
-    std::stringstream ss;
-
-    if (obj.is_type(core::cap::memory_tag)) {
-        ss << "cap::memory(" << obj.get_cid() << ")";
-    } else if (obj.is_type(core::cap::request_tag)) {
-        ss << "cap::request(" << obj.get_cid() << ")";
-    } else if (obj.is_type(core::cap::endpoint_tag)) {
-        ss << "cap::endpoint(" << obj.get_cid() << ")";
-    } else {
-        ss << "cap::null(" << obj.get_cid() << ")";
-    }
-
-    return ss.str();
-}
 
 std::string
 srv::wire::to_string(const core::receive_args<srv::wire::Service::connect::request>& obj)
