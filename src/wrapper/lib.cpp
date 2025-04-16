@@ -99,6 +99,49 @@ get_state()
     return *state;
 }
 
+std::shared_ptr<fractos::service::compute::cuda::Device>
+State::get_device_ordinal(int ordinal)
+{
+    {
+        auto devices_lock = std::shared_lock(devices_mutex);
+        auto it = ordinal_devices.find(ordinal);
+        if (it != ordinal_devices.end()) {
+            return it->second;
+        }
+    }
+
+    {
+        auto devices_lock = std::unique_lock(devices_mutex);
+
+        auto it = ordinal_devices.find(ordinal);
+        if (it != ordinal_devices.end()) {
+            return it->second;
+        }
+
+        auto device_ptr = service->device_get(ordinal).get();
+
+        auto res1 = ordinal_devices.insert(std::make_pair(ordinal, device_ptr));
+        CHECK(res1.second);
+
+        auto res2 = devices.insert(std::make_pair(device_ptr->get_device(), device_ptr));
+        CHECK(res2.second);
+
+        return device_ptr;
+    }
+}
+
+std::shared_ptr<fractos::service::compute::cuda::Device>
+State::get_device(CUdevice device)
+{
+    auto devices_lock = std::shared_lock(devices_mutex);
+    auto it = devices.find(device);
+    if (it != devices.end()) {
+        return it->second;
+    } else {
+        return nullptr;
+    }
+}
+
 
 // * symbol management
 
