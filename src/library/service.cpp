@@ -89,7 +89,10 @@ srv::make_service(std::shared_ptr<core::channel> ch,
             auto req = fut.get();
             LOG_OP(method)
                 << " -> " << core::to_string(req);
-            return make_service(ch, req);
+            return make_service(ch, req)
+                .then([req=std::move(req)](auto& fut) {
+                    return fut.get();
+                });
         })
         .unwrap();
 }
