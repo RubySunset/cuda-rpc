@@ -28,4 +28,5 @@ default.cpp:
 	$(abs_srcdir)/cuda-generate-funcs.sh $(LIBCUDA) $@
 
 install-exec-hook:
-	echo	ln -s $(libdir)/libfractos-service-compute-cuda-wrapper.so $(libdir)/libcuda.so.1
+	$(RM) $(libdir)/libcuda.so.1
+	ln -s $(libdir)/libfractos-service-compute-cuda-wrapper.so $(libdir)/libcuda.so.1
