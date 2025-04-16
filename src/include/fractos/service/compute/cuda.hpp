@@ -157,7 +157,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             bool _destroyed;
         
         };
-        // std::string to_string(const Device& obj);
+
+        std::string to_string(const Device& obj);
 
         /**
          * @brief Wrapper for CUcontext operations

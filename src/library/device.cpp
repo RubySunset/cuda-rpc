@@ -16,6 +16,13 @@ namespace srv = fractos::service::compute::cuda;
 
 
 std::string
+srv::to_string(const srv::Device& obj)
+{
+    auto& pimpl = impl::Device::get(obj);
+    return impl::to_string(pimpl);
+}
+
+std::string
 impl::to_string(const impl::Device& obj)
 {
     std::stringstream ss;
