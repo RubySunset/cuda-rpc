@@ -179,35 +179,10 @@ gpu_device_service::handle_generic(auto ch, auto args)
 #undef HANDLE
 }
 
-template<class T>
-struct receive_args_base_type
-{
-    using type = std::remove_cvref_t<T>::element_type::base_type;
-};
-
-#define METHOD(name)                                                    \
-    static const std::string method = "handle_" #name;                  \
-    using msg = srv::wire::Service:: name;                              \
-    {                                                                   \
-        using args_type = receive_args_base_type<decltype(args)>::type; \
-        static_assert(std::is_same<msg::request, args_type>::value);    \
-    }
-
-#define CHECK_ARGS_EXACT()                                              \
-    if (not args->has_exactly_args()) {                                 \
-        LOG_RES(method) << " error=ERR_OTHER";                          \
-        reqb_cont                                                       \
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)      \
-            .on_channel()                                               \
-            .invoke()                                                   \
-            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring"); \
-        return;                                                         \
-    }
-
 void
 gpu_device_service::handle_get_driver_version(auto ch, auto args)
 {
-    METHOD(get_driver_version);
+    METHOD(Service, get_driver_version);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
@@ -236,7 +211,7 @@ gpu_device_service::handle_get_driver_version(auto ch, auto args)
 void
 gpu_device_service::handle_init(auto ch, auto args)
 {
-    METHOD(init);
+    METHOD(Service, init);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
@@ -263,7 +238,7 @@ gpu_device_service::handle_init(auto ch, auto args)
 void
 gpu_device_service::handle_device_get(auto ch, auto args)
 {
-    METHOD(device_get);
+    METHOD(Service, device_get);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
@@ -311,7 +286,7 @@ gpu_device_service::handle_device_get(auto ch, auto args)
 void
 gpu_device_service::handle_device_get_count(auto ch, auto args)
 {
-    METHOD(device_get_count);
+    METHOD(Service, device_get_count);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
@@ -341,7 +316,7 @@ gpu_device_service::handle_device_get_count(auto ch, auto args)
 void
 gpu_device_service::handle_module_get_loading_mode(auto ch, auto args)
 {
-    METHOD(module_get_loading_mode);
+    METHOD(Service, module_get_loading_mode);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);

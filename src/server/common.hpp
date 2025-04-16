@@ -29,3 +29,28 @@
               }                                                         \
          })                                                             \
     .as_callback()
+
+template<class T>
+struct receive_args_base_type
+{
+    using type = std::remove_cvref_t<T>::element_type::base_type;
+};
+
+#define METHOD(cls, name)                                               \
+    static const std::string method = "handle_" #name;                  \
+    using msg = srv::wire:: cls :: name;                                \
+    {                                                                   \
+        using args_type = receive_args_base_type<decltype(args)>::type; \
+        static_assert(std::is_same<msg::request, args_type>::value);    \
+    }
+
+#define CHECK_ARGS_EXACT()                                              \
+    if (not args->has_exactly_args()) {                                 \
+        LOG_RES(method) << " error=ERR_OTHER";                          \
+        reqb_cont                                                       \
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)      \
+            .on_channel()                                               \
+            .invoke()                                                   \
+            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring"); \
+        return;                                                         \
+    }

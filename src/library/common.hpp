@@ -17,3 +17,26 @@
     LOG_METHOD_PTR(method, ptr) << " <-"
 #define LOG_RES_PTR(method, ptr)                \
     LOG_METHOD_PTR(method, ptr) << " ->"
+
+#define METHOD(cls, name)                                               \
+    static const std::string method = #name;                            \
+    using msg = ::service::compute::cuda::wire:: cls :: name;
+
+#define CHECK_ARGS_EXACT()                                              \
+    if (not args->has_exactly_args()) {                                 \
+        throw core::other_error("invalid response format for " + method); \
+    }                                                                   \
+    CHECK_ARGS_ERROR()
+
+#define CHECK_ARGS_CAPS_EXACT()                                         \
+    if (not args->has_exactly_caps()) {                                 \
+        throw core::other_error("invalid response format for " + method); \
+    }
+
+#define CHECK_ARGS_IMMS_MIN()                                           \
+    if (not args->has_all_imms()) {                                     \
+        throw core::other_error("invalid response format for " + method); \
+    }
+
+#define CHECK_ARGS_ERROR()                                              \
+    fractos::wire::error_raise_exception_maybe(args->imms.error);

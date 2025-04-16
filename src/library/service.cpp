@@ -153,20 +153,10 @@ srv::Service::get_connect() const
     return pimpl.req_connect;
 }
 
-#define METHOD(name)                                                    \
-    static const std::string method = #name;                            \
-    using msg = ::service::compute::cuda::wire::Service:: name;
-
-#define CHECK_RESP()                                                    \
-    if (not args->has_exactly_args()) {                                 \
-        throw core::other_error("invalid response format for " + method); \
-    }                                                                   \
-    fractos::wire::error_raise_exception_maybe(args->imms.error);
-
 core::future<int>
 srv::Service::get_driver_version()
 {
-    METHOD(get_driver_version);
+    METHOD(Service, get_driver_version);
     LOG_REQ(method)
         << " {}";
 
@@ -184,7 +174,7 @@ srv::Service::get_driver_version()
 
             LOG_RES_PTR(method, self)
                 << wire::to_string(*args);
-            CHECK_RESP();
+            CHECK_ARGS_EXACT();
 
             return args->imms.value.get();
         });
@@ -193,7 +183,7 @@ srv::Service::get_driver_version()
 core::future<void>
 srv::Service::init(unsigned int flags)
 {
-    METHOD(init);
+    METHOD(Service, init);
     LOG_REQ(method)
         << " flags=" << flags;
 
@@ -212,7 +202,7 @@ srv::Service::init(unsigned int flags)
 
             LOG_RES_PTR(method, self)
                 << wire::to_string(*args);
-            CHECK_RESP();
+            CHECK_ARGS_EXACT();
         });
 }
 
@@ -220,7 +210,7 @@ srv::Service::init(unsigned int flags)
 core::future<std::shared_ptr<srv::Device>>
 srv::Service::device_get(int ordinal)
 {
-    METHOD(device_get);
+    METHOD(Service, device_get);
     LOG_REQ(method)
         << " ordinal=" << ordinal;
 
@@ -239,7 +229,7 @@ srv::Service::device_get(int ordinal)
 
             LOG_RES_PTR(method, self)
                 << wire::to_string(*args);
-            CHECK_RESP();
+            CHECK_ARGS_EXACT();
 
             // get Device object
             auto pimpl_ = std::make_shared<impl::Device>(
@@ -255,7 +245,7 @@ srv::Service::device_get(int ordinal)
 core::future<int>
 srv::Service::device_get_count()
 {
-    METHOD(device_get_count);
+    METHOD(Service, device_get_count);
     LOG_REQ(method)
         << " {}";
 
@@ -273,7 +263,7 @@ srv::Service::device_get_count()
 
             LOG_RES_PTR(method, self)
                 << wire::to_string(*args);
-            CHECK_RESP();
+            CHECK_ARGS_EXACT();
 
             return args->imms.count.get();
         });
@@ -283,7 +273,7 @@ srv::Service::device_get_count()
 core::future<CUmoduleLoadingMode>
 srv::Service::module_get_loading_mode()
 {
-    METHOD(module_get_loading_mode);
+    METHOD(Service, module_get_loading_mode);
     LOG_REQ(method)
         << " {}";
 
@@ -301,7 +291,7 @@ srv::Service::module_get_loading_mode()
 
             LOG_RES_PTR(method, self)
                 << wire::to_string(*args);
-            CHECK_RESP();
+            CHECK_ARGS_EXACT();
 
             return static_cast<CUmoduleLoadingMode>(args->imms.mode.get());
         });
