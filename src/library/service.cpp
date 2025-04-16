@@ -15,6 +15,14 @@ using namespace fractos;
 namespace srv = fractos::service::compute::cuda;
 
 
+std::string
+impl::to_string(const impl::Service& obj)
+{
+    std::stringstream ss;
+    ss << "cuda::Service(" << &obj << ")";
+    return ss.str();
+}
+
 inline
 impl::Service&
 impl::Service::get(srv::Service& obj)

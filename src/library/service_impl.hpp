@@ -22,4 +22,6 @@ namespace impl {
         fractos::core::cap::request req_make_device;
     };
 
+    std::string to_string(const Service& obj);
+
 }
