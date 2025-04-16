@@ -190,6 +190,38 @@ srv::Service::get_driver_version()
         });
 }
 
+core::future<void>
+srv::Service::init(unsigned int flags)
+{
+    static const std::string method = "init";
+    using msg = ::service::compute::cuda::wire::Service::init;
+
+    LOG_REQ(method)
+        << " flags=" << flags;
+
+    auto& pimpl = impl::Service::get(*this);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+        .set_imm(&msg::request::imms::opcode, srv::wire::Service::OP_INIT)
+        .set_imm(&msg::request::imms::flags, flags)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then([self=pimpl.self.lock()](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            LOG_RES_PTR(method, self)
+                << wire::to_string(*args);
+
+            if (not args->has_exactly_args()) {
+                throw core::other_error("invalid response format for " + method);
+            }
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
+        });
+}
+
 
 /*
  *  Make Device frontend function

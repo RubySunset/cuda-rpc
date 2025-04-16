@@ -191,6 +191,10 @@ gpu_device_service::handle_generic(auto ch, auto args)
     };
 
     switch (opcode) {
+    case srv::wire::Service::OP_INIT:
+        using T = srv::wire::Service::init::request;
+        handle_init(ch, reinterpreted.template operator()<T>(std::move(args)));
+        break;
     default:
         LOG_OP(method)
             << " [error] invalid opcode";
@@ -248,6 +252,57 @@ gpu_device_service::handle_get_driver_version(auto ch, auto args)
     reqb_cont
         .set_imm(&msg::response::imms::error, error)
         .set_imm(&msg::response::imms::value, version)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+}
+
+template<class T>
+struct receive_args_base_type
+{
+    using type = std::remove_cvref_t<T>::element_type::base_type;
+};
+
+void
+gpu_device_service::handle_init(auto ch, auto args)
+{
+    static const std::string method = "handle_init";
+    using msg = srv::wire::Service::init;
+    {
+        using args_type = receive_args_base_type<decltype(args)>::type;
+        static_assert(std::is_same<msg::request, args_type>::value);
+    }
+
+    LOG_REQ(method)
+        << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+
+    if (not args->has_exactly_args()) {
+        LOG_RES(method)
+            << " error=ERR_OTHER";
+
+        reqb_cont
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .on_channel()
+            .invoke()
+            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+
+        return;
+    }
+
+    auto res = cuInit(args->imms.flags);
+
+    auto error = wire::ERR_SUCCESS;
+    if (res != CUDA_SUCCESS) {
+        error = wire::ERR_OTHER;
+    }
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error);
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
         .on_channel()
         .invoke()
         .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");

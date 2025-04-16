@@ -86,6 +86,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] fractos::core::future<int>
             get_driver_version();
 
+            // cuInit
+            [[nodiscard]] fractos::core::future<void>
+            init(unsigned int flags);
+
             [[nodiscard]] fractos::core::future<std::shared_ptr<Device>> get_Device(
                 fractos::core::gns::service& gns, uint8_t id);
 

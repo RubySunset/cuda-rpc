@@ -71,6 +71,25 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
 
+        struct init {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint64_t flags;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
+
         struct make_device {
             struct request {
                 struct imms {
@@ -117,6 +136,9 @@ namespace fractos::service::compute::cuda::wire {
 
     std::string to_string(const core::receive_args<Service::get_driver_version::request>& req);
     std::string to_string(const core::receive_args<Service::get_driver_version::response>& resp);
+
+    std::string to_string(const core::receive_args<Service::init::request>& req);
+    std::string to_string(const core::receive_args<Service::init::response>& resp);
 
     namespace Device {
         struct make_context {

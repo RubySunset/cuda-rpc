@@ -115,3 +115,34 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::get_driver_ver
 
     return ss.str();
 }
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Service::init::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(flags);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Service::init::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_extra_imm_error();
+
+    print_empty_caps();
+
+    return ss.str();
+}
