@@ -14,6 +14,7 @@ lib_LTLIBRARIES += libfractos-service-compute-cuda-wrapper.la
 nodist_libfractos_service_compute_cuda_wrapper_la_SOURCES = default.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES =
 libfractos_service_compute_cuda_wrapper_la_SOURCES += lib.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += version.cpp
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS =
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS += $(AM_LDFLAGS)
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS += ../library/libfractos-service-compute-cuda.la
