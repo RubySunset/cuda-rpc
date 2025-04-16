@@ -6,6 +6,24 @@
 
 namespace fractos::service::compute::cuda::wire {
 
+    struct generic {
+        struct request {
+            struct imms {
+                fractos::wire::endian::uint64_t opcode;
+            } __attribute__((packed));
+            struct caps {
+                fractos::core::cap::request continuation;
+            };
+        };
+        struct response {
+            struct imms {
+                fractos::wire::endian::uint8_t error;
+            } __attribute__ ((packed));
+            struct caps {
+            };
+        };
+    };
+
     namespace Service {
 
         struct connect {
@@ -39,23 +57,7 @@ namespace fractos::service::compute::cuda::wire {
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
 
-        struct generic {
-            struct request {
-                struct imms {
-                    fractos::wire::endian::uint64_t opcode;
-                } __attribute__((packed));
-                struct caps {
-                    fractos::core::cap::request continuation;
-                };
-            };
-            struct response {
-                struct imms {
-                    fractos::wire::endian::uint8_t error;
-                } __attribute__ ((packed));
-                struct caps {
-                };
-            };
-        };
+        using generic = wire::generic;
 
         struct get_driver_version {
             struct request {
