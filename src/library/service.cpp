@@ -156,13 +156,22 @@ srv::Service::get_connect() const
     return pimpl.req_connect;
 }
 
+#define METHOD(name)                                                    \
+    static const std::string method = #name;                            \
+    using msg = ::service::compute::cuda::wire::Service:: name;
+
+#define CHECK_RESP()                                                    \
+    if (not args->has_exactly_args()) {                                 \
+        throw core::other_error("invalid response format for " + method); \
+    }                                                                   \
+    fractos::wire::error_raise_exception_maybe(args->imms.error);
+
 core::future<int>
 srv::Service::get_driver_version()
 {
-    static const std::string method = "get_driver_version";
-    using msg = ::service::compute::cuda::wire::Service::get_driver_version;
-
-    LOG_REQ(method) << " {}";
+    METHOD(get_driver_version);
+    LOG_REQ(method)
+        << " {}";
 
     auto& pimpl = impl::Service::get(*this);
 
@@ -178,11 +187,7 @@ srv::Service::get_driver_version()
 
             LOG_RES_PTR(method, self)
                 << wire::to_string(*args);
-
-            if (not args->has_exactly_args()) {
-                throw core::other_error("invalid response format for " + method);
-            }
-            fractos::wire::error_raise_exception_maybe(args->imms.error);
+            CHECK_RESP();
 
             return args->imms.value.get();
         });
@@ -191,9 +196,7 @@ srv::Service::get_driver_version()
 core::future<void>
 srv::Service::init(unsigned int flags)
 {
-    static const std::string method = "init";
-    using msg = ::service::compute::cuda::wire::Service::init;
-
+    METHOD(init);
     LOG_REQ(method)
         << " flags=" << flags;
 
@@ -212,11 +215,7 @@ srv::Service::init(unsigned int flags)
 
             LOG_RES_PTR(method, self)
                 << wire::to_string(*args);
-
-            if (not args->has_exactly_args()) {
-                throw core::other_error("invalid response format for " + method);
-            }
-            fractos::wire::error_raise_exception_maybe(args->imms.error);
+            CHECK_RESP();
         });
 }
 

@@ -163,12 +163,11 @@ gpu_device_service::handle_generic(auto ch, auto args)
 
     auto opcode = srv::wire::Service::OP_INVALID;
 
-    if (not args->has_imm(&msg::request::imms::opcode)
-        and not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
         LOG_OP(method)
             << " [error] request without continuation, ignoring";
         return;
-    } else {
+    } else if (args->has_imm(&msg::request::imms::opcode)) {
         opcode = static_cast<srv::wire::Service::generic_opcode>(args->imms.opcode.get());
     }
 
@@ -177,12 +176,16 @@ gpu_device_service::handle_generic(auto ch, auto args)
         return std::unique_ptr<ptr>(reinterpret_cast<ptr*>(args.release()));
     };
 
+#define HANDLE(name) \
+    handle_ ## name(ch, reinterpreted.template operator()<srv::wire::Service:: name ::request>(std::move(args)))
+
     switch (opcode) {
     case srv::wire::Service::OP_GET_DRIVER_VERSION:
-        handle_get_driver_version(ch, reinterpreted.template operator()<srv::wire::Service::get_driver_version::request>(std::move(args)));
+        HANDLE(get_driver_version);
         break;
+
     case srv::wire::Service::OP_INIT:
-        handle_init(ch, reinterpreted.template operator()<srv::wire::Service::init::request>(std::move(args)));
+        HANDLE(init);
         break;
     default:
         LOG_OP(method)
@@ -194,6 +197,8 @@ gpu_device_service::handle_generic(auto ch, auto args)
             .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
         break;
     }
+
+#undef HANDLE
 }
 
 template<class T>
@@ -201,6 +206,17 @@ struct receive_args_base_type
 {
     using type = std::remove_cvref_t<T>::element_type::base_type;
 };
+
+#define CHECK_ARGS_EXACT()                                              \
+    if (not args->has_exactly_args()) {                                 \
+        LOG_RES(method) << " error=ERR_OTHER";                          \
+        reqb_cont                                                       \
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)      \
+            .on_channel()                                               \
+            .invoke()                                                   \
+            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring"); \
+        return;                                                         \
+    }
 
 void
 gpu_device_service::handle_get_driver_version(auto ch, auto args)
@@ -212,29 +228,10 @@ gpu_device_service::handle_get_driver_version(auto ch, auto args)
         static_assert(std::is_same<msg::request, args_type>::value);
     }
 
-    LOG_REQ(method)
-        << srv::wire::to_string(*args);
-
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        LOG_RES(method)
-            << " [error] request without continuation, ignoring";
-        return;
-    }
+    LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-
-    if (not args->has_exactly_args()) {
-        LOG_RES(method)
-            << " error=ERR_OTHER";
-
-        reqb_cont
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-            .on_channel()
-            .invoke()
-            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
-
-        return;
-    }
+    CHECK_ARGS_EXACT();
 
     int version;
     auto res = cuDriverGetVersion(&version);
@@ -266,23 +263,10 @@ gpu_device_service::handle_init(auto ch, auto args)
         static_assert(std::is_same<msg::request, args_type>::value);
     }
 
-    LOG_REQ(method)
-        << srv::wire::to_string(*args);
+    LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-
-    if (not args->has_exactly_args()) {
-        LOG_RES(method)
-            << " error=ERR_OTHER";
-
-        reqb_cont
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-            .on_channel()
-            .invoke()
-            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
-
-        return;
-    }
+    CHECK_ARGS_EXACT();
 
     auto res = cuInit(args->imms.flags);
 
