@@ -187,6 +187,11 @@ gpu_device_service::handle_generic(auto ch, auto args)
     case srv::wire::Service::OP_INIT:
         HANDLE(init);
         break;
+
+    case srv::wire::Service::OP_MODULE_GET_LOADING_MODE:
+        HANDLE(module_get_loading_mode);
+        break;
+
     default:
         LOG_OP(method)
             << " [error] invalid opcode";
@@ -280,6 +285,41 @@ gpu_device_service::handle_init(auto ch, auto args)
 
     reqb_cont
         .set_imm(&msg::response::imms::error, error)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+}
+
+void
+gpu_device_service::handle_module_get_loading_mode(auto ch, auto args)
+{
+    static const std::string method = "handle_module_get_loading_mode";
+    using msg = srv::wire::Service::module_get_loading_mode;
+    {
+        using args_type = receive_args_base_type<decltype(args)>::type;
+        static_assert(std::is_same<msg::request, args_type>::value);
+    }
+
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT();
+
+    CUmoduleLoadingMode mode;
+    auto res = cuModuleGetLoadingMode(&mode);
+
+    auto error = wire::ERR_SUCCESS;
+    if (res != CUDA_SUCCESS) {
+        error = wire::ERR_OTHER;
+    }
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " mode=" << std::to_string(mode);
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::mode, mode)
         .on_channel()
         .invoke()
         .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");

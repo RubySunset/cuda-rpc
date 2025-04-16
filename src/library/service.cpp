@@ -219,6 +219,33 @@ srv::Service::init(unsigned int flags)
         });
 }
 
+core::future<CUmoduleLoadingMode>
+srv::Service::module_get_loading_mode()
+{
+    METHOD(module_get_loading_mode);
+    LOG_REQ(method)
+        << " {}";
+
+    auto& pimpl = impl::Service::get(*this);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+        .set_imm(&msg::request::imms::opcode, srv::wire::Service::OP_MODULE_GET_LOADING_MODE)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then([self=pimpl.self.lock()](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            LOG_RES_PTR(method, self)
+                << wire::to_string(*args);
+            CHECK_RESP();
+
+            return static_cast<CUmoduleLoadingMode>(args->imms.mode.get());
+        });
+}
+
 
 /*
  *  Make Device frontend function

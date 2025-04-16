@@ -41,6 +41,9 @@ namespace test {
         void handle_generic(auto ch, auto args);
         void handle_get_driver_version(auto ch, auto args);
         void handle_init(auto ch, auto args);
+
+        void handle_module_get_loading_mode(auto ch, auto args);
+
         void handle_make_device(auto args);
         void handle_get_Device(auto args);
     
