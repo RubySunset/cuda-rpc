@@ -1,8 +1,103 @@
+#include <fractos/core/controller_config.hpp>
+#include <fractos/core/gns.hpp>
+#include <fractos/core/process.hpp>
+#include <fractos/core/process_config.hpp>
+#include <cstdlib>
 #include <cuda.h>
 #include <dlfcn.h>
+#include <fractos/service/compute/cuda.hpp>
 #include <glog/logging.h>
+#include <lib.hpp>
 #include <link.h>
 #include <unordered_map>
+
+
+// * FractOS objects
+
+static std::mutex fractos_mutex;
+static std::shared_ptr<fractos::core::process> process;
+static std::shared_ptr<fractos::core::channel> channel;
+
+std::string
+get_env(std::string env_name, std::string default_str = "")
+{
+    auto res = default_str;
+    auto env_val = secure_getenv(env_name.c_str());
+    if (env_val) {
+        res = env_val;
+    }
+    return res;
+}
+
+fractos::core::process&
+get_process()
+{
+    if (not process) [[unlikely]] {
+        auto controller_conf = fractos::core::parse_controller_config(
+            get_env("FRACTOS_SERVICE_COMPUTE_CUDA_CONTROLLER"));
+        auto process_conf = fractos::core::parse_process_config(
+            get_env("FRACTOS_SERVICE_COMPUTE_CUDA_PROCESS"));
+
+        auto lock = std::unique_lock(fractos_mutex);
+        if (not process) {
+            process = fractos::core::make_process(controller_conf, process_conf).get();
+        }
+    }
+
+    DCHECK(process);
+    return *process;
+}
+
+std::shared_ptr<fractos::core::channel>
+get_channel_ptr()
+{
+    if (not channel) [[unlikely]] {
+        auto process = get_process();
+        auto channel_conf = fractos::core::parse_channel_config(
+            get_env("FRACTOS_SERVICE_COMPUTE_CUDA_CHANNEL"));
+
+        auto lock = std::unique_lock(fractos_mutex);
+        if (not channel) {
+            channel = process.make_channel(channel_conf).get();
+        }
+    }
+
+    DCHECK(channel);
+    return channel;
+}
+
+fractos::core::channel&
+get_channel()
+{
+    return *get_channel_ptr();
+}
+
+
+// * service object
+
+static std::mutex state_mutex;
+static std::shared_ptr<State> state;
+
+State&
+get_state()
+{
+    if (not state) [[unlikely]] {
+        auto ch = get_channel_ptr();
+        auto gns = fractos::core::gns::make_service();
+
+        auto name = get_env("FRACTOS_SERVICE_COMPUTE_CUDA_NAME",
+                            "fractos::service::compute::cuda");
+
+        auto lock = std::unique_lock(state_mutex);
+        if (not state) {
+            state = std::make_shared<State>();
+            state->service = fractos::service::compute::cuda::make_service(ch, *gns, name).get();
+        }
+    }
+
+    DCHECK(state);
+    return *state;
+}
 
 
 // * symbol management

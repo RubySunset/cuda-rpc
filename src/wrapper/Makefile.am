@@ -11,10 +11,12 @@ AM_LDFLAGS += $(PKG_LIBS)
 AM_LDFLAGS += $(CUDA_LIBS)
 
 lib_LTLIBRARIES += libfractos-service-compute-cuda-wrapper.la
+nodist_libfractos_service_compute_cuda_wrapper_la_SOURCES = default.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES =
-nodist_libfractos_service_compute_cuda_wrapper_la_SOURCES =
 libfractos_service_compute_cuda_wrapper_la_SOURCES += lib.cpp
-nodist_libfractos_service_compute_cuda_wrapper_la_SOURCES += default.cpp
+libfractos_service_compute_cuda_wrapper_la_LDFLAGS =
+libfractos_service_compute_cuda_wrapper_la_LDFLAGS += $(AM_LDFLAGS)
+libfractos_service_compute_cuda_wrapper_la_LDFLAGS += ../library/libfractos-service-compute-cuda.la
 
 CLEANFILES = default.cpp
 BUILT_SOURCES =
