@@ -29,4 +29,6 @@ namespace impl {
         bool destroyed;
     };
 
+    std::string to_string(const Device& obj);
+
 }
