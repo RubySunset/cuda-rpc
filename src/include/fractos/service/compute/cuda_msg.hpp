@@ -23,7 +23,6 @@ namespace fractos::service::compute::cuda::wire {
                 struct caps {
                     fractos::core::cap::request connect;
                     fractos::core::cap::request generic;
-                    fractos::core::cap::request get_driver_version;
                     fractos::core::cap::request make_device;
                     fractos::core::cap::request get_device;
                 };
@@ -31,6 +30,7 @@ namespace fractos::service::compute::cuda::wire {
         };
 
         enum generic_opcode : uint64_t {
+            OP_GET_DRIVER_VERSION,
             OP_INIT,
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
@@ -56,6 +56,7 @@ namespace fractos::service::compute::cuda::wire {
         struct get_driver_version {
             struct request {
                 struct imms {
+                    fractos::wire::endian::uint64_t opcode;
                 } __attribute__((packed));
                 struct caps {
                     fractos::core::cap::request continuation;

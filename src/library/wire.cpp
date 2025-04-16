@@ -77,7 +77,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::connect::respo
     print_extra_imm_error();
 
     print_cap(connect);
-    print_cap(get_driver_version);
+    print_cap(generic);
     print_cap(make_device);
     print_cap(get_device);
     print_extra_cap_error();
@@ -92,7 +92,8 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::get_driver_ver
 
     std::stringstream ss;
 
-    print_empty_imms();
+    print_imm_identity(opcode);
+    print_extra_imm_error();
 
     print_cap(continuation);
     print_extra_cap_error();
@@ -123,6 +124,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::init::request>
 
     std::stringstream ss;
 
+    print_imm_identity(opcode);
     print_imm_identity(flags);
     print_extra_imm_error();
 

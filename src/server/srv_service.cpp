@@ -77,18 +77,6 @@ gpu_device_service::register_service(std::shared_ptr<core::channel> ch)
                   self->req_get_Device = fut.get();
                   DVLOG(fractos::logging::SERVICE) << "SET req_get_Device";
 
-                  return ch->make_request_builder<msg_base::get_driver_version::request>(
-                      ch->get_default_endpoint(),
-                      [self](auto ch, auto args) {
-                          self->handle_get_driver_version(ch, std::move(args));
-                      })
-                      .on_channel()
-                      .make_request();
-              })
-        .unwrap()
-        .then([ch, self](auto& fut) {
-            self->req_get_driver_version = fut.get();
-
             return ch->make_request_builder<msg_base::connect::request>(
                 ch->get_default_endpoint(),
                 [self](auto ch, auto args) {
@@ -160,7 +148,6 @@ gpu_device_service::handle_connect(auto ch, auto args)
         .set_imm(&msg::response::imms::error, error)
         .set_cap(&msg::response::caps::connect, req_connect)
         .set_cap(&msg::response::caps::generic, req_generic)
-        .set_cap(&msg::response::caps::get_driver_version, req_get_driver_version)
         .set_cap(&msg::response::caps::make_device, req_make_device)
         .set_cap(&msg::response::caps::get_device, req_get_Device)
         .on_channel()
@@ -191,9 +178,11 @@ gpu_device_service::handle_generic(auto ch, auto args)
     };
 
     switch (opcode) {
+    case srv::wire::Service::OP_GET_DRIVER_VERSION:
+        handle_get_driver_version(ch, reinterpreted.template operator()<srv::wire::Service::get_driver_version::request>(std::move(args)));
+        break;
     case srv::wire::Service::OP_INIT:
-        using T = srv::wire::Service::init::request;
-        handle_init(ch, reinterpreted.template operator()<T>(std::move(args)));
+        handle_init(ch, reinterpreted.template operator()<srv::wire::Service::init::request>(std::move(args)));
         break;
     default:
         LOG_OP(method)
@@ -207,11 +196,21 @@ gpu_device_service::handle_generic(auto ch, auto args)
     }
 }
 
+template<class T>
+struct receive_args_base_type
+{
+    using type = std::remove_cvref_t<T>::element_type::base_type;
+};
+
 void
 gpu_device_service::handle_get_driver_version(auto ch, auto args)
 {
     static const std::string method = "handle_get_driver_version";
-    using msg = ::service::compute::cuda::wire::Service::get_driver_version;
+    using msg = srv::wire::Service::get_driver_version;
+    {
+        using args_type = receive_args_base_type<decltype(args)>::type;
+        static_assert(std::is_same<msg::request, args_type>::value);
+    }
 
     LOG_REQ(method)
         << srv::wire::to_string(*args);
@@ -256,12 +255,6 @@ gpu_device_service::handle_get_driver_version(auto ch, auto args)
         .invoke()
         .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
 }
-
-template<class T>
-struct receive_args_base_type
-{
-    using type = std::remove_cvref_t<T>::element_type::base_type;
-};
 
 void
 gpu_device_service::handle_init(auto ch, auto args)

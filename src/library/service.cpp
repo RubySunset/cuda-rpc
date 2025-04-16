@@ -48,12 +48,10 @@ impl::Service::get(const srv::Service& obj)
 impl::Service::Service(std::shared_ptr<fractos::core::channel> ch,
                        fractos::core::cap::request req_connect,
                        fractos::core::cap::request req_generic,
-                       fractos::core::cap::request req_driver_get_version,
                        fractos::core::cap::request req_make_device)
     :ch(ch)
     ,req_connect(std::move(req_connect))
     ,req_generic(std::move(req_generic))
-    ,req_driver_get_version(std::move(req_driver_get_version))
     ,req_make_device(std::move(req_make_device))
 {
 }
@@ -142,7 +140,6 @@ srv::make_service(std::shared_ptr<core::channel> ch,
                 ch,
                 std::move(args->caps.connect),
                 std::move(args->caps.generic),
-                std::move(args->caps.get_driver_version),
                 std::move(args->caps.make_device));
             pimpl_->self = pimpl_;
             auto pimpl = std::static_pointer_cast<void>(pimpl_);
@@ -170,7 +167,8 @@ srv::Service::get_driver_version()
     auto& pimpl = impl::Service::get(*this);
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_driver_get_version)
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+        .set_imm(&msg::request::imms::opcode, srv::wire::Service::OP_GET_DRIVER_VERSION)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp)
@@ -182,7 +180,7 @@ srv::Service::get_driver_version()
                 << wire::to_string(*args);
 
             if (not args->has_exactly_args()) {
-                throw core::other_error("invalid response format for Service::driver_get_version");
+                throw core::other_error("invalid response format for " + method);
             }
             fractos::wire::error_raise_exception_maybe(args->imms.error);
 

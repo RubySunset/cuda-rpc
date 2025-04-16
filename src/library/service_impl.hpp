@@ -17,7 +17,6 @@ namespace impl {
         Service(std::shared_ptr<fractos::core::channel> ch,
                 fractos::core::cap::request req_connect,
                 fractos::core::cap::request req_generic,
-                fractos::core::cap::request req_driver_get_version,
                 fractos::core::cap::request req_make_device);
 
         std::weak_ptr<Service> self;
@@ -26,7 +25,6 @@ namespace impl {
         // NOTE: keep connection as a separate request
         fractos::core::cap::request req_connect;
         fractos::core::cap::request req_generic;
-        fractos::core::cap::request req_driver_get_version;
         fractos::core::cap::request req_make_device;
     };
 
