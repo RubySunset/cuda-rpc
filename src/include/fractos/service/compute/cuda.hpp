@@ -109,7 +109,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             std::shared_ptr<void> _pimpl;
         };
 
-        // std::string to_string(const Service& obj);
+        std::string to_string(const Service& obj);
 
         /**
          * @brief Wrapper for CUdevice operations
