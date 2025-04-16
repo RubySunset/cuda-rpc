@@ -15,6 +15,7 @@ namespace impl {
 
         Device(std::shared_ptr<fractos::core::channel> channel,
                CUdevice device,
+               fractos::core::cap::request req_generic,
                fractos::core::cap::request req_make_context,
                fractos::core::cap::request req_destroy);
 
@@ -22,6 +23,7 @@ namespace impl {
         std::shared_ptr<fractos::core::channel> ch;
 
         const CUdevice device;
+        fractos::core::cap::request req_generic;
         fractos::core::cap::request req_make_context; // new
         // fractos::core::cap::request req_test;
         fractos::core::cap::request req_destroy;

@@ -5,8 +5,11 @@
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
 
+#include <./common.hpp>
+
 
 using namespace fractos;
+namespace srv = fractos::service::compute::cuda;
 using namespace ::test;
 // using namespace impl;
 
@@ -33,7 +36,8 @@ gpu_Device::~gpu_Device() {
 /*
  *  Make handlers for a Device's caps
  */
-core::future<void> gpu_Device::register_methods(std::shared_ptr<core::channel> ch)
+core::future<void>
+gpu_Device::register_methods(std::shared_ptr<core::channel> ch)
 {
     namespace msg_base = ::service::compute::cuda::wire::Device;
 
@@ -63,8 +67,58 @@ core::future<void> gpu_Device::register_methods(std::shared_ptr<core::channel> c
         .then([ch, self, this](auto& fut) {
             DVLOG(fractos::logging::SERVICE) << "SET req_destroy device";
             self->req_destroy = fut.get();
-        });
 
+            return ch->make_request_builder<msg_base::generic::request>(
+                ch->get_default_endpoint(),
+                [self](auto ch, auto args) {
+                    self->handle_generic(ch, std::move(args));
+                })
+                .on_channel()
+                .make_request();
+        })
+        .unwrap()
+        .then([self](auto& fut) {
+            self->req_generic = fut.get();
+        });
+}
+
+void
+gpu_Device::handle_generic(auto ch, auto args)
+{
+    static const std::string method = "handle_generic";
+    using msg = srv::wire::Device::generic;
+
+    auto opcode = srv::wire::Device::OP_INVALID;
+
+    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+        LOG_OP(method)
+            << " [error] request without continuation, ignoring";
+        return;
+    } else if (args->has_imm(&msg::request::imms::opcode)) {
+        opcode = static_cast<srv::wire::Device::generic_opcode>(args->imms.opcode.get());
+    }
+
+    auto reinterpreted = []<class T>(auto args) {
+        using ptr = core::receive_args<T>;
+        return std::unique_ptr<ptr>(reinterpret_cast<ptr*>(args.release()));
+    };
+
+#define HANDLE(name) \
+    handle_ ## name(ch, reinterpreted.template operator()<srv::wire::Device:: name ::request>(std::move(args)))
+
+    switch (opcode) {
+    default:
+        LOG_OP(method)
+            << " [error] invalid opcode";
+        ch->template make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .on_channel()
+            .invoke()
+            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        break;
+    }
+
+#undef HANDLE
 }
 
 /*
@@ -162,4 +216,12 @@ void gpu_Device::handle_destroy(auto args) {
         })
     .as_callback();
 
+}
+
+std::string
+test::to_string(const gpu_Device& obj)
+{
+    std::stringstream ss;
+    ss << "Device(" << &obj << ")";
+    return ss.str();
 }

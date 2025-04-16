@@ -253,12 +253,14 @@ gpu_device_service::handle_device_get(auto ch, auto args)
         LOG_RES(method)
             << " error=" << wire::to_string(error)
             << " device=" << dev->device
+            << " generic=" << core::to_string(dev->req_generic)
             << " make_context=" << core::to_string(dev->req_make_context)
             << " destroy=" << core::to_string(dev->req_destroy);
 
         ch->template make_request_builder<msg::response>(args->caps.continuation)
             .set_imm(&msg::response::imms::error, error)
             .set_imm(&msg::response::imms::device, dev->device)
+            .set_cap(&msg::response::caps::generic, dev->req_generic)
             .set_cap(&msg::response::caps::make_context, dev->req_make_context)
             .set_cap(&msg::response::caps::destroy, dev->req_destroy)
             .on_channel()
@@ -267,7 +269,7 @@ gpu_device_service::handle_device_get(auto ch, auto args)
     };
 
     if (not _vdev) {
-        auto vdev = std::shared_ptr<gpu_Device>(gpu_Device::factory(args->imms.ordinal));
+        auto vdev = gpu_Device::factory(args->imms.ordinal);
         vdev->register_methods(ch)
             .then([this, self, return_device, vdev, args=std::move(args)](auto& fut) mutable {
                 fut.get();

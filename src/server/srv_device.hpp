@@ -17,6 +17,7 @@ public:
     fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
 protected:
+    void handle_generic(auto ch, auto args);
     void handle_make_context(auto args);
     void handle_destroy(auto args);
 
@@ -27,6 +28,7 @@ private:
 
 public:
     CUdevice device;
+    fractos::core::cap::request req_generic;
     fractos::core::cap::request req_make_context;
     fractos::core::cap::request req_destroy;
 
@@ -37,4 +39,7 @@ public:
 
     //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
 };
+
+    std::string to_string(const gpu_Device& obj);
+
 }

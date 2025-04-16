@@ -1,13 +1,12 @@
-
-#include <utility>
-
-// #include "./Service.hpp"
 #include <fractos/wire/error.hpp>
+#include <fractos/core/error.hpp>
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
+#include <utility>
 
+#include <./common.hpp>
 #include <device_impl.hpp>
 #include <context_impl.hpp>
 
@@ -46,10 +45,12 @@ impl::Device::get(const srv::Device& obj)
 
 impl::Device::Device(std::shared_ptr<fractos::core::channel> channel,
                      CUdevice device,
+                     fractos::core::cap::request req_generic,
                      fractos::core::cap::request req_make_context,
                      fractos::core::cap::request req_destroy)
     :ch(channel)
     ,device(device)
+    ,req_generic(std::move(req_generic))
     ,req_make_context(std::move(req_make_context))
     ,req_destroy(std::move(req_destroy))
 {

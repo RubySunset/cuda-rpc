@@ -176,6 +176,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::device_get::re
     print_imm_identity(device);
     print_extra_imm_error();
 
+    print_cap(generic);
     print_cap(make_context);
     print_cap(destroy);
     print_extra_cap_error();

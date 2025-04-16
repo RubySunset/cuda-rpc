@@ -234,6 +234,7 @@ srv::Service::device_get(int ordinal)
             // get Device object
             auto pimpl_ = std::make_shared<impl::Device>(
                 ch, args->imms.device,
+                std::move(args->caps.generic),
                 std::move(args->caps.make_context),
                 std::move(args->caps.destroy));
             pimpl_->self = pimpl_;
