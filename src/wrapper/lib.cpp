@@ -154,6 +154,16 @@ cuGetProcAddress(const char *symbol, void **pfn, int cudaVersion, cuuint64_t fla
     return cuGetProcAddress_v2(symbol, pfn, cudaVersion, flags, nullptr);
 }
 
+static decltype(&cuGetExportTable) ptr_cuGetExportTable;
+
+extern "C" [[gnu::visibility("default")]]
+CUresult CUDAAPI
+cuGetExportTable(const void **ppExportTable, const CUuuid *pExportTableId)
+{
+    LOG(WARNING) << "TODO: properly handle cuGetExportTable";
+    return (*ptr_cuGetExportTable)(ppExportTable, pExportTableId);
+}
+
 
 static void init_symbols() __attribute__((constructor));
 
@@ -202,8 +212,9 @@ init_symbols()
 
 #define load_sym_next(name) ptr_ ## name = (decltype(ptr_ ## name))do_load_sym(#name)
 
-    load_sym_next(cuGetProcAddress_v2);
     // NOTE: globals override auto-generated weak symbols in default_functions
+    load_sym_next(cuGetProcAddress_v2);
+    load_sym_next(cuGetExportTable);
 
 #undef load_sym_next
 }
