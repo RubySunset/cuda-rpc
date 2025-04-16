@@ -33,6 +33,7 @@ namespace fractos::service::compute::cuda::wire {
             OP_GET_DRIVER_VERSION,
             OP_INIT,
             OP_MODULE_GET_LOADING_MODE,
+
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
 
@@ -92,6 +93,20 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
 
+    }
+
+    std::string to_string(const core::receive_args<Service::connect::request>& req);
+    std::string to_string(const core::receive_args<Service::connect::response>& resp);
+
+    std::string to_string(const core::receive_args<Service::get_driver_version::request>& req);
+    std::string to_string(const core::receive_args<Service::get_driver_version::response>& resp);
+
+    std::string to_string(const core::receive_args<Service::init::request>& req);
+    std::string to_string(const core::receive_args<Service::init::response>& resp);
+
+
+    namespace Service {
+
         struct module_get_loading_mode {
             struct request {
                 struct imms {
@@ -110,6 +125,13 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+
+    }
+
+    std::string to_string(const core::receive_args<Service::module_get_loading_mode::request>& req);
+    std::string to_string(const core::receive_args<Service::module_get_loading_mode::response>& resp);
+
+    namespace Service {
 
         struct make_device {
             struct request {
@@ -151,18 +173,6 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
     }
-
-    std::string to_string(const core::receive_args<Service::connect::request>& req);
-    std::string to_string(const core::receive_args<Service::connect::response>& resp);
-
-    std::string to_string(const core::receive_args<Service::get_driver_version::request>& req);
-    std::string to_string(const core::receive_args<Service::get_driver_version::response>& resp);
-
-    std::string to_string(const core::receive_args<Service::init::request>& req);
-    std::string to_string(const core::receive_args<Service::init::response>& resp);
-
-    std::string to_string(const core::receive_args<Service::module_get_loading_mode::request>& req);
-    std::string to_string(const core::receive_args<Service::module_get_loading_mode::response>& resp);
 
     namespace Device {
         struct make_context {
