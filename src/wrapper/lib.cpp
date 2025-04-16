@@ -165,6 +165,8 @@ cuGetExportTable(const void **ppExportTable, const CUuuid *pExportTableId)
 }
 
 
+extern decltype(&cuInit) ptr_cuInit;
+
 static void init_symbols() __attribute__((constructor));
 
 static
@@ -215,6 +217,7 @@ init_symbols()
     // NOTE: globals override auto-generated weak symbols in default_functions
     load_sym_next(cuGetProcAddress_v2);
     load_sym_next(cuGetExportTable);
+    load_sym_next(cuInit);
 
 #undef load_sym_next
 }
