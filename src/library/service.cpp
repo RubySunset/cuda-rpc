@@ -156,6 +156,37 @@ srv::Service::get_connect() const
     return pimpl.req_connect;
 }
 
+core::future<int>
+srv::Service::get_driver_version()
+{
+    static const std::string method = "get_driver_version";
+    using msg = ::service::compute::cuda::wire::Service::get_driver_version;
+
+    LOG_REQ(method) << " {}";
+
+    auto& pimpl = impl::Service::get(*this);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_driver_get_version)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then([self=pimpl.self.lock()](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            LOG_RES_PTR(method, self)
+                << wire::to_string(*args);
+
+            if (not args->has_exactly_args()) {
+                throw core::other_error("invalid response format for Service::driver_get_version");
+            }
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
+
+            return args->imms.value.get();
+        });
+}
+
 
 /*
  *  Make Device frontend function
