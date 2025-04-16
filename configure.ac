@@ -99,7 +99,7 @@ AC_SUBST(LIBCUDA)
 #CXXFLAGS=$CUDA_INCLUDE_FLAGS
 
 AX_CHECK_COMPILE_FLAG([-std=c++20],     [CXXFLAGS="$CXXFLAGS -std=c++20"], [exit 1])
-# AX_CHECK_COMPILE_FLAG([-Wall],          [CXXFLAGS="$CXXFLAGS -Wall"])
+AX_CHECK_COMPILE_FLAG([-Wall],          [CXXFLAGS="$CXXFLAGS -Wall"])
 AX_CHECK_COMPILE_FLAG([-g],             [CXXFLAGS="$CXXFLAGS -g"])
 AX_CHECK_COMPILE_FLAG([-rdynamic],      [CXXFLAGS="$CXXFLAGS -rdynamic"])
 AX_CHECK_COMPILE_FLAG([-fvisibility=hidden], [CXXFLAGS="$CXXFLAGS -fvisibility=hidden"])

@@ -189,7 +189,7 @@ void gpu_Context::handle_memory(auto args_) {
     using clock = std::chrono::high_resolution_clock;
     std::chrono::microseconds t_usec;
     auto t_start = clock::now();
-    auto t_end = clock::now();
+    // auto t_end = clock::now();
     // auto t_temp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
     // LOG(INFO) << "time for make_memory server start: " << t_temp << std::endl;
 
