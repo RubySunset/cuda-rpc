@@ -149,6 +149,40 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::init::response
     return ss.str();
 }
 
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Service::device_get_count::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(opcode);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Service::device_get_count::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_imm_identity(count);
+    print_extra_imm_error();
+
+    print_empty_caps();
+
+    return ss.str();
+}
+
+
 std::string
 srv::wire::to_string(const core::receive_args<srv::wire::Service::module_get_loading_mode::request>& obj)
 {

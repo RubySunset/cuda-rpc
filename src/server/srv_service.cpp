@@ -188,6 +188,10 @@ gpu_device_service::handle_generic(auto ch, auto args)
         HANDLE(init);
         break;
 
+    case srv::wire::Service::OP_DEVICE_GET_COUNT:
+        HANDLE(device_get_count);
+        break;
+
     case srv::wire::Service::OP_MODULE_GET_LOADING_MODE:
         HANDLE(module_get_loading_mode);
         break;
@@ -286,6 +290,37 @@ gpu_device_service::handle_init(auto ch, auto args)
         .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
 }
 
+
+void
+gpu_device_service::handle_device_get_count(auto ch, auto args)
+{
+    METHOD(device_get_count);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT();
+
+    int count;
+    auto res = cuDeviceGetCount(&count);
+
+    auto error = wire::ERR_SUCCESS;
+    if (res != CUDA_SUCCESS) {
+        error = wire::ERR_OTHER;
+    }
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " count=" << std::to_string(count);
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::count, count)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+}
+
+
 void
 gpu_device_service::handle_module_get_loading_mode(auto ch, auto args)
 {
@@ -314,6 +349,7 @@ gpu_device_service::handle_module_get_loading_mode(auto ch, auto args)
         .invoke()
         .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
 }
+
 
 /*
  *  Actual handler of the make_device request

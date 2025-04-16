@@ -32,6 +32,9 @@ namespace fractos::service::compute::cuda::wire {
         enum generic_opcode : uint64_t {
             OP_GET_DRIVER_VERSION,
             OP_INIT,
+
+            OP_DEVICE_GET_COUNT,
+
             OP_MODULE_GET_LOADING_MODE,
 
             OP_INVALID = std::numeric_limits<uint64_t>::max()
@@ -103,6 +106,33 @@ namespace fractos::service::compute::cuda::wire {
 
     std::string to_string(const core::receive_args<Service::init::request>& req);
     std::string to_string(const core::receive_args<Service::init::response>& resp);
+
+
+    namespace Service {
+
+        struct device_get_count {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t count;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
+
+    }
+
+    std::string to_string(const core::receive_args<Service::device_get_count::request>& req);
+    std::string to_string(const core::receive_args<Service::device_get_count::response>& resp);
 
 
     namespace Service {

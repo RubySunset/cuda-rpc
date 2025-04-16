@@ -90,9 +90,16 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] fractos::core::future<void>
             init(unsigned int flags);
 
+
+            // cuDeviceGetCount
+            [[nodiscard]] fractos::core::future<int>
+            device_get_count();
+
+
             // cuModuleGetLoadingMode
             [[nodiscard]] fractos::core::future<CUmoduleLoadingMode>
             module_get_loading_mode();
+
 
             [[nodiscard]] fractos::core::future<std::shared_ptr<Device>> get_Device(
                 fractos::core::gns::service& gns, uint8_t id);

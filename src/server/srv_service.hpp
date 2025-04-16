@@ -39,8 +39,11 @@ namespace test {
     protected:
         void handle_connect(auto ch, auto args);
         void handle_generic(auto ch, auto args);
+
         void handle_get_driver_version(auto ch, auto args);
         void handle_init(auto ch, auto args);
+
+        void handle_device_get_count(auto ch, auto args);
 
         void handle_module_get_loading_mode(auto ch, auto args);
 
