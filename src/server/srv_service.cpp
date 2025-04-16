@@ -212,6 +212,14 @@ struct receive_args_base_type
     using type = std::remove_cvref_t<T>::element_type::base_type;
 };
 
+#define METHOD(name)                                                    \
+    static const std::string method = "handle_" #name;                  \
+    using msg = srv::wire::Service:: name;                              \
+    {                                                                   \
+        using args_type = receive_args_base_type<decltype(args)>::type; \
+        static_assert(std::is_same<msg::request, args_type>::value);    \
+    }
+
 #define CHECK_ARGS_EXACT()                                              \
     if (not args->has_exactly_args()) {                                 \
         LOG_RES(method) << " error=ERR_OTHER";                          \
@@ -226,13 +234,7 @@ struct receive_args_base_type
 void
 gpu_device_service::handle_get_driver_version(auto ch, auto args)
 {
-    static const std::string method = "handle_get_driver_version";
-    using msg = srv::wire::Service::get_driver_version;
-    {
-        using args_type = receive_args_base_type<decltype(args)>::type;
-        static_assert(std::is_same<msg::request, args_type>::value);
-    }
-
+    METHOD(get_driver_version);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
@@ -261,13 +263,7 @@ gpu_device_service::handle_get_driver_version(auto ch, auto args)
 void
 gpu_device_service::handle_init(auto ch, auto args)
 {
-    static const std::string method = "handle_init";
-    using msg = srv::wire::Service::init;
-    {
-        using args_type = receive_args_base_type<decltype(args)>::type;
-        static_assert(std::is_same<msg::request, args_type>::value);
-    }
-
+    METHOD(init);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
@@ -293,13 +289,7 @@ gpu_device_service::handle_init(auto ch, auto args)
 void
 gpu_device_service::handle_module_get_loading_mode(auto ch, auto args)
 {
-    static const std::string method = "handle_module_get_loading_mode";
-    using msg = srv::wire::Service::module_get_loading_mode;
-    {
-        using args_type = receive_args_base_type<decltype(args)>::type;
-        static_assert(std::is_same<msg::request, args_type>::value);
-    }
-
+    METHOD(module_get_loading_mode);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
