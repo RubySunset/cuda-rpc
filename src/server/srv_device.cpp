@@ -107,6 +107,10 @@ gpu_Device::handle_generic(auto ch, auto args)
     handle_ ## name(ch, reinterpreted.template operator()<srv::wire::Device:: name ::request>(std::move(args)))
 
     switch (opcode) {
+    case srv::wire::Device::OP_GET_NAME:
+        HANDLE(get_name);
+        break;
+
     default:
         LOG_OP(method)
             << " [error] invalid opcode";
@@ -119,6 +123,40 @@ gpu_Device::handle_generic(auto ch, auto args)
     }
 
 #undef HANDLE
+}
+
+
+void
+gpu_Device::handle_get_name(auto ch, auto args)
+{
+    METHOD(Device, get_name);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT();
+
+    size_t name_len = 512;
+    char name[name_len];
+    auto res = cuDeviceGetName(name, name_len, args->imms.device.get());
+    name_len = strlen(name);
+
+    auto error = wire::ERR_SUCCESS;
+    if (res != CUDA_SUCCESS) {
+        error = wire::ERR_OTHER;
+    }
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " name=" << name
+        << " len=" << name_len;
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::len, name_len)
+        .set_imm(&msg::response::imms::name, name, name_len)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
 }
 
 /*

@@ -79,6 +79,39 @@ srv::Device::get_device() const
     return pimpl.device;
 }
 
+core::future<std::string>
+srv::Device::get_name() const
+{
+    METHOD(Device, get_name);
+    LOG_REQ(method)
+        << " {}";
+
+    auto& pimpl = impl::Device::get(*this);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+        .set_imm(&msg::request::imms::opcode, srv::wire::Service::OP_GET_DRIVER_VERSION)
+        .set_imm(&msg::request::imms::device, pimpl.device)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then([this, self=pimpl.self.lock()](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            LOG_RES_PTR(method, self)
+                << wire::to_string(*args);
+            CHECK_ARGS_CAPS_EXACT();
+            CHECK_ARGS_IMMS_MIN();
+            if (args->imms_size() != (args->imms_expected_size() + args->imms.len)) {
+                throw core::other_error("invalid response format for " + method);
+            }
+            CHECK_ARGS_ERROR();
+
+            return std::string(args->imms.name, args->imms.len);
+        });
+}
+
 core::future<std::shared_ptr<srv::Context>>
 srv::Device::make_context(unsigned int flags)
 {

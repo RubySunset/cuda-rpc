@@ -23,3 +23,15 @@ cuDeviceGetCount(int* count)
     *count = state.service->device_get_count().get();
     return CUDA_SUCCESS;
 }
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
+cuDeviceGetName(char* name, int  len, CUdevice dev)
+{
+    auto& state = get_state();
+    auto device = state.get_device(dev);
+    auto name_str = device->get_name().get();
+    strncat(name, name_str.c_str(), len);
+    name[len-1] = 0;
+    return CUDA_SUCCESS;
+}

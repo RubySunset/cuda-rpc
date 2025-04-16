@@ -192,10 +192,33 @@ namespace fractos::service::compute::cuda::wire {
     namespace Device {
 
         enum generic_opcode : uint64_t {
+            OP_GET_NAME,
+
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
 
         using generic = wire::generic;
+
+        struct get_name {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint64_t device;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t len;
+                    char name[];
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
 
         struct make_context {
             struct request {
@@ -238,6 +261,10 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
     }
+
+    std::string to_string(const core::receive_args<Device::get_name::request>& req);
+    std::string to_string(const core::receive_args<Device::get_name::response>& resp);
+
 
     namespace Context {
 
