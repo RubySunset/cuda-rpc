@@ -98,8 +98,20 @@ gpu_device_service::register_service(std::shared_ptr<core::channel> ch)
                 .make_request();
         })
         .unwrap()
-        .then([self](auto& fut) {
+        .then([ch, self](auto& fut) {
             self->req_connect = fut.get();
+
+            return ch->make_request_builder<msg_base::generic::request>(
+                ch->get_default_endpoint(),
+                [self](auto ch, auto args) {
+                    self->handle_generic(ch, std::move(args));
+                })
+                .on_channel()
+                .make_request();
+        })
+        .unwrap()
+        .then([self](auto& fut) {
+            self->req_generic = fut.get();
         });
 }
 
@@ -138,6 +150,7 @@ gpu_device_service::handle_connect(auto ch, auto args)
     LOG_RES(method)
         << " error=" << wire::to_string(error)
         << " connect=" << core::to_string(req_connect)
+        << " generic=" << core::to_string(req_generic)
         << " get_driver_version=" << core::to_string(req_get_driver_version)
         << " make_device=" << core::to_string(req_make_device)
         << " get_device=" << core::to_string(req_get_Device)
@@ -146,12 +159,48 @@ gpu_device_service::handle_connect(auto ch, auto args)
     reqb_cont
         .set_imm(&msg::response::imms::error, error)
         .set_cap(&msg::response::caps::connect, req_connect)
+        .set_cap(&msg::response::caps::generic, req_generic)
         .set_cap(&msg::response::caps::get_driver_version, req_get_driver_version)
         .set_cap(&msg::response::caps::make_device, req_make_device)
         .set_cap(&msg::response::caps::get_device, req_get_Device)
         .on_channel()
         .invoke()
         .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+}
+
+void
+gpu_device_service::handle_generic(auto ch, auto args)
+{
+    static const std::string method = "handle_generic";
+    using msg = ::service::compute::cuda::wire::Service::generic;
+
+    auto opcode = srv::wire::Service::OP_INVALID;
+
+    if (not args->has_imm(&msg::request::imms::opcode)
+        and not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+        LOG_OP(method)
+            << " [error] request without continuation, ignoring";
+        return;
+    } else {
+        opcode = static_cast<srv::wire::Service::generic_opcode>(args->imms.opcode.get());
+    }
+
+    auto reinterpreted = []<class T>(auto args) {
+        using ptr = core::receive_args<T>;
+        return std::unique_ptr<ptr>(reinterpret_cast<ptr*>(args.release()));
+    };
+
+    switch (opcode) {
+    default:
+        LOG_OP(method)
+            << " [error] invalid opcode";
+        ch->template make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .on_channel()
+            .invoke()
+            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        break;
+    }
 }
 
 void

@@ -47,10 +47,12 @@ impl::Service::get(const srv::Service& obj)
 
 impl::Service::Service(std::shared_ptr<fractos::core::channel> ch,
                        fractos::core::cap::request req_connect,
+                       fractos::core::cap::request req_generic,
                        fractos::core::cap::request req_driver_get_version,
                        fractos::core::cap::request req_make_device)
     :ch(ch)
     ,req_connect(std::move(req_connect))
+    ,req_generic(std::move(req_generic))
     ,req_driver_get_version(std::move(req_driver_get_version))
     ,req_make_device(std::move(req_make_device))
 {
@@ -139,6 +141,7 @@ srv::make_service(std::shared_ptr<core::channel> ch,
             auto pimpl_ = std::make_shared<impl::Service>(
                 ch,
                 std::move(args->caps.connect),
+                std::move(args->caps.generic),
                 std::move(args->caps.get_driver_version),
                 std::move(args->caps.make_device));
             pimpl_->self = pimpl_;
