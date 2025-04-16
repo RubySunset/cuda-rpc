@@ -30,6 +30,9 @@ cuDeviceGetName(char* name, int  len, CUdevice dev)
 {
     auto& state = get_state();
     auto device = state.get_device(dev);
+    if (not device) {
+        return CUDA_ERROR_INVALID_DEVICE;
+    }
     auto name_str = device->get_name().get();
     strncat(name, name_str.c_str(), len);
     name[len-1] = 0;
