@@ -22,17 +22,15 @@ protected:
 
 
 private:
-    fractos::wire::endian::uint8_t _id;
-
     std::shared_ptr<gpu_Device> _self;
     bool _destroyed;
-    CUdevice _device;
 
 public:
-    fractos::core::cap::request _req_make_context;
-    fractos::core::cap::request _req_destroy;
+    CUdevice device;
+    fractos::core::cap::request req_make_context;
+    fractos::core::cap::request req_destroy;
 
-    gpu_Device(fractos::wire::endian::uint8_t value);
+    gpu_Device(int ordinal);
     std::shared_ptr<test::gpu_Context> _vctx;
 
     ~gpu_Device();

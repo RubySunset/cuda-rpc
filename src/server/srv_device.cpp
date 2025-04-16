@@ -10,18 +10,14 @@ using namespace fractos;
 using namespace ::test;
 // using namespace impl;
 
-gpu_Device::gpu_Device(wire::endian::uint8_t value) {
+gpu_Device::gpu_Device(int ordinal)
+{
     //fork();
-    _id = value;
     _destroyed = false;
 
     checkCudaErrors(cuInit(0));
 
-    CUdevice device;
-    checkCudaErrors(cuDeviceGet(&device, value));
-    
-    _device = device;
-   
+    checkCudaErrors(cuDeviceGet(&device, ordinal));
 }
 
 std::shared_ptr<gpu_Device> gpu_Device::factory(wire::endian::uint8_t value){
@@ -53,7 +49,7 @@ core::future<void> gpu_Device::register_methods(std::shared_ptr<core::channel> c
         .on_channel()
         .make_request()
         .then([ch, self](auto& fut) {
-            self->_req_make_context = fut.get();
+            self->req_make_context = fut.get();
             DVLOG(fractos::logging::SERVICE) << "SET req_make_context";
             return ch->make_request_builder<msg_base::destroy::request>(
                 ch->get_default_endpoint(), 
@@ -66,7 +62,7 @@ core::future<void> gpu_Device::register_methods(std::shared_ptr<core::channel> c
         .unwrap()
         .then([ch, self, this](auto& fut) {
             DVLOG(fractos::logging::SERVICE) << "SET req_destroy device";
-            self->_req_destroy = fut.get();
+            self->req_destroy = fut.get();
         });
 
 }
@@ -100,7 +96,7 @@ void gpu_Device::handle_make_context(auto args) {
 
     VLOG(fractos::logging::SERVICE) << "vctx value is: " << (uint64_t)value;
 
-    auto vctx = std::shared_ptr<gpu_Context>(gpu_Context::factory(value, _device));
+    auto vctx = std::shared_ptr<gpu_Context>(gpu_Context::factory(value, device));
 
     vctx->register_methods(ch)
         .then([this, ch, self, vctx, args=std::move(args), value](auto& fut) {
@@ -147,11 +143,11 @@ void gpu_Device::handle_destroy(auto args) {
 
     VLOG(fractos::logging::SERVICE) << "Revoke destroy";
 
-    ch->revoke(self->_req_make_context)
+    ch->revoke(self->req_make_context)
         .then([ch, self](auto& fut) {
                   fut.get();
                   VLOG(fractos::logging::SERVICE) << "Revoke _req_register_function";
-                  return ch->revoke(self->_req_destroy);
+                  return ch->revoke(self->req_destroy);
         })
         .unwrap()
         .then([this, ch, self, args=std::move(args)](auto& fut) {
