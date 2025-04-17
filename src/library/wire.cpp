@@ -156,7 +156,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::device_get::re
     std::stringstream ss;
 
     print_imm_identity(opcode);
-    print_imm_identity(ordinal);
+    print_imm(ordinal, [](auto& val){ return (int)val.get(); });
     print_extra_imm_error();
 
     print_cap(continuation);
