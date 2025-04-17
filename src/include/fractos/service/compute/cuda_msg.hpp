@@ -203,7 +203,6 @@ namespace fractos::service::compute::cuda::wire {
             struct request {
                 struct imms {
                     fractos::wire::endian::uint64_t opcode;
-                    fractos::wire::endian::uint64_t device;
                 } __attribute__((packed));
                 struct caps {
                     fractos::core::cap::request continuation;

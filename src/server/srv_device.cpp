@@ -138,7 +138,7 @@ gpu_Device::handle_get_name(auto ch, auto args)
 
     size_t name_len = 512;
     char name[name_len];
-    auto res = cuDeviceGetName(name, name_len, args->imms.device.get());
+    auto res = cuDeviceGetName(name, name_len, device);
     name_len = strlen(name);
 
     auto error = wire::ERR_SUCCESS;

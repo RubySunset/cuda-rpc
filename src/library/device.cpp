@@ -90,8 +90,7 @@ srv::Device::get_name() const
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
-        .set_imm(&msg::request::imms::opcode, srv::wire::Service::OP_GET_DRIVER_VERSION)
-        .set_imm(&msg::request::imms::device, pimpl.device)
+        .set_imm(&msg::request::imms::opcode, srv::wire::Device::OP_GET_NAME)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp)
