@@ -26,7 +26,7 @@ void handleError_llo(CUresult err, const std::string& file, int line) {
 
 
 
-gpu_Context::gpu_Context(fractos::wire::endian::uint32_t value, CUdevice& device) {
+gpu_Context::gpu_Context(fractos::wire::endian::uint32_t value, CUdevice device) {
     //fork();
     _id = value;
     _destroyed = false;   
@@ -36,7 +36,7 @@ gpu_Context::gpu_Context(fractos::wire::endian::uint32_t value, CUdevice& device
     _ctx = ctx;
 }
 
-std::shared_ptr<gpu_Context> gpu_Context::factory(fractos::wire::endian::uint32_t value, CUdevice& device){
+std::shared_ptr<gpu_Context> gpu_Context::factory(fractos::wire::endian::uint32_t value, CUdevice device){
 
     auto res = std::shared_ptr<gpu_Context>(new gpu_Context(value, device));
     res->_self = res;

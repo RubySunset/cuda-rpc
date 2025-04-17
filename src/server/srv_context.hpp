@@ -15,7 +15,7 @@ namespace test {
     
 class gpu_Context {
 public:
-    static std::shared_ptr<gpu_Context> factory(fractos::wire::endian::uint32_t id, CUdevice& device);
+    static std::shared_ptr<gpu_Context> factory(fractos::wire::endian::uint32_t id, CUdevice device);
 
     fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
@@ -52,7 +52,7 @@ public:
     fractos::core::cap::request _req_synchronize;
     fractos::core::cap::request _req_destroy;
 
-    gpu_Context(fractos::wire::endian::uint32_t value, CUdevice& device);
+    gpu_Context(fractos::wire::endian::uint32_t value, CUdevice device);
     std::shared_ptr<test::gpu_Memory> _dev_mem;
     std::shared_ptr<test::gpu_Stream> _stream; 
     std::shared_ptr<test::gpu_Event> _event; 
