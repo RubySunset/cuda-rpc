@@ -28,7 +28,7 @@ private:
     bool _destroyed;
 
 public:
-    CUdevice device;
+    const CUdevice device;
     fractos::core::cap::request req_generic;
     fractos::core::cap::request req_make_context;
     fractos::core::cap::request req_destroy;

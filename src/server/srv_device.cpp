@@ -14,13 +14,14 @@ using namespace ::test;
 // using namespace impl;
 
 gpu_Device::gpu_Device(int ordinal)
+    :device(-1)
 {
     //fork();
     _destroyed = false;
 
     checkCudaErrors(cuInit(0));
 
-    checkCudaErrors(cuDeviceGet(&device, ordinal));
+    checkCudaErrors(cuDeviceGet(const_cast<int*>(&device), ordinal));
 }
 
 std::shared_ptr<gpu_Device> gpu_Device::factory(wire::endian::uint8_t value){
