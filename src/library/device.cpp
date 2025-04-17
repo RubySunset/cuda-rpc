@@ -111,6 +111,33 @@ srv::Device::get_name() const
         });
 }
 
+core::future<size_t>
+srv::Device::total_mem() const
+{
+    METHOD(Device, total_mem);
+    LOG_REQ(method)
+        << " {}";
+
+    auto& pimpl = impl::Device::get(*this);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+        .set_imm(&msg::request::imms::opcode, srv::wire::Device::OP_TOTAL_MEM)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then([this, self=pimpl.self.lock()](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            LOG_RES_PTR(method, self)
+                << wire::to_string(*args);
+            CHECK_ARGS_EXACT();
+
+            return args->imms.bytes;
+        });
+}
+
 core::future<std::shared_ptr<srv::Context>>
 srv::Device::make_context(unsigned int flags)
 {

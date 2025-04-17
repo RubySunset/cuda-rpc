@@ -130,6 +130,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             // cuDeviceGetName
             core::future<std::string> get_name() const;
 
+            // cuDeviceTotalMem
+            core::future<size_t> total_mem() const;
+
             /**
              * @brief TODO: transfer vector<CUctxCreateParams> through message
              * @brief Wrapper for cuCtxCreate_v4()

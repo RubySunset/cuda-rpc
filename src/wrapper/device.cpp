@@ -38,3 +38,25 @@ cuDeviceGetName(char* name, int  len, CUdevice dev)
     name[len-1] = 0;
     return CUDA_SUCCESS;
 }
+
+#undef cuDeviceTotalMem
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
+cuDeviceTotalMem_v2(size_t* bytes, CUdevice dev)
+{
+    auto& state = get_state();
+    auto device = state.get_device(dev);
+    if (not device) {
+        return CUDA_ERROR_INVALID_DEVICE;
+    }
+    *bytes = device->total_mem().get();
+    return CUDA_SUCCESS;
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
+cuDeviceTotalMem(size_t* bytes, CUdevice dev)
+{
+    return cuDeviceTotalMem_v2(bytes, dev);
+}

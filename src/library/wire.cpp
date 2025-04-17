@@ -283,3 +283,35 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::get_name::respo
 
     return ss.str();
 }
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Device::total_mem::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(opcode);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Device::total_mem::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_imm_identity(bytes);
+    print_extra_imm_error();
+
+    print_empty_caps();
+
+    return ss.str();
+}

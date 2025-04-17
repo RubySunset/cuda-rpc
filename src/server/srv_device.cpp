@@ -111,6 +111,9 @@ gpu_Device::handle_generic(auto ch, auto args)
     case srv::wire::Device::OP_GET_NAME:
         HANDLE(get_name);
         break;
+    case srv::wire::Device::OP_TOTAL_MEM:
+        HANDLE(total_mem);
+        break;
 
     default:
         LOG_OP(method)
@@ -155,6 +158,35 @@ gpu_Device::handle_get_name(auto ch, auto args)
         .set_imm(&msg::response::imms::error, error)
         .set_imm(&msg::response::imms::len, name_len)
         .set_imm(&msg::response::imms::name, name, name_len)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+}
+
+void
+gpu_Device::handle_total_mem(auto ch, auto args)
+{
+    METHOD(Device, total_mem);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT();
+
+    size_t bytes;
+    auto res = cuDeviceTotalMem(&bytes, device);
+
+    auto error = wire::ERR_SUCCESS;
+    if (res != CUDA_SUCCESS) {
+        error = wire::ERR_OTHER;
+    }
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " bytes=" << bytes;
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::bytes, bytes)
         .on_channel()
         .invoke()
         .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
