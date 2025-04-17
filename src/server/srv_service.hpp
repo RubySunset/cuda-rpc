@@ -1,8 +1,6 @@
-
-
-
 #include <any>
 #include <memory>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 
@@ -30,6 +28,9 @@ namespace test {
         void request_exit();
         bool exit_requested() const;
         bool query_event_completion(std::shared_ptr<fractos::core::channel> ch, fractos::wire::endian::uint8_t id);
+
+        core::future<std::shared_ptr<gpu_Device>> get_or_make_device_ordinal(auto ch, int ordinal);
+        std::shared_ptr<gpu_Device> get_device(CUdevice device);
     
         ~gpu_device_service();
     
@@ -45,13 +46,13 @@ namespace test {
 
         void handle_module_get_loading_mode(auto ch, auto args);
 
-    public:
-        std::shared_ptr<void> _pimpl;
-    
     private:
         gpu_device_service();
-        std::shared_ptr<test::gpu_Device> _vdev;
-    
+
+        std::shared_mutex _devices_mutex;
+        std::unordered_map<int, std::shared_ptr<gpu_Device>> _ordinal_devices;
+        std::unordered_map<CUdevice, std::shared_ptr<gpu_Device>> _devices;
+
         std::shared_ptr<fractos::core::channel> ch;
         std::weak_ptr<gpu_device_service> _self;
         std::atomic<bool> _requested_exit;

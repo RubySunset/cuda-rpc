@@ -74,6 +74,52 @@ gpu_device_service::register_service(std::shared_ptr<core::channel> ch)
         });
 }
 
+core::future<std::shared_ptr<gpu_Device>>
+gpu_device_service::get_or_make_device_ordinal(auto ch, int ordinal)
+{
+    {
+        auto devices_lock = std::shared_lock(_devices_mutex);
+        auto it = _ordinal_devices.find(ordinal);
+        if (it != _ordinal_devices.end()) {
+            return core::make_ready_future(it->second);
+        }
+    }
+
+    LOG_FIRST_N(WARNING, 1) << "TODO: move cuDeviceGet here";
+
+    auto dev = gpu_Device::factory(ordinal);
+    return dev->register_methods(ch)
+        .then([this, self=_self.lock(), dev, ordinal](auto& fut) {
+            fut.get();
+
+            auto devices_lock = std::unique_lock(_devices_mutex);
+
+            auto res1 = _ordinal_devices.insert(std::make_pair(ordinal, dev));
+            if (not res1.second) {
+                auto it = _ordinal_devices.find(ordinal);
+                CHECK(it != _ordinal_devices.end());
+                return it->second;
+            }
+
+            auto res2 = _devices.insert(std::make_pair(dev->device, dev));
+            CHECK(res2.second);
+
+            return dev;
+        });
+}
+
+std::shared_ptr<gpu_Device>
+gpu_device_service::get_device(CUdevice device)
+{
+    auto devices_lock = std::shared_lock(_devices_mutex);
+    auto it = _devices.find(device);
+    if (it != _devices.end()) {
+        return it->second;
+    } else {
+        return nullptr;
+    }
+}
+
 void
 gpu_device_service::handle_connect(auto ch, auto args)
 {
@@ -244,45 +290,29 @@ gpu_device_service::handle_device_get(auto ch, auto args)
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT();
 
-    LOG(WARNING) << "TODO: move cuDeviceGet here";
+    get_or_make_device_ordinal(ch, args->imms.ordinal)
+        .then([this, self=_self.lock(), ch, args=std::move(args)](auto& fut) {
+            auto dev = fut.get();
 
-    auto self = _self.lock();
+            auto error = wire::ERR_SUCCESS;
+            LOG_RES(method)
+                << " error=" << wire::to_string(error)
+                << " device=" << dev->device
+                << " generic=" << core::to_string(dev->req_generic)
+                << " make_context=" << core::to_string(dev->req_make_context)
+                << " destroy=" << core::to_string(dev->req_destroy);
 
-    auto return_device = [this, self, ch](auto args, auto dev) {
-        auto error = wire::ERR_SUCCESS;
-        LOG_RES(method)
-            << " error=" << wire::to_string(error)
-            << " device=" << dev->device
-            << " generic=" << core::to_string(dev->req_generic)
-            << " make_context=" << core::to_string(dev->req_make_context)
-            << " destroy=" << core::to_string(dev->req_destroy);
-
-        ch->template make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, error)
-            .set_imm(&msg::response::imms::device, dev->device)
-            .set_cap(&msg::response::caps::generic, dev->req_generic)
-            .set_cap(&msg::response::caps::make_context, dev->req_make_context)
-            .set_cap(&msg::response::caps::destroy, dev->req_destroy)
-            .on_channel()
-            .invoke()
-            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
-    };
-
-    if (not _vdev) {
-        auto vdev = gpu_Device::factory(args->imms.ordinal);
-        vdev->register_methods(ch)
-            .then([this, self, return_device, vdev, args=std::move(args)](auto& fut) mutable {
-                fut.get();
-
-                LOG(WARNING) << "TODO: track all devices atomically";
-                self->_vdev = vdev;
-
-                return_device(std::move(args), _vdev);
-            })
-            .as_callback();
-    } else {
-        return_device(std::move(args), _vdev);
-    }
+            ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::device, dev->device)
+                .set_cap(&msg::response::caps::generic, dev->req_generic)
+                .set_cap(&msg::response::caps::make_context, dev->req_make_context)
+                .set_cap(&msg::response::caps::destroy, dev->req_destroy)
+                .on_channel()
+                .invoke()
+                .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        })
+        .as_callback();
 }
 
 void
