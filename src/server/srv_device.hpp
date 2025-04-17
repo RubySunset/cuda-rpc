@@ -20,6 +20,7 @@ protected:
     void handle_generic(auto ch, auto args);
     void handle_get_attribute(auto ch, auto args);
     void handle_get_name(auto ch, auto args);
+    void handle_get_uuid(auto ch, auto args);
     void handle_total_mem(auto ch, auto args);
     void handle_make_context(auto args);
     void handle_destroy(auto args);

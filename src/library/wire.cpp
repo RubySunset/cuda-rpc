@@ -1,6 +1,7 @@
 #include <fractos/core/builder.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
+#include <iomanip>
 
 using namespace fractos;
 namespace srv = fractos::service::compute::cuda;
@@ -318,6 +319,38 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::get_name::respo
 }
 
 std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Device::get_uuid::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(opcode);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Device::get_uuid::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    ss << " imms.uuid=" << to_string(*(CUuuid*)&obj.imms.uuid);
+    print_extra_imm_error();
+
+    print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
 srv::wire::to_string(const core::receive_args<srv::wire::Device::total_mem::request>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
@@ -345,6 +378,19 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::total_mem::resp
     print_extra_imm_error();
 
     print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(CUuuid uuid)
+{
+    std::stringstream ss;
+
+    for (size_t i = 0; i < sizeof(uuid); i++) {
+        auto elem = (unsigned)(uuid.bytes[i]) & 0x0ff;
+        ss << std::hex << std::setfill('0') << std::setw(2) << elem;
+    }
 
     return ss.str();
 }

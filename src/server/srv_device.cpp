@@ -114,6 +114,9 @@ gpu_Device::handle_generic(auto ch, auto args)
     case srv::wire::Device::OP_GET_NAME:
         HANDLE(get_name);
         break;
+    case srv::wire::Device::OP_GET_UUID:
+        HANDLE(get_uuid);
+        break;
     case srv::wire::Device::OP_TOTAL_MEM:
         HANDLE(total_mem);
         break;
@@ -130,6 +133,13 @@ gpu_Device::handle_generic(auto ch, auto args)
     }
 
 #undef HANDLE
+}
+
+template<class T, class U>
+constexpr ptrdiff_t
+offset_of_member(T U::* member)
+{
+    return reinterpret_cast<std::ptrdiff_t>(&(((U const volatile*)nullptr)->*member));
 }
 
 
@@ -191,6 +201,36 @@ gpu_Device::handle_get_name(auto ch, auto args)
         .set_imm(&msg::response::imms::error, error)
         .set_imm(&msg::response::imms::len, name_len)
         .set_imm(&msg::response::imms::name, name, name_len)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+}
+
+void
+gpu_Device::handle_get_uuid(auto ch, auto args)
+{
+    METHOD(Device, get_uuid);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT();
+
+    static_assert(sizeof(CUuuid) == sizeof(msg::response::imms::uuid));
+    CUuuid uuid;
+    auto res = cuDeviceGetUuid(&uuid, device);
+
+    auto error = wire::ERR_SUCCESS;
+    if (res != CUDA_SUCCESS) {
+        error = wire::ERR_OTHER;
+    }
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " uuid=" << srv::wire::to_string(uuid);
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(offset_of_member(&msg::response::imms::uuid), (void*)&uuid, sizeof(uuid))
         .on_channel()
         .invoke()
         .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");

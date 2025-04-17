@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cuda.h>
 #include <fractos/core/builder.hpp>
 #include <fractos/core/cap.hpp>
 #include <fractos/wire/endian.hpp>
@@ -194,6 +195,7 @@ namespace fractos::service::compute::cuda::wire {
         enum generic_opcode : uint64_t {
             OP_GET_ATTRIBUTE,
             OP_GET_NAME,
+            OP_GET_UUID,
             OP_TOTAL_MEM,
 
             OP_INVALID = std::numeric_limits<uint64_t>::max()
@@ -235,6 +237,25 @@ namespace fractos::service::compute::cuda::wire {
                     fractos::wire::endian::uint8_t error;
                     fractos::wire::endian::uint64_t len;
                     char name[];
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
+
+        struct get_uuid {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint8_t uuid[16];
                 } __attribute__ ((packed));
                 struct caps {
                 };
@@ -307,6 +328,9 @@ namespace fractos::service::compute::cuda::wire {
 
     std::string to_string(const core::receive_args<Device::get_name::request>& req);
     std::string to_string(const core::receive_args<Device::get_name::response>& resp);
+
+    std::string to_string(const core::receive_args<Device::get_uuid::request>& req);
+    std::string to_string(const core::receive_args<Device::get_uuid::response>& resp);
 
     std::string to_string(const core::receive_args<Device::total_mem::request>& req);
     std::string to_string(const core::receive_args<Device::total_mem::response>& resp);
@@ -673,4 +697,5 @@ namespace fractos::service::compute::cuda::wire {
         };
     }
 
+    std::string to_string(CUuuid uuid);
 }

@@ -139,6 +139,34 @@ srv::Device::get_name() const
         });
 }
 
+core::future<CUuuid>
+srv::Device::get_uuid() const
+{
+    METHOD(Device, get_uuid);
+    LOG_REQ(method)
+        << " {}";
+
+    auto& pimpl = impl::Device::get(*this);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+        .set_imm(&msg::request::imms::opcode, srv::wire::Device::OP_GET_UUID)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then([this, self=pimpl.self.lock()](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            LOG_RES_PTR(method, self)
+                << wire::to_string(*args);
+            CHECK_ARGS_EXACT();
+
+            CUuuid uuid = *(CUuuid*)args->imms.uuid;
+            return uuid;
+        });
+}
+
 core::future<size_t>
 srv::Device::total_mem() const
 {

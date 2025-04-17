@@ -52,6 +52,28 @@ cuDeviceGetName(char* name, int  len, CUdevice dev)
     return CUDA_SUCCESS;
 }
 
+#undef cuDeviceGetUuid
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
+cuDeviceGetUuid_v2(CUuuid *uuid, CUdevice dev)
+{
+    auto& state = get_state();
+    auto device = state.get_device(dev);
+    if (not device) {
+        return CUDA_ERROR_INVALID_DEVICE;
+    }
+    *uuid = device->get_uuid().get();
+    return CUDA_SUCCESS;
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
+cuDeviceGetUuid(CUuuid *uuid, CUdevice dev)
+{
+    return cuDeviceGetUuid_v2(uuid, dev);
+}
+
 #undef cuDeviceTotalMem
 
 extern "C" [[gnu::visibility("default")]]
