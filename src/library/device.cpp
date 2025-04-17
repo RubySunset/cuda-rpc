@@ -79,6 +79,34 @@ srv::Device::get_device() const
     return pimpl.device;
 }
 
+core::future<int>
+srv::Device::get_attribute(CUdevice_attribute attrib) const
+{
+    METHOD(Device, get_attribute);
+    LOG_REQ(method)
+        << " attrib=" << attrib;
+
+    auto& pimpl = impl::Device::get(*this);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+        .set_imm(&msg::request::imms::opcode, srv::wire::Device::OP_GET_ATTRIBUTE)
+        .set_imm(&msg::request::imms::attrib, attrib)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then([this, self=pimpl.self.lock()](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            LOG_RES_PTR(method, self)
+                << wire::to_string(*args);
+            CHECK_ARGS_EXACT();
+
+            return args->imms.pi;
+        });
+}
+
 core::future<std::string>
 srv::Device::get_name() const
 {

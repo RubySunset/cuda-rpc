@@ -17,6 +17,19 @@ cuDeviceGet(CUdevice* device, int  ordinal)
 
 extern "C" [[gnu::visibility("default")]]
 CUresult
+cuDeviceGetAttribute(int *pi, CUdevice_attribute attrib, CUdevice dev)
+{
+    auto& state = get_state();
+    auto device = state.get_device(dev);
+    if (not device) {
+        return CUDA_ERROR_INVALID_DEVICE;
+    }
+    *pi = device->get_attribute(attrib).get();
+    return CUDA_SUCCESS;
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
 cuDeviceGetCount(int* count)
 {
     auto& state = get_state();

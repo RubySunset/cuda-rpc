@@ -108,6 +108,9 @@ gpu_Device::handle_generic(auto ch, auto args)
     handle_ ## name(ch, reinterpreted.template operator()<srv::wire::Device:: name ::request>(std::move(args)))
 
     switch (opcode) {
+    case srv::wire::Device::OP_GET_ATTRIBUTE:
+        HANDLE(get_attribute);
+        break;
     case srv::wire::Device::OP_GET_NAME:
         HANDLE(get_name);
         break;
@@ -129,6 +132,36 @@ gpu_Device::handle_generic(auto ch, auto args)
 #undef HANDLE
 }
 
+
+void
+gpu_Device::handle_get_attribute(auto ch, auto args)
+{
+    METHOD(Device, get_attribute);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT();
+
+    int pi;
+    auto attrib = (CUdevice_attribute)args->imms.attrib.get();
+    auto res = cuDeviceGetAttribute(&pi, attrib, device);
+
+    auto error = wire::ERR_SUCCESS;
+    if (res != CUDA_SUCCESS) {
+        error = wire::ERR_OTHER;
+    }
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " pi=" << pi;
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::pi, pi)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+}
 
 void
 gpu_Device::handle_get_name(auto ch, auto args)

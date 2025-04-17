@@ -127,6 +127,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
             CUdevice get_device() const;
 
+            // cuDeviceGetAttribute
+            core::future<int> get_attribute(CUdevice_attribute) const;
+
             // cuDeviceGetName
             core::future<std::string> get_name() const;
 
