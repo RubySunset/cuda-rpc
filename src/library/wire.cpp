@@ -276,7 +276,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::get_name::respo
     print_imm_error(error);
     print_imm_identity(len);
     if (obj.has_all_imms()) {
-        ss << " imms.name=" << std::string(obj.imms.name, obj.imms.len);
+        ss << " imms.name=\"" << std::string(obj.imms.name, obj.imms.len) << "\"";
     }
 
     print_empty_caps();
