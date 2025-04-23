@@ -142,6 +142,18 @@ State::get_device(CUdevice device)
     }
 }
 
+std::shared_ptr<fractos::service::compute::cuda::Context>
+State::get_context(CUcontext context)
+{
+    auto contexts_lock = std::shared_lock(contexts_mutex);
+    auto it = contexts.find(context);
+    if (it != contexts.end()) {
+        return it->second;
+    } else {
+        return nullptr;
+    }
+}
+
 
 // * symbol management
 

@@ -4,6 +4,7 @@
 #include <fractos/core/process.hpp>
 #include <fractos/service/compute/cuda.hpp>
 #include <shared_mutex>
+#include <unordered_map>
 
 
 fractos::core::process& get_process();
@@ -19,6 +20,12 @@ struct State {
     std::shared_mutex devices_mutex;
     std::unordered_map<int, std::shared_ptr<fractos::service::compute::cuda::Device>> ordinal_devices;
     std::unordered_map<CUdevice, std::shared_ptr<fractos::service::compute::cuda::Device>> devices;
+
+
+    std::shared_ptr<fractos::service::compute::cuda::Context> get_context(CUcontext ctx);
+
+    std::shared_mutex contexts_mutex;
+    std::unordered_map<CUcontext, std::shared_ptr<fractos::service::compute::cuda::Context>> contexts;
 };
 
 State& get_state();

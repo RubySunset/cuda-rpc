@@ -9,6 +9,23 @@
 
 extern "C" [[gnu::visibility("default")]]
 CUresult
+cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev)
+{
+    auto& state = get_state();
+    auto device = state.get_device(dev);
+
+    auto ctx = device->make_context(flags).get();
+    {
+        auto contexts_lock = std::unique_lock(state.contexts_mutex);
+        auto res = state.contexts.insert(std::make_pair(ctx->get_context(), ctx));
+        CHECK(res.second);
+    }
+    *pctx = ctx->get_context();
+    return CUDA_SUCCESS;
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
 cuCtxGetDevice(CUdevice *device)
 {
     auto& state = get_state();
