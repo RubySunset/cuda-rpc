@@ -224,20 +224,19 @@ srv::Device::make_context(unsigned int flags)
             fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             // get Device object
-            std::shared_ptr<impl::Context> pimpl_(
-                new impl::Context{{}, ch, args->imms.error, 
-                        std::move(args->caps.make_memory),
-                        std::move(args->caps.make_memory_rpc_test),
-                        std::move(args->caps.make_stream),
-                        std::move(args->caps.make_event),
-                        std::move(args->caps.make_module_data),
-                        // std::move(args->caps.make_module_file),
-                        std::move(args->caps.synchronize),
-                        std::move(args->caps.destroy)}
-                );
-            pimpl_->self = pimpl_;
+            auto pimpl_ = std::make_shared<impl::Context>(
+                ch,
+                std::move(args->caps.make_memory),
+                std::move(args->caps.make_memory_rpc_test),
+                std::move(args->caps.make_stream),
+                std::move(args->caps.make_event),
+                std::move(args->caps.make_module_data),
+                // std::move(args->caps.make_module_file),
+                std::move(args->caps.synchronize),
+                std::move(args->caps.destroy));
             auto pimpl = static_pointer_cast<void>(pimpl_);
-            std::shared_ptr<Context> res(new Context{pimpl, flags});
+            auto res = std::make_shared<Context>(pimpl, flags);
+            pimpl_->self = res;
             return res;
         });
 }

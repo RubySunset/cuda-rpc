@@ -16,10 +16,18 @@ namespace impl {
         static Context& get(srv::Context& context);
         static const Context& get(const srv::Context& context);
 
-        std::weak_ptr<Context> self;
+        Context(std::shared_ptr<fractos::core::channel> ch,
+                fractos::core::cap::request req_memory,
+                fractos::core::cap::request req_memory_rpc_test,
+                fractos::core::cap::request req_stream,
+                fractos::core::cap::request req_event,
+                fractos::core::cap::request req_module_data,
+                fractos::core::cap::request req_ctx_sync,
+                fractos::core::cap::request req_ctx_destroy);
+
+        std::weak_ptr<srv::Context> self;
         std::shared_ptr<fractos::core::channel> ch;
 
-        fractos::wire::endian::uint8_t error;
         fractos::core::cap::request req_memory;
         fractos::core::cap::request req_memory_rpc_test;
         fractos::core::cap::request req_stream;
