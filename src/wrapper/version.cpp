@@ -1,5 +1,6 @@
 #include <cuda.h>
 
+#include <./driver-syms-extern.hpp>
 #include <./state.hpp>
 
 

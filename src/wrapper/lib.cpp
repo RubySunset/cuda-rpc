@@ -26,7 +26,11 @@ static std::unordered_map<std::string, void*> *implemented_functions;
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI cuGetProcAddress_v2(const char* symbol, void** pfn, int  cudaVersion, cuuint64_t flags, CUdriverProcAddressQueryResult* symbolStatus);
 
-static decltype(&cuGetProcAddress_v2) ptr_cuGetProcAddress_v2;
+
+#define SYM(name) decltype(&name) ptr_ ## name;
+#include "./driver-syms.hpp"
+#undef SYM
+
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
@@ -56,20 +60,12 @@ cuGetProcAddress_v2(const char *symbol, void **pfn, int cudaVersion, cuuint64_t 
     }
 }
 
-
-// NOTE: cuda.h defines cuGetProcAddress -> cuGetProcAddress_v2
-#ifdef cuGetProcAddress
-#undef cuGetProcAddress
-#endif
-
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuGetProcAddress(const char *symbol, void **pfn, int cudaVersion, cuuint64_t flags)
 {
     return cuGetProcAddress_v2(symbol, pfn, cudaVersion, flags, nullptr);
 }
-
-static decltype(&cuGetExportTable) ptr_cuGetExportTable;
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
@@ -93,8 +89,6 @@ cuGetExportTable(const void **ppExportTable, const CUuuid *pExportTableId)
     return res;
 }
 
-
-extern decltype(&cuInit) ptr_cuInit;
 
 static void init_symbols() __attribute__((constructor));
 
@@ -141,12 +135,8 @@ init_symbols()
         return ptr;
     };
 
-#define load_sym_next(name) ptr_ ## name = (decltype(ptr_ ## name))do_load_sym(#name)
-
     // NOTE: globals override auto-generated weak symbols in default_functions
-    load_sym_next(cuGetProcAddress_v2);
-    load_sym_next(cuGetExportTable);
-    load_sym_next(cuInit);
-
-#undef load_sym_next
+#define SYM(name) ptr_ ## name = (decltype(ptr_ ## name))do_load_sym(#name);
+#include "./driver-syms.hpp"
+#undef SYM
 }

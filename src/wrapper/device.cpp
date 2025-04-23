@@ -1,5 +1,6 @@
 #include <cuda.h>
 
+#include <./driver-syms-extern.hpp>
 #include <./state.hpp>
 
 
@@ -53,8 +54,6 @@ cuDeviceGetName(char* name, int  len, CUdevice dev)
     return CUDA_SUCCESS;
 }
 
-#undef cuDeviceGetUuid
-
 extern "C" [[gnu::visibility("default")]]
 CUresult
 cuDeviceGetUuid_v2(CUuuid *uuid, CUdevice dev)
@@ -74,8 +73,6 @@ cuDeviceGetUuid(CUuuid *uuid, CUdevice dev)
 {
     return cuDeviceGetUuid_v2(uuid, dev);
 }
-
-#undef cuDeviceTotalMem
 
 extern "C" [[gnu::visibility("default")]]
 CUresult

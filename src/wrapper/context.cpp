@@ -1,6 +1,7 @@
 #include <cuda.h>
 
 #include <../library/context_impl.hpp>
+#include <./driver-syms-extern.hpp>
 #include <./state.hpp>
 
 

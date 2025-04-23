@@ -1,12 +1,11 @@
 #include <cuda.h>
 
+#include <./driver-syms-extern.hpp>
 #include <./state.hpp>
 
 
 // * initialization
 // https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__INITIALIZE.html#group__CUDA__INITIALIZE
-
-decltype(&cuInit) ptr_cuInit;
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
