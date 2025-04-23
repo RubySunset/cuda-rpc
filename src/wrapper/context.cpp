@@ -68,3 +68,22 @@ cuCtxPopCurrent_v2(CUcontext *pctx)
         return CUDA_ERROR_INVALID_CONTEXT;
     }
 }
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
+cuCtxPushCurrent_v2(CUcontext ctx)
+{
+    auto& state = get_state();
+
+    if (not ctx) {
+        return CUDA_ERROR_INVALID_VALUE;
+    }
+
+    auto ctx_ptr = state.get_context(ctx);
+    CHECK(ctx_ptr);
+
+    auto& stack = state.get_context_stack();
+    stack.push(ctx_ptr);
+
+    return CUDA_SUCCESS;
+}
