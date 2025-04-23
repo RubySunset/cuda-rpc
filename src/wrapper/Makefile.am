@@ -20,6 +20,7 @@ libfractos_service_compute_cuda_wrapper_la_SOURCES += version.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += device.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += context.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += module.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += ../library/wire.cpp
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS =
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS += $(AM_LDFLAGS)
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS += ../library/libfractos-service-compute-cuda.la

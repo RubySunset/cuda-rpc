@@ -2,6 +2,7 @@
 #include <cuda.h>
 #include <dlfcn.h>
 #include <fractos/service/compute/cuda.hpp>
+#include <fractos/service/compute/cuda_msg.hpp>
 #include <glog/logging.h>
 #include <link.h>
 #include <unordered_map>
@@ -31,15 +32,22 @@ extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuGetProcAddress_v2(const char *symbol, void **pfn, int cudaVersion, cuuint64_t flags, CUdriverProcAddressQueryResult* symbolStatus)
 {
-    // LOG(INFO) << __func__ << "(" << symbol << ")";
-
     if (std::string(symbol) == "") {
-        return (ptr_cuGetProcAddress_v2)(symbol, pfn, cudaVersion, flags, symbolStatus);
+        auto res = (ptr_cuGetProcAddress_v2)(symbol, pfn, cudaVersion, flags, symbolStatus);
+        DVLOG(fractos::logging::SERVICE)
+            << "cuGetProcAddress_v2"
+            << " *pfn=" << *pfn
+            << " symbol=\"" << symbol << "\"";
+        return res;
     }
 
     auto it = implemented_functions->find(symbol);
     if (it != implemented_functions->end()) {
         *pfn = it->second;
+        DVLOG(fractos::logging::SERVICE)
+            << "cuGetProcAddress_v2"
+            << " *pfn=" << *pfn
+            << " symbol=\"" << symbol << "\"";
         return CUDA_SUCCESS;
     } else {
         *pfn = nullptr;
@@ -67,8 +75,22 @@ extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuGetExportTable(const void **ppExportTable, const CUuuid *pExportTableId)
 {
+    // https://github.com/SveSop/nvcuda/blob/884da86135b4b0bf5f36c0eb016520c3e4d5f1d5/dlls/nvcuda/internal.c#L148
     LOG(WARNING) << "TODO: properly handle cuGetExportTable";
-    return (*ptr_cuGetExportTable)(ppExportTable, pExportTableId);
+    auto res = (*ptr_cuGetExportTable)(ppExportTable, pExportTableId);
+
+    if (VLOG_IS_ON(fractos::logging::SERVICE)) {
+        DVLOG(fractos::logging::SERVICE)
+            << "cuGetExportTable"
+            << " *ppExportTable=" << *ppExportTable << " *pExportTableId="
+            << fractos::service::compute::cuda::wire::to_string(*pExportTableId);
+        for (auto idx = 0; (*(void***)ppExportTable)[idx]; idx++) {
+            DVLOG(fractos::logging::SERVICE)
+                << "    [" << idx << "]=" << std::hex << (*(void***)ppExportTable)[idx];
+        }
+    }
+
+    return res;
 }
 
 
