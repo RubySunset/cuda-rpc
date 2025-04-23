@@ -154,6 +154,27 @@ State::get_context(CUcontext context)
     }
 }
 
+static
+auto
+make_context_stack()
+{
+    auto& state = get_state();
+    auto stack = new std::stack<std::shared_ptr<fractos::service::compute::cuda::Context>>();
+    state.context_stack.reset(stack);
+    return stack;
+}
+
+std::stack<std::shared_ptr<fractos::service::compute::cuda::Context>> &
+State::get_context_stack()
+{
+    auto ptr = context_stack.get();
+    if (not ptr) [[unlikely]] {
+        ptr = make_context_stack();
+    }
+    DCHECK(ptr);
+    return *ptr;
+}
+
 
 // * symbol management
 

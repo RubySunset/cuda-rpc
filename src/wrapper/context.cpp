@@ -26,6 +26,22 @@ cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev)
 
 extern "C" [[gnu::visibility("default")]]
 CUresult
+cuCtxGetCurrent(CUcontext* pctx)
+{
+    auto& state = get_state();
+    auto& stack = state.get_context_stack();
+    if (stack.empty()) {
+        *pctx = nullptr;
+    } else {
+        auto ctx = stack.top();
+        *pctx = ctx->get_context();
+    }
+
+    return CUDA_SUCCESS;
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
 cuCtxGetDevice(CUdevice *device)
 {
     auto& state = get_state();
