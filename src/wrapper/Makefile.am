@@ -11,27 +11,29 @@ AM_LDFLAGS += $(PKG_LIBS)
 AM_LDFLAGS += $(CUDA_LIBS)
 
 lib_LTLIBRARIES += libfractos-service-compute-cuda-wrapper.la
-nodist_libfractos_service_compute_cuda_wrapper_la_SOURCES = default.cpp
+nodist_libfractos_service_compute_cuda_wrapper_la_SOURCES = driver-default.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES =
 libfractos_service_compute_cuda_wrapper_la_SOURCES += state.cpp
-libfractos_service_compute_cuda_wrapper_la_SOURCES += lib.cpp
-libfractos_service_compute_cuda_wrapper_la_SOURCES += initialization.cpp
-libfractos_service_compute_cuda_wrapper_la_SOURCES += version.cpp
-libfractos_service_compute_cuda_wrapper_la_SOURCES += device.cpp
-libfractos_service_compute_cuda_wrapper_la_SOURCES += context.cpp
-libfractos_service_compute_cuda_wrapper_la_SOURCES += module.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-lib.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-initialization.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-version.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-device.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-context.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-module.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += ../library/wire.cpp
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS =
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS += $(AM_LDFLAGS)
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS += ../library/libfractos-service-compute-cuda.la
 
-CLEANFILES = default.cpp
+CLEANFILES =
 BUILT_SOURCES =
-BUILT_SOURCES += default.cpp
 
-default.cpp: $(abs_srcdir)/cuda-generate-funcs.sh
-default.cpp: $(LIBCUDA)
-default.cpp:
+CLEANFILES += driver-default.cpp
+BUILT_SOURCES += driver-default.cpp
+
+driver-default.cpp: $(abs_srcdir)/cuda-generate-funcs.sh
+driver-default.cpp: $(LIBCUDA)
+driver-default.cpp:
 	$(abs_srcdir)/cuda-generate-funcs.sh $(LIBCUDA) $@
 
 install-exec-hook:
