@@ -54,3 +54,17 @@ cuCtxGetDevice(CUdevice *device)
     *device = dev->get_device();
     return CUDA_SUCCESS;
 }
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
+cuCtxPopCurrent_v2(CUcontext *pctx)
+{
+    auto& state = get_state();
+    auto& stack = state.get_context_stack();
+    if (not stack.empty()) [[likely]] {
+        *pctx = stack.top()->get_context();
+        return CUDA_SUCCESS;
+    } else {
+        return CUDA_ERROR_INVALID_CONTEXT;
+    }
+}
