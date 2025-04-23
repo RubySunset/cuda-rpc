@@ -138,9 +138,9 @@ srv::make_service(std::shared_ptr<core::channel> ch,
                 ch,
                 std::move(args->caps.connect),
                 std::move(args->caps.generic));
-            pimpl_->self = pimpl_;
             auto pimpl = std::static_pointer_cast<void>(pimpl_);
-            std::unique_ptr<Service> res(new Service{pimpl});
+            auto res = std::make_unique<Service>(pimpl);
+            pimpl_->self = pimpl_;
 
             return res;
         });
