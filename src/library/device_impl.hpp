@@ -19,7 +19,7 @@ namespace impl {
                fractos::core::cap::request req_make_context,
                fractos::core::cap::request req_destroy);
 
-        std::weak_ptr<Device> self;
+        std::weak_ptr<srv::Device> self;
         std::shared_ptr<fractos::core::channel> ch;
 
         const CUdevice device;

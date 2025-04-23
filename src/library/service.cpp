@@ -237,9 +237,10 @@ srv::Service::device_get(int ordinal)
                 std::move(args->caps.generic),
                 std::move(args->caps.make_context),
                 std::move(args->caps.destroy));
-            pimpl_->self = pimpl_;
             auto pimpl = static_pointer_cast<void>(pimpl_);
-            return std::make_shared<Device>(pimpl);
+            auto res = std::make_shared<Device>(pimpl);
+            pimpl_->self = res;
+            return res;
         });
 }
 
