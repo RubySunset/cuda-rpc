@@ -1,5 +1,6 @@
 #include <cuda.h>
-#include <lib.hpp>
+
+#include <./state.hpp>
 
 
 // * module management

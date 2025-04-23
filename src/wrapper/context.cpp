@@ -1,7 +1,7 @@
 #include <cuda.h>
-#include <lib.hpp>
 
 #include <../library/context_impl.hpp>
+#include <./state.hpp>
 
 
 // * context management

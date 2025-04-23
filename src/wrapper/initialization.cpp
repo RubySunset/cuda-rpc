@@ -1,6 +1,6 @@
 #include <cuda.h>
 
-#include <./lib.hpp>
+#include <./state.hpp>
 
 
 // * initialization
