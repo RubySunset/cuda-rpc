@@ -18,7 +18,6 @@ EOF
 
     for sym in $syms; do
         cat >>"$output" <<EOF
-extern "C" [[gnu::weak, gnu::visibility("default")]] void $sym();
 extern "C" [[gnu::weak, gnu::visibility("default")]] void $sym()
 {
     LOG(FATAL) << "symbol not implemented: " xstr($sym);
