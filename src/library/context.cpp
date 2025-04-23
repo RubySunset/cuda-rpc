@@ -58,6 +58,7 @@ impl::Context::Context(std::shared_ptr<fractos::core::channel> ch,
                        fractos::core::cap::request req_ctx_sync,
                        fractos::core::cap::request req_ctx_destroy)
     :ch(ch)
+    ,context(0)
     ,device(device)
     ,req_memory(std::move(req_memory))
     ,req_memory_rpc_test(std::move(req_memory_rpc_test))
@@ -66,9 +67,18 @@ impl::Context::Context(std::shared_ptr<fractos::core::channel> ch,
     ,req_module_data(std::move(req_module_data))
     ,req_ctx_sync(std::move(req_ctx_sync))
     ,req_ctx_destroy(std::move(req_ctx_destroy))
+    ,context_ptr(new char[512])
 {
+    const_cast<CUcontext&>(context) = (CUcontext)context_ptr.get();
 }
 
+
+CUcontext
+srv::Context::get_context() const
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.context;
+}
 
 std::shared_ptr<srv::Device>
 srv::Context::get_device()

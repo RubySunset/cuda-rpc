@@ -82,9 +82,11 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
             const core::cap::request& get_connect() const;
 
+
             // cuDriverGetversion
             [[nodiscard]] fractos::core::future<int>
             get_driver_version();
+
 
             // cuInit
             [[nodiscard]] fractos::core::future<void>
@@ -177,6 +179,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class Context {
         public:
+            CUcontext get_context() const;
+
             // cuCtxGetDevice
             std::shared_ptr<Device> get_device();
 

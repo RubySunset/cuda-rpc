@@ -29,6 +29,7 @@ namespace impl {
         std::weak_ptr<srv::Context> self;
         std::shared_ptr<fractos::core::channel> ch;
 
+        CUcontext context;
         std::weak_ptr<srv::Device> device;
 
         fractos::core::cap::request req_memory;
@@ -40,6 +41,9 @@ namespace impl {
         fractos::core::cap::request req_ctx_destroy;
 
         bool destroyed;
+
+        // an opaque data structure in libcuda
+        std::unique_ptr<char[]> context_ptr;
     };
 
 }
