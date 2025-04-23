@@ -87,3 +87,19 @@ cuCtxPushCurrent_v2(CUcontext ctx)
 
     return CUDA_SUCCESS;
 }
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
+cuCtxSetCurrent(CUcontext ctx)
+{
+    auto& state [[maybe_unused]] = get_state();
+
+    CUcontext cur;
+    auto err = cuCtxPopCurrent(&cur);
+    CHECK(err == CUDA_SUCCESS or err == CUDA_ERROR_INVALID_CONTEXT);
+
+    err = cuCtxPushCurrent(ctx);
+    CHECK(err == CUDA_SUCCESS or err == CUDA_ERROR_INVALID_VALUE);
+
+    return CUDA_SUCCESS;
+}
