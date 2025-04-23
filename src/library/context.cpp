@@ -49,6 +49,7 @@ srv::Context::~Context()
 }
 
 impl::Context::Context(std::shared_ptr<fractos::core::channel> ch,
+                       std::shared_ptr<srv::Device> device,
                        fractos::core::cap::request req_memory,
                        fractos::core::cap::request req_memory_rpc_test,
                        fractos::core::cap::request req_stream,
@@ -57,6 +58,7 @@ impl::Context::Context(std::shared_ptr<fractos::core::channel> ch,
                        fractos::core::cap::request req_ctx_sync,
                        fractos::core::cap::request req_ctx_destroy)
     :ch(ch)
+    ,device(device)
     ,req_memory(std::move(req_memory))
     ,req_memory_rpc_test(std::move(req_memory_rpc_test))
     ,req_stream(std::move(req_stream))
@@ -67,6 +69,13 @@ impl::Context::Context(std::shared_ptr<fractos::core::channel> ch,
 {
 }
 
+
+std::shared_ptr<srv::Device>
+srv::Context::get_device()
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.device.lock();
+}
 
 
 

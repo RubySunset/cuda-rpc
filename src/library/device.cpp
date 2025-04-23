@@ -210,7 +210,7 @@ srv::Device::make_context(unsigned int flags)
         .on_channel()
         .invoke(resp) // wait for srv_handle
         .unwrap()
-        .then([flags, this](auto& fut) {
+        .then([this, self=pimpl.self.lock(), flags](auto& fut) {
             auto [ch, args] = fut.get();
 
             if (not args->has_exactly_args()) {
@@ -226,6 +226,7 @@ srv::Device::make_context(unsigned int flags)
             // get Device object
             auto pimpl_ = std::make_shared<impl::Context>(
                 ch,
+                self,
                 std::move(args->caps.make_memory),
                 std::move(args->caps.make_memory_rpc_test),
                 std::move(args->caps.make_stream),

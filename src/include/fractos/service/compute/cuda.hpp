@@ -177,6 +177,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class Context {
         public:
+            // cuCtxGetDevice
+            std::shared_ptr<Device> get_device();
+
             // /**
             //  * @brief Wrapper for cuModuleLoad() - not in use
             //  */
