@@ -13,3 +13,10 @@ cuGetErrorName(CUresult error, const char **pStr)
 {
     return (*ptr_cuGetErrorName)(error, pStr);
 }
+
+extern "C" [[gnu::visibility("default")]]
+CUresult CUDAAPI
+cuGetErrorString(CUresult error, const char **pStr)
+{
+    return (*ptr_cuGetErrorString)(error, pStr);
+}
