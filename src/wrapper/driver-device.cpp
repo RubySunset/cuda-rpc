@@ -13,6 +13,9 @@ cuDeviceGet(CUdevice* device, int  ordinal)
 {
     auto& state = get_driver_state();
     auto device_ptr = state.get_device_ordinal(ordinal);
+    if (not device_ptr) {
+        return CUDA_ERROR_INVALID_DEVICE;
+    }
     *device = device_ptr->get_device();
     return CUDA_SUCCESS;
 }
