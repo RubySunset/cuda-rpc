@@ -10,6 +10,7 @@
 #undef cuDeviceTotalMem
 #endif
 
+SYM(cuGetErrorName)
 SYM(cuGetProcAddress_v2)
 SYM(cuGetExportTable)
 SYM(cuInit)
