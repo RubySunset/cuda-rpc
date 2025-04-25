@@ -1,13 +1,16 @@
 #!/bin/bash -e
 
-LIBCUDA=$(readlink -f $1)
-OUTPUT=$2
+NAME=$1
+LIBCUDA=$(readlink -f $2)
+OUTPUT=$3
 
 generate() {
-    libcuda=$1
-    output=$2
+    name=$1
+    libcuda=$2
+    output=$3
 
-    syms=$(readelf -Ws "$libcuda" | grep -v " UND " | grep " FUNC " | grep " DEFAULT " | tr -s " " | cut -f 9 -d " ")
+    syms=$(readelf -Ws "$libcuda" | \
+               grep -v " UND " | grep " FUNC " | grep " DEFAULT ")
 
     cat >"$output" <<EOF
 #include <glog/logging.h>
@@ -32,10 +35,10 @@ struct cuda_function_t {
 };
 
 extern "C" [[gnu::visibility("hidden")]]
-cuda_function_t default_functions[];
+cuda_function_t ${1}_default_functions[];
 
 [[gnu::visibility("hidden")]]
-cuda_function_t default_functions[] = {
+cuda_function_t ${1}_default_functions[] = {
 EOF
 
     for sym in $syms; do
@@ -46,4 +49,4 @@ EOF
     echo "};" >>"$output"
 }
 
-generate "$LIBCUDA" "$OUTPUT"
+generate "$NAME" "$LIBCUDA" "$OUTPUT"

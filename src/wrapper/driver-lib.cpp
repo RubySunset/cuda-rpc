@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <cuda.h>
 #include <dlfcn.h>
-#include <fractos/service/compute/cuda.hpp>
+#include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <glog/logging.h>
 #include <link.h>
@@ -17,7 +17,7 @@ struct cuda_function_t {
     char const* name;
     void* ptr;
 };
-extern "C" [[gnu::visibility("hidden")]] cuda_function_t default_functions[];
+extern "C" [[gnu::visibility("hidden")]] cuda_function_t driver_default_functions[];
 
 // NOTE: *cannot* be a global map, because it's constructed after init_lib() below
 static std::unordered_map<std::string, void*> *implemented_functions;
@@ -115,7 +115,7 @@ init_symbols()
     implemented_functions = new std::unordered_map<std::string, void*>();
 
     for (size_t i = 0; true; i++) {
-        auto& elem = default_functions[i];
+        auto& elem = driver_default_functions[i];
         if (not elem.name) {
             break;
         }
@@ -135,7 +135,7 @@ init_symbols()
         return ptr;
     };
 
-    // NOTE: globals override auto-generated weak symbols in default_functions
+    // NOTE: globals override auto-generated weak symbols
 #define SYM(name) ptr_ ## name = (decltype(ptr_ ## name))do_load_sym(#name);
 #include "./driver-syms.hpp"
 #undef SYM
