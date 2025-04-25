@@ -13,7 +13,7 @@ fractos::core::process& get_process();
 fractos::core::channel& get_channel();
 std::shared_ptr<fractos::core::channel> get_channel_ptr();
 
-struct State {
+struct DriverState {
     std::shared_ptr<fractos::service::compute::cuda::Service> service;
 
 
@@ -36,4 +36,21 @@ struct State {
     boost::thread_specific_ptr<std::stack<std::shared_ptr<fractos::service::compute::cuda::Context>>> context_stack;
 };
 
-State& get_state();
+static std::mutex _driver_state_mutex;
+static std::atomic<std::shared_ptr<DriverState>> _driver_state;
+
+#define get_driver_state()                                              \
+    ({                                                                  \
+        auto state = _driver_state.load(std::memory_order_consume);     \
+        if (not state) [[unlikely]] {                                   \
+            return CUDA_ERROR_NOT_INITIALIZED;                          \
+        }                                                               \
+        std::ref(*state);                                               \
+    }).get()
+
+#define get_driver_state_unsafe()                                       \
+    ({                                                                  \
+        auto state = _driver_state.load(std::memory_order_consume);     \
+        DCHECK(state);                                                  \
+        std::ref(*state);                                               \
+    }).get()

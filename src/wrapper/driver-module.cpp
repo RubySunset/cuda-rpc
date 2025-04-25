@@ -1,7 +1,7 @@
 #include <cuda.h>
 
+#include <./driver-state.hpp>
 #include <./driver-syms-extern.hpp>
-#include <./state.hpp>
 
 
 // * module management
@@ -11,7 +11,7 @@ extern "C" [[gnu::visibility("default")]]
 CUresult
 cuModuleGetLoadingMode(CUmoduleLoadingMode* mode)
 {
-    auto& state = get_state();
+    auto& state = get_driver_state();
     *mode = state.service->module_get_loading_mode().get();
     return CUDA_SUCCESS;
 }

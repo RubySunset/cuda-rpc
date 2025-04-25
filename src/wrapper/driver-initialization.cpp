@@ -1,7 +1,8 @@
 #include <cuda.h>
 
+#include <./common.hpp>
+#include <./driver-state.hpp>
 #include <./driver-syms-extern.hpp>
-#include <./state.hpp>
 
 
 // * initialization
@@ -11,9 +12,28 @@ extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuInit(unsigned int flags)
 {
-    CHECK((*ptr_cuInit)(flags) == CUDA_SUCCESS);
+    auto lock = std::unique_lock(_driver_state_mutex);
 
-    auto& state = get_state();
-    state.service->init(flags).get();
+    if (_driver_state.load()) {
+        return CUDA_SUCCESS;
+    }
+
+    auto ch = get_channel_ptr();
+    auto gns = fractos::core::gns::make_service();
+
+    auto name = get_env("FRACTOS_SERVICE_COMPUTE_CUDA_NAME",
+                        "fractos::service::compute::cuda");
+
+    auto state = std::make_shared<DriverState>();
+
+    state->service = fractos::service::compute::cuda::make_service(ch, *gns, name).get();
+    state->service->init(flags).get();
+
+    if (state->service->device_get_count().get() == 0) {
+        return CUDA_ERROR_NO_DEVICE;
+    }
+
+    _driver_state = state;
+
     return CUDA_SUCCESS;
 }

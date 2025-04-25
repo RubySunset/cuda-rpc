@@ -1,8 +1,8 @@
 #include <cuda.h>
 
 #include <../library/context_impl.hpp>
+#include <./driver-state.hpp>
 #include <./driver-syms-extern.hpp>
-#include <./state.hpp>
 
 
 // * context management
@@ -12,7 +12,7 @@ extern "C" [[gnu::visibility("default")]]
 CUresult
 cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev)
 {
-    auto& state = get_state();
+    auto& state = get_driver_state();
     auto device = state.get_device(dev);
 
     auto ctx = device->make_context(flags).get();
@@ -29,7 +29,7 @@ extern "C" [[gnu::visibility("default")]]
 CUresult
 cuCtxGetCurrent(CUcontext* pctx)
 {
-    auto& state = get_state();
+    auto& state = get_driver_state();
     auto& stack = state.get_context_stack();
     if (stack.empty()) {
         *pctx = nullptr;
@@ -45,7 +45,7 @@ extern "C" [[gnu::visibility("default")]]
 CUresult
 cuCtxGetDevice(CUdevice *device)
 {
-    auto& state = get_state();
+    auto& state = get_driver_state();
 
     CUcontext ctx_id;
     CHECK(cuCtxGetCurrent(&ctx_id) == CUDA_SUCCESS);
@@ -60,7 +60,7 @@ extern "C" [[gnu::visibility("default")]]
 CUresult
 cuCtxPopCurrent_v2(CUcontext *pctx)
 {
-    auto& state = get_state();
+    auto& state = get_driver_state();
     auto& stack = state.get_context_stack();
     if (not stack.empty()) [[likely]] {
         *pctx = stack.top()->get_context();
@@ -74,7 +74,7 @@ extern "C" [[gnu::visibility("default")]]
 CUresult
 cuCtxPushCurrent_v2(CUcontext ctx)
 {
-    auto& state = get_state();
+    auto& state = get_driver_state();
 
     if (not ctx) {
         return CUDA_ERROR_INVALID_VALUE;
@@ -93,7 +93,7 @@ extern "C" [[gnu::visibility("default")]]
 CUresult
 cuCtxSetCurrent(CUcontext ctx)
 {
-    auto& state [[maybe_unused]] = get_state();
+    auto& state [[maybe_unused]] = get_driver_state();
 
     CUcontext cur;
     auto err = cuCtxPopCurrent(&cur);

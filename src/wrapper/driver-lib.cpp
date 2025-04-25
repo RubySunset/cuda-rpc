@@ -7,7 +7,7 @@
 #include <link.h>
 #include <unordered_map>
 
-#include <./state.hpp>
+#include <./driver-state.hpp>
 
 
 static void *libcuda_handle;

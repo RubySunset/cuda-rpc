@@ -3,7 +3,8 @@
 #include <fractos/core/process.hpp>
 #include <fractos/core/process_config.hpp>
 
-#include <./state.hpp>
+#include <./common.hpp>
+#include <./driver-state.hpp>
 
 
 // * FractOS objects
@@ -11,18 +12,6 @@
 static std::mutex fractos_mutex;
 static std::shared_ptr<fractos::core::process> process;
 static std::shared_ptr<fractos::core::channel> channel;
-
-static
-std::string
-get_env(std::string env_name, std::string default_str = "")
-{
-    auto res = default_str;
-    auto env_val = secure_getenv(env_name.c_str());
-    if (env_val) {
-        res = env_val;
-    }
-    return res;
-}
 
 fractos::core::process&
 get_process()
@@ -68,34 +57,10 @@ get_channel()
 }
 
 
-// * State object
-
-static std::mutex state_mutex;
-static std::shared_ptr<State> state;
-
-State&
-get_state()
-{
-    if (not state) [[unlikely]] {
-        auto ch = get_channel_ptr();
-        auto gns = fractos::core::gns::make_service();
-
-        auto name = get_env("FRACTOS_SERVICE_COMPUTE_CUDA_NAME",
-                            "fractos::service::compute::cuda");
-
-        auto lock = std::unique_lock(state_mutex);
-        if (not state) {
-            state = std::make_shared<State>();
-            state->service = fractos::service::compute::cuda::make_service(ch, *gns, name).get();
-        }
-    }
-
-    DCHECK(state);
-    return *state;
-}
+// * DriverState object
 
 std::shared_ptr<fractos::service::compute::cuda::Device>
-State::get_device_ordinal(int ordinal)
+DriverState::get_device_ordinal(int ordinal)
 {
     {
         auto devices_lock = std::shared_lock(devices_mutex);
@@ -126,7 +91,7 @@ State::get_device_ordinal(int ordinal)
 }
 
 std::shared_ptr<fractos::service::compute::cuda::Device>
-State::get_device(CUdevice device)
+DriverState::get_device(CUdevice device)
 {
     auto devices_lock = std::shared_lock(devices_mutex);
     auto it = devices.find(device);
@@ -138,7 +103,7 @@ State::get_device(CUdevice device)
 }
 
 std::shared_ptr<fractos::service::compute::cuda::Context>
-State::get_context(CUcontext context)
+DriverState::get_context(CUcontext context)
 {
     auto contexts_lock = std::shared_lock(contexts_mutex);
     auto it = contexts.find(context);
@@ -153,14 +118,14 @@ static
 auto
 make_context_stack()
 {
-    auto& state = get_state();
+    auto& state = get_driver_state_unsafe();
     auto stack = new std::stack<std::shared_ptr<fractos::service::compute::cuda::Context>>();
     state.context_stack.reset(stack);
     return stack;
 }
 
 std::stack<std::shared_ptr<fractos::service::compute::cuda::Context>> &
-State::get_context_stack()
+DriverState::get_context_stack()
 {
     auto ptr = context_stack.get();
     if (not ptr) [[unlikely]] {

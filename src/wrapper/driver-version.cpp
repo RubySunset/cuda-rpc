@@ -1,7 +1,7 @@
 #include <cuda.h>
 
+#include <./driver-state.hpp>
 #include <./driver-syms-extern.hpp>
-#include <./state.hpp>
 
 
 // * version management
@@ -15,7 +15,7 @@ cuDriverGetVersion(int* driverVersion)
         return CUDA_ERROR_INVALID_VALUE;
     }
 
-    auto& state = get_state();
+    auto& state = get_driver_state();
     *driverVersion = state.service->get_driver_version().get();
     return CUDA_SUCCESS;
 }

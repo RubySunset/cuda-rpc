@@ -1,7 +1,7 @@
 #include <cuda.h>
 
+#include <./driver-state.hpp>
 #include <./driver-syms-extern.hpp>
-#include <./state.hpp>
 
 
 // * device management
@@ -11,7 +11,7 @@ extern "C" [[gnu::visibility("default")]]
 CUresult
 cuDeviceGet(CUdevice* device, int  ordinal)
 {
-    auto& state = get_state();
+    auto& state = get_driver_state();
     auto device_ptr = state.get_device_ordinal(ordinal);
     *device = device_ptr->get_device();
     return CUDA_SUCCESS;
@@ -21,7 +21,7 @@ extern "C" [[gnu::visibility("default")]]
 CUresult
 cuDeviceGetAttribute(int *pi, CUdevice_attribute attrib, CUdevice dev)
 {
-    auto& state = get_state();
+    auto& state = get_driver_state();
     auto device = state.get_device(dev);
     if (not device) {
         return CUDA_ERROR_INVALID_DEVICE;
@@ -34,7 +34,7 @@ extern "C" [[gnu::visibility("default")]]
 CUresult
 cuDeviceGetCount(int* count)
 {
-    auto& state = get_state();
+    auto& state = get_driver_state();
     *count = state.service->device_get_count().get();
     return CUDA_SUCCESS;
 }
@@ -43,7 +43,7 @@ extern "C" [[gnu::visibility("default")]]
 CUresult
 cuDeviceGetName(char* name, int  len, CUdevice dev)
 {
-    auto& state = get_state();
+    auto& state = get_driver_state();
     auto device = state.get_device(dev);
     if (not device) {
         return CUDA_ERROR_INVALID_DEVICE;
@@ -58,7 +58,7 @@ extern "C" [[gnu::visibility("default")]]
 CUresult
 cuDeviceGetUuid_v2(CUuuid *uuid, CUdevice dev)
 {
-    auto& state = get_state();
+    auto& state = get_driver_state();
     auto device = state.get_device(dev);
     if (not device) {
         return CUDA_ERROR_INVALID_DEVICE;
@@ -78,7 +78,7 @@ extern "C" [[gnu::visibility("default")]]
 CUresult
 cuDeviceTotalMem_v2(size_t* bytes, CUdevice dev)
 {
-    auto& state = get_state();
+    auto& state = get_driver_state();
     auto device = state.get_device(dev);
     if (not device) {
         return CUDA_ERROR_INVALID_DEVICE;
