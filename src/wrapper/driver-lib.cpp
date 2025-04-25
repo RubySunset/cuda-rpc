@@ -34,10 +34,11 @@ CUresult CUDAAPI cuGetProcAddress_v2(const char* symbol, void** pfn, int  cudaVe
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
-cuGetProcAddress_v2(const char *symbol, void **pfn, int cudaVersion, cuuint64_t flags, CUdriverProcAddressQueryResult* symbolStatus)
+cuGetProcAddress_v2(const char *symbol, void **pfn, int cudaVersion,
+                    cuuint64_t flags, CUdriverProcAddressQueryResult* symbolStatus)
 {
     if (std::string(symbol) == "") {
-        auto res = (ptr_cuGetProcAddress_v2)(symbol, pfn, cudaVersion, flags, symbolStatus);
+        auto res = (*ptr_cuGetProcAddress_v2)(symbol, pfn, cudaVersion, flags, symbolStatus);
         DVLOG(fractos::logging::SERVICE)
             << "cuGetProcAddress_v2"
             << " *pfn=" << *pfn
