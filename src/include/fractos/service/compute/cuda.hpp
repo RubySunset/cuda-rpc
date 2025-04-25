@@ -373,7 +373,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
-            Stream(std::shared_ptr<void> pimpl, wire::endian::uint32_t flags, fractos::wire::endian::uint32_t id);
+            Stream(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t flags, fractos::wire::endian::uint32_t id);
             ~Stream();
             fractos::wire::endian::uint32_t get_stream_id();
             // NOTE: not for public use
@@ -418,7 +418,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
-            Event(std::shared_ptr<void> pimpl, wire::endian::uint32_t flags);
+            Event(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t flags);
             ~Event();
             fractos::wire::endian::uint32_t get_event_id();
             // NOTE: not for public use
