@@ -19,10 +19,19 @@ struct DriverState {
 
     std::shared_ptr<fractos::service::compute::cuda::Device> get_device_ordinal(int ordinal);
     std::shared_ptr<fractos::service::compute::cuda::Device> get_device(CUdevice device);
+    std::shared_ptr<fractos::service::compute::cuda::Context> get_device_primary_context(CUdevice device);
+
+    struct device_entry {
+        std::shared_ptr<fractos::service::compute::cuda::Device> device;
+        std::atomic<std::shared_ptr<fractos::service::compute::cuda::Context>> context;
+    };
 
     std::shared_mutex devices_mutex;
-    std::unordered_map<int, std::shared_ptr<fractos::service::compute::cuda::Device>> ordinal_devices;
-    std::unordered_map<CUdevice, std::shared_ptr<fractos::service::compute::cuda::Device>> devices;
+    std::unordered_map<int, std::shared_ptr<device_entry>> ordinal_devices;
+    std::unordered_map<CUdevice, std::shared_ptr<device_entry>> devices;
+private:
+    std::shared_ptr<device_entry> _get_device_entry(CUdevice device);
+public:
 
 
     std::shared_ptr<fractos::service::compute::cuda::Context> get_context(CUcontext ctx);
@@ -36,8 +45,8 @@ struct DriverState {
     boost::thread_specific_ptr<std::stack<std::shared_ptr<fractos::service::compute::cuda::Context>>> context_stack;
 };
 
-static std::mutex _driver_state_mutex;
-static std::atomic<std::shared_ptr<DriverState>> _driver_state;
+extern std::mutex _driver_state_mutex;
+extern std::atomic<std::shared_ptr<DriverState>> _driver_state;
 
 #define get_driver_state()                                              \
     ({                                                                  \

@@ -59,6 +59,9 @@ get_channel()
 
 // * DriverState object
 
+std::mutex _driver_state_mutex;
+std::atomic<std::shared_ptr<DriverState>> _driver_state;
+
 std::shared_ptr<fractos::service::compute::cuda::Device>
 DriverState::get_device_ordinal(int ordinal)
 {
@@ -66,7 +69,7 @@ DriverState::get_device_ordinal(int ordinal)
         auto devices_lock = std::shared_lock(devices_mutex);
         auto it = ordinal_devices.find(ordinal);
         if (it != ordinal_devices.end()) {
-            return it->second;
+            return it->second->device;
         }
     }
 
@@ -75,31 +78,71 @@ DriverState::get_device_ordinal(int ordinal)
 
         auto it = ordinal_devices.find(ordinal);
         if (it != ordinal_devices.end()) {
-            return it->second;
+            return it->second->device;
         }
 
-        auto device_ptr = service->device_get(ordinal).get();
+        auto entry = std::make_shared<device_entry>();
+        entry->device = service->device_get(ordinal).get();
+        entry->context = nullptr;
 
-        auto res1 = ordinal_devices.insert(std::make_pair(ordinal, device_ptr));
+        if (not entry->device) {
+            return nullptr;
+        }
+
+        auto res1 = ordinal_devices.insert(std::make_pair(ordinal, entry));
         CHECK(res1.second);
 
-        auto res2 = devices.insert(std::make_pair(device_ptr->get_device(), device_ptr));
+        auto res2 = devices.insert(std::make_pair(entry->device->get_device(), entry));
         CHECK(res2.second);
 
-        return device_ptr;
+        return entry->device;
+    }
+}
+
+std::shared_ptr<DriverState::device_entry>
+DriverState::_get_device_entry(CUdevice device)
+{
+    auto devices_lock = std::shared_lock(devices_mutex);
+    auto it = devices.find(device);
+    if (it != devices.end()) {
+        DCHECK(it->second);
+        return it->second;
+    } else {
+        return nullptr;
     }
 }
 
 std::shared_ptr<fractos::service::compute::cuda::Device>
 DriverState::get_device(CUdevice device)
 {
-    auto devices_lock = std::shared_lock(devices_mutex);
-    auto it = devices.find(device);
-    if (it != devices.end()) {
-        return it->second;
-    } else {
+    auto entry = _get_device_entry(device);
+    if (not entry) [[unlikely]] {
         return nullptr;
     }
+    return entry->device;
+}
+
+std::shared_ptr<fractos::service::compute::cuda::Context>
+DriverState::get_device_primary_context(CUdevice device)
+{
+    auto entry = _get_device_entry(device);
+    if (not entry) [[unlikely]] {
+        return nullptr;
+    }
+    auto ctx = entry->context.load(std::memory_order_acquire);
+    if (not ctx) [[unlikely]] {
+        auto devices_lock = std::unique_lock(devices_mutex);
+        ctx = entry->context.load(std::memory_order_acquire);
+        if (not ctx) {
+            ctx = entry->device->make_context(0).get();
+            entry->context = ctx;
+
+            auto contexts_lock = std::unique_lock(contexts_mutex);
+            auto res = contexts.insert(std::make_pair(ctx->get_context(), ctx));
+            CHECK(res.second);
+        }
+    }
+    return ctx;
 }
 
 std::shared_ptr<fractos::service::compute::cuda::Context>
