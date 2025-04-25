@@ -12,6 +12,6 @@
 
 SYM(cuGetErrorName)
 SYM(cuGetErrorString)
-SYM(cuGetProcAddress_v2)
 SYM(cuGetExportTable)
+SYM(cuGetProcAddress_v2)
 SYM(cuInit)
