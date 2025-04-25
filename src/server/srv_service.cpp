@@ -85,7 +85,11 @@ gpu_device_service::get_or_make_device_ordinal(auto ch, int ordinal)
         }
     }
 
-    LOG_FIRST_N(WARNING, 1) << "TODO: move cuDeviceGet here";
+    CUdevice device;
+    auto err = cuDeviceGet(&device, ordinal);
+    if (err != CUDA_SUCCESS) {
+        return core::make_ready_future(nullptr);
+    }
 
     auto dev = gpu_Device::factory(ordinal);
     return dev->register_methods(ch)
@@ -295,19 +299,36 @@ gpu_device_service::handle_device_get(auto ch, auto args)
             auto dev = fut.get();
 
             auto error = wire::ERR_SUCCESS;
-            LOG_RES(method)
-                << " error=" << wire::to_string(error)
-                << " device=" << dev->device
-                << " generic=" << core::to_string(dev->req_generic)
-                << " make_context=" << core::to_string(dev->req_make_context)
-                << " destroy=" << core::to_string(dev->req_destroy);
+            CUdevice device;
+            auto req = ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error);
 
-            ch->template make_request_builder<msg::response>(args->caps.continuation)
-                .set_imm(&msg::response::imms::error, error)
-                .set_imm(&msg::response::imms::device, dev->device)
-                .set_cap(&msg::response::caps::generic, dev->req_generic)
-                .set_cap(&msg::response::caps::make_context, dev->req_make_context)
-                .set_cap(&msg::response::caps::destroy, dev->req_destroy)
+            if (dev) {
+                device = dev->device;
+                LOG_RES(method)
+                    << " error=" << wire::to_string(error)
+                    << " device=" << device
+                    << " generic=" << core::to_string(dev->req_generic)
+                    << " make_context=" << core::to_string(dev->req_make_context)
+                    << " destroy=" << core::to_string(dev->req_destroy);
+                req
+                    .set_cap(&msg::response::caps::generic, dev->req_generic)
+                    .set_cap(&msg::response::caps::make_context, dev->req_make_context)
+                    .set_cap(&msg::response::caps::destroy, dev->req_destroy);
+            } else {
+                device = -1;
+                LOG_RES(method)
+                    << " error=" << wire::to_string(error)
+                    << " device=" << device;
+                core::cap::request null(core::cap::null_cid);
+                req
+                    .set_cap(&msg::response::caps::generic, null)
+                    .set_cap(&msg::response::caps::make_context, null)
+                    .set_cap(&msg::response::caps::destroy, null);
+            }
+
+            req
+                .set_imm(&msg::response::imms::device, device)
                 .on_channel()
                 .invoke()
                 .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");

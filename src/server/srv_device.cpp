@@ -13,15 +13,11 @@ namespace srv = fractos::service::compute::cuda;
 using namespace ::test;
 // using namespace impl;
 
-gpu_Device::gpu_Device(int ordinal)
-    :device(-1)
+gpu_Device::gpu_Device(CUdevice device)
+    :device(device)
 {
     //fork();
     _destroyed = false;
-
-    checkCudaErrors(cuInit(0));
-
-    checkCudaErrors(cuDeviceGet(const_cast<int*>(&device), ordinal));
 }
 
 std::shared_ptr<gpu_Device> gpu_Device::factory(wire::endian::uint8_t value){

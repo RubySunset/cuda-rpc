@@ -174,7 +174,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::device_get::re
     std::stringstream ss;
 
     print_imm_error(error);
-    print_imm_identity(device);
+    print_imm(device, [](auto& val){ return (int)val.get(); });
     print_extra_imm_error();
 
     print_cap(generic);

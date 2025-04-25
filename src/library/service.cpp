@@ -231,6 +231,10 @@ srv::Service::device_get(int ordinal)
                 << wire::to_string(*args);
             CHECK_ARGS_EXACT();
 
+            if ((int)args->imms.device.get() == -1) {
+                return std::shared_ptr<srv::Device>(nullptr);
+            }
+
             // get Device object
             auto pimpl_ = std::make_shared<impl::Device>(
                 ch, args->imms.device,

@@ -36,7 +36,7 @@ public:
     fractos::core::cap::request req_make_context;
     fractos::core::cap::request req_destroy;
 
-    gpu_Device(int ordinal);
+    gpu_Device(CUdevice ordinal);
     std::shared_ptr<test::gpu_Context> _vctx;
 
     ~gpu_Device();
