@@ -90,7 +90,7 @@ cuCtxPushCurrent_v2(CUcontext ctx)
     auto& state = get_driver_state();
 
     if (not ctx) {
-        return CUDA_ERROR_INVALID_VALUE;
+        return CUDA_ERROR_INVALID_CONTEXT;
     }
 
     auto ctx_ptr = state.get_context(ctx);
@@ -113,7 +113,7 @@ cuCtxSetCurrent(CUcontext ctx)
     CHECK(err == CUDA_SUCCESS or err == CUDA_ERROR_INVALID_CONTEXT);
 
     err = cuCtxPushCurrent(ctx);
-    CHECK(err == CUDA_SUCCESS or err == CUDA_ERROR_INVALID_VALUE);
+    CHECK(err == CUDA_SUCCESS or err == CUDA_ERROR_INVALID_CONTEXT);
 
-    return CUDA_SUCCESS;
+    return err;
 }
