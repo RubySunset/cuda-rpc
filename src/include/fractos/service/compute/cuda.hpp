@@ -181,6 +181,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         public:
             CUcontext get_context() const;
 
+            // cuCtxGetApiVersion
+            core::future<unsigned int> get_api_version();
+
             // cuCtxGetDevice
             std::shared_ptr<Device> get_device();
 

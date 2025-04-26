@@ -340,10 +340,31 @@ namespace fractos::service::compute::cuda::wire {
     namespace Context {
 
         enum generic_opcode : uint64_t {
+            OP_GET_API_VERSION,
+
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
 
         using generic = wire::generic;
+
+        struct get_api_version {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t version;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
 
         struct make_memory_rpc_test {
             struct request {
@@ -513,6 +534,9 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
     }
+
+    std::string to_string(const core::receive_args<Context::get_api_version::request>& req);
+    std::string to_string(const core::receive_args<Context::get_api_version::response>& resp);
 
     namespace Stream {
 

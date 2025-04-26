@@ -383,6 +383,38 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::total_mem::resp
 }
 
 std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::get_api_version::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(opcode);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::get_api_version::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_imm_identity(version);
+    print_extra_imm_error();
+
+    print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
 srv::wire::to_string(CUuuid uuid)
 {
     std::stringstream ss;

@@ -219,6 +219,9 @@ gpu_Context::handle_generic(auto ch, auto args)
     handle_ ## name(ch, reinterpreted.template operator()<srv::wire::Context:: name ::request>(std::move(args)))
 
     switch (opcode) {
+    case srv::wire::Context::OP_GET_API_VERSION:
+        HANDLE(get_api_version);
+        break;
 
     default:
         LOG_OP(method)
@@ -234,6 +237,33 @@ gpu_Context::handle_generic(auto ch, auto args)
 #undef HANDLE
 }
 
+void
+gpu_Context::handle_get_api_version(auto ch, auto args)
+{
+    METHOD(Context, get_api_version);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT();
+
+    unsigned int version;
+    auto res = cuCtxGetApiVersion(_ctx, &version);
+
+    auto error = wire::ERR_SUCCESS;
+    if (res != CUDA_SUCCESS) {
+        error = wire::ERR_OTHER;
+    }
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " version=" << version;
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::version, version)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
 }
 
 /*

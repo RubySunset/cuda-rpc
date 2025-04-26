@@ -27,6 +27,19 @@ cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev)
 
 extern "C" [[gnu::visibility("default")]]
 CUresult
+cuCtxGetApiVersion(CUcontext ctx, unsigned int *version)
+{
+    auto& state = get_driver_state();
+    auto ctx_ptr = state.get_context(ctx);
+    if (not ctx_ptr) {
+        return CUDA_ERROR_INVALID_CONTEXT;
+    }
+    *version = ctx_ptr->get_api_version().get();
+    return CUDA_SUCCESS;
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
 cuCtxGetCurrent(CUcontext* pctx)
 {
     auto& state = get_driver_state();
