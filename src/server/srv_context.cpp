@@ -4,11 +4,13 @@
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
-
 #include <fstream>
+
+#include "./common.hpp"
 
 
 using namespace fractos;
+namespace srv = fractos::service::compute::cuda;
 using namespace ::test;
 // using namespace impl;
 #define MAX_IO_SIZE    (1024 * 1024 * 16)   
@@ -178,7 +180,59 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
         .then([ch, self, this](auto& fut) {
             VLOG(fractos::logging::SERVICE) << "SET req_destroy context";
             self->_req_destroy = fut.get();
+
+            return ch->make_request_builder<msg_base::generic::request>(
+                ch->get_default_endpoint(),
+                [self](auto ch, auto args) {
+                    self->handle_generic(ch, std::move(args));
+                })
+                .on_channel()
+                .make_request();
+        })
+        .unwrap()
+        .then([ch, self, this](auto& fut) {
+            self->_req_generic = fut.get();
         });
+}
+void
+gpu_Context::handle_generic(auto ch, auto args)
+{
+    static const std::string method = "handle_generic";
+    using msg = srv::wire::Context::generic;
+
+    auto opcode = srv::wire::Context::OP_INVALID;
+
+    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+        LOG_OP(method)
+            << " [error] request without continuation, ignoring";
+        return;
+    } else if (args->has_imm(&msg::request::imms::opcode)) {
+        opcode = static_cast<srv::wire::Context::generic_opcode>(args->imms.opcode.get());
+    }
+
+    auto reinterpreted = []<class T>(auto args) {
+        using ptr = core::receive_args<T>;
+        return std::unique_ptr<ptr>(reinterpret_cast<ptr*>(args.release()));
+    };
+
+#define HANDLE(name) \
+    handle_ ## name(ch, reinterpreted.template operator()<srv::wire::Context:: name ::request>(std::move(args)))
+
+    switch (opcode) {
+
+    default:
+        LOG_OP(method)
+            << " [error] invalid opcode";
+        ch->template make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .on_channel()
+            .invoke()
+            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        break;
+    }
+
+#undef HANDLE
+}
 
 }
 

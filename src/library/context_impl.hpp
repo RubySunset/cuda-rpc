@@ -18,6 +18,7 @@ namespace impl {
 
         Context(std::shared_ptr<fractos::core::channel> ch,
                 std::shared_ptr<srv::Device> device,
+                fractos::core::cap::request req_generic,
                 fractos::core::cap::request req_memory,
                 fractos::core::cap::request req_memory_rpc_test,
                 fractos::core::cap::request req_stream,
@@ -32,6 +33,7 @@ namespace impl {
         CUcontext context;
         std::weak_ptr<srv::Device> device;
 
+        fractos::core::cap::request req_generic;
         fractos::core::cap::request req_memory;
         fractos::core::cap::request req_memory_rpc_test;
         fractos::core::cap::request req_stream;

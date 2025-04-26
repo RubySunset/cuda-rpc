@@ -1,11 +1,13 @@
 #include <utility>
 
 #include <fractos/wire/error.hpp>
+#include <fractos/core/error.hpp>
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 
+#include <./common.hpp>
 #include <context_impl.hpp>
 #include <module_impl.hpp>
 #include <memory_impl.hpp>
@@ -65,6 +67,7 @@ srv::Context::~Context()
 
 impl::Context::Context(std::shared_ptr<fractos::core::channel> ch,
                        std::shared_ptr<srv::Device> device,
+                       fractos::core::cap::request req_generic,
                        fractos::core::cap::request req_memory,
                        fractos::core::cap::request req_memory_rpc_test,
                        fractos::core::cap::request req_stream,
@@ -75,6 +78,7 @@ impl::Context::Context(std::shared_ptr<fractos::core::channel> ch,
     :ch(ch)
     ,context(0)
     ,device(device)
+    ,req_generic(std::move(req_generic))
     ,req_memory(std::move(req_memory))
     ,req_memory_rpc_test(std::move(req_memory_rpc_test))
     ,req_stream(std::move(req_stream))

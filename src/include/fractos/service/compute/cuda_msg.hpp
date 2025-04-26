@@ -295,6 +295,7 @@ namespace fractos::service::compute::cuda::wire {
                     fractos::wire::endian::uint8_t error;
                 } __attribute__ ((packed));
                 struct caps {
+                    fractos::core::cap::request generic;
                     fractos::core::cap::request make_memory;
                     fractos::core::cap::request make_memory_rpc_test;
                     fractos::core::cap::request make_stream;
@@ -337,6 +338,12 @@ namespace fractos::service::compute::cuda::wire {
 
 
     namespace Context {
+
+        enum generic_opcode : uint64_t {
+            OP_INVALID = std::numeric_limits<uint64_t>::max()
+        };
+
+        using generic = wire::generic;
 
         struct make_memory_rpc_test {
             struct request {

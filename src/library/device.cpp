@@ -227,6 +227,7 @@ srv::Device::make_context(unsigned int flags)
             auto pimpl_ = std::make_shared<impl::Context>(
                 ch,
                 self,
+                std::move(args->caps.generic),
                 std::move(args->caps.make_memory),
                 std::move(args->caps.make_memory_rpc_test),
                 std::move(args->caps.make_stream),

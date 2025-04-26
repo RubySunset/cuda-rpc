@@ -299,6 +299,7 @@ void gpu_Device::handle_make_context(auto args) {
             // _vdev_map.insert({value, vdev});
             ch->make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
+                .set_cap(&msg::response::caps::generic, vctx->_req_generic)
                 .set_cap(&msg::response::caps::make_memory, vctx->_req_memory)
                 .set_cap(&msg::response::caps::make_memory_rpc_test, vctx->_req_memory_rpc_test)
                 .set_cap(&msg::response::caps::make_stream, vctx->_req_stream)
