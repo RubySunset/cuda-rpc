@@ -82,6 +82,7 @@ then
    NVCC="$with_cuda/bin/nvcc"
    CUDA_PATH="$with_cuda"
    LIBCUDA=$(readlink -f $CUDA_PATH/targets/*/lib/stubs/libcuda.so)
+   LIBCUDART=$(readlink -f $CUDA_PATH/targets/*/lib/libcudart.so)
 else
    AC_MSG_ERROR([B: $with_cuda])
 fi
@@ -92,6 +93,7 @@ AC_SUBST(CUDA_LIBS)
 AC_SUBST(NVCC)
 AC_SUBST(CUDA_PATH)
 AC_SUBST(LIBCUDA)
+AC_SUBST(LIBCUDART)
 
 #CXX=$NVCC
 #AC_SUBST(CXX)

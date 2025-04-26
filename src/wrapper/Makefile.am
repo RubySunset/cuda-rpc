@@ -26,6 +26,10 @@ libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-device.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-primary-context.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-context.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-module.cpp
+
+nodist_libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-default.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-lib.cpp
+
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS =
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS += $(AM_LDFLAGS)
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS += ../library/libfractos-service-compute-cuda.la
@@ -41,6 +45,18 @@ driver-default.cpp: $(LIBCUDA)
 driver-default.cpp:
 	$(abs_srcdir)/cuda-generate-funcs.sh driver $(LIBCUDA) $@
 
+CLEANFILES += runtime-default.cpp
+BUILT_SOURCES += runtime-default.cpp
+
+runtime-default.cpp: $(abs_srcdir)/cuda-generate-funcs.sh
+runtime-default.cpp: $(LIBCUDART)
+runtime-default.cpp:
+	$(abs_srcdir)/cuda-generate-funcs.sh runtime $(LIBCUDART) $@
+
+install-exec-hook: wrapper_dir=$(libdir)/libfractos-service-compute-cuda-wrapper
 install-exec-hook:
-	$(RM) $(libdir)/libcuda.so.1
-	ln -s $(libdir)/libfractos-service-compute-cuda-wrapper.so $(libdir)/libcuda.so.1
+	mkdir -p $(wrapper_dir)
+	$(RM) $(wrapper_dir)/libcuda.so.1
+	ln -s ../libfractos-service-compute-cuda-wrapper.so $(wrapper_dir)/libcuda.so.1
+	$(RM) $(wrapper_dir)/libcudart.so.12
+	ln -s ../libfractos-service-compute-cuda-wrapper.so $(wrapper_dir)/libcudart.so.12

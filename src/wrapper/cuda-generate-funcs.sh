@@ -10,7 +10,8 @@ generate() {
     output=$3
 
     syms=$(readelf -Ws "$libcuda" | \
-               grep -v " UND " | grep " FUNC " | grep " DEFAULT ")
+               grep -v " UND " | grep " FUNC " | grep " DEFAULT " | \
+               tr -s " " | tr "@" " " |cut -f 9 -d " ")
 
     cat >"$output" <<EOF
 #include <glog/logging.h>
