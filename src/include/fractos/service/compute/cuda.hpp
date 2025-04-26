@@ -270,7 +270,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             bool _destroyed;
         
         };
-        // std::string to_string(const Context& obj);
+
+        std::string to_string(const Context& obj);
 
         
 

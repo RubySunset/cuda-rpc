@@ -46,4 +46,6 @@ namespace impl {
         std::unique_ptr<char[]> context_ptr;
     };
 
+    std::string to_string(const Context& obj);
+
 }

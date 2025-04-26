@@ -17,6 +17,21 @@ using namespace fractos;
 namespace srv = fractos::service::compute::cuda;
 
 
+std::string
+srv::to_string(const srv::Context& obj)
+{
+    auto& pimpl = impl::Context::get(obj);
+    return impl::to_string(pimpl);
+}
+
+std::string
+impl::to_string(const impl::Context& obj)
+{
+    std::stringstream ss;
+    ss << "cuda::Context(" << &obj << ")";
+    return ss.str();
+}
+
 inline
 impl::Context& impl::Context::get(srv::Context& obj)
 {

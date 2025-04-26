@@ -666,3 +666,10 @@ void gpu_Context::handle_destroy(auto args) {
 
 }
 
+std::string
+test::to_string(const gpu_Context& obj)
+{
+    std::stringstream ss;
+    ss << "Context(" << &obj << ")";
+    return ss.str();
+}

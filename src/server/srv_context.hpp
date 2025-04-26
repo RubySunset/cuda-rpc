@@ -67,4 +67,6 @@ private:
 
     //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
 };
+
+    std::string to_string(const gpu_Context& obj);
 }
