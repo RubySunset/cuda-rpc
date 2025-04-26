@@ -13,3 +13,10 @@ cudaGetErrorName(cudaError_t error)
 {
     return (*ptr_cudaGetErrorName)(error);
 }
+
+extern "C" [[gnu::visibility("default")]]
+const char* CUDARTAPI
+cudaGetErrorString(cudaError_t error)
+{
+    return (*ptr_cudaGetErrorString)(error);
+}
