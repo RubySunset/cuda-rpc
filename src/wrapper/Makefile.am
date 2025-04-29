@@ -33,6 +33,7 @@ libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-lib.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-state.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-error.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-device.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-version.cpp
 
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS =
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS += $(AM_LDFLAGS)
