@@ -85,6 +85,19 @@ __cudaRegisterFatBinary(void* fatCubin)
     return (void**)module;
 }
 
+extern "C" [[gnu::visibility("default")]]
+void CUDARTAPI
+__cudaRegisterFatBinaryEnd(void** fatCubinHandle)
+{
+    if (not fatCubinHandle) {
+        return;
+    }
+
+    DVLOG(logging::APP)
+        << "__cudaRegisterFatBinaryEnd ->"
+        << " fatCubinHandle=0x" << std::hex << fatCubinHandle;
+}
+
 
 static void init_symbols() __attribute__((constructor));
 
