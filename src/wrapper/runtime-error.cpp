@@ -34,3 +34,15 @@ cudaGetLastError()
     state->last_error = cudaSuccess;
     return err;
 }
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaPeekAtLastError()
+{
+    auto [err, state] = get_runtime_state_with_error();
+    if (err) {
+        return err;
+    }
+
+    return state->last_error;
+}
