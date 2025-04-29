@@ -48,12 +48,24 @@ public:
         const void* image;
         size_t image_size;
         std::shared_ptr<fractos::service::compute::cuda::Module> module;
+        std::mutex functions_mutex;
+        std::unordered_map<std::string, CUfunction> functions;
     };
 
     std::shared_ptr<module_desc> get_module(CUmodule module);
 
     std::shared_mutex modules_mutex;
     std::unordered_map<CUmodule, std::shared_ptr<module_desc>> modules;
+
+    struct func_desc {
+        std::vector<size_t> args_size;
+        std::shared_ptr<fractos::service::compute::cuda::Function> function;
+    };
+
+    std::shared_ptr<func_desc> get_function(CUfunction function);
+
+    std::shared_mutex functions_mutex;
+    std::unordered_map<CUfunction, std::shared_ptr<func_desc>> functions;
 };
 
 extern std::mutex _driver_state_mutex;

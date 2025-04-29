@@ -189,3 +189,15 @@ DriverState::get_module(CUmodule module)
         return nullptr;
     }
 }
+
+std::shared_ptr<DriverState::func_desc>
+DriverState::get_function(CUfunction function)
+{
+    auto lock = std::shared_lock(functions_mutex);
+    auto it = functions.find(function);
+    if (it != functions.end()) {
+        return it->second;
+    } else {
+        return nullptr;
+    }
+}

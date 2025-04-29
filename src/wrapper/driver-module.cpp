@@ -11,6 +11,49 @@ namespace srv = fractos::service::compute::cuda;
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
+cuModuleGetFunction(CUfunction* hfunc, CUmodule hmod, const char *name)
+{
+    auto& state = get_driver_state();
+
+    auto mod_desc = state.get_module(hmod);
+    if (not mod_desc) {
+        return CUDA_ERROR_INVALID_IMAGE;
+    }
+
+    std::string func_name(name);
+    {
+        auto funcs_lock = std::unique_lock(mod_desc->functions_mutex);
+        auto it = mod_desc->functions.find(func_name);
+        if (it != mod_desc->functions.end()) {
+            *hfunc = it->second;
+            return CUDA_SUCCESS;
+        }
+    }
+
+    auto func_desc = std::make_shared<DriverState::func_desc>();
+    func_desc->function = mod_desc->module->get_function(name).get();
+    get_args_from_image(*func_desc, func_name, *mod_desc);
+
+    CUfunction func = (CUfunction)func_desc.get();
+
+    {
+        auto funcs_lock = std::unique_lock(mod_desc->functions_mutex);
+        auto res = mod_desc->functions.insert(std::make_pair(func_name, func));
+        CHECK(res.second);
+    }
+
+    {
+        auto funcs_lock = std::unique_lock(state.functions_mutex);
+        auto res = state.functions.insert(std::make_pair(func, func_desc));
+        CHECK(res.second);
+    }
+
+    *hfunc = func;
+    return CUDA_SUCCESS;
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult CUDAAPI
 cuModuleGetLoadingMode(CUmoduleLoadingMode* mode)
 {
     auto& state = get_driver_state();
@@ -91,6 +134,17 @@ cuModuleUnload(CUmodule hmod)
         mod_desc = it->second;
 
         state.modules.erase(it);
+    }
+
+    {
+        auto functions_lock = std::unique_lock(state.functions_mutex);
+        auto module_functions_lock = std::unique_lock(mod_desc->functions_mutex);
+        for (auto& func: mod_desc->functions) {
+            auto it = state.functions.find(func.second);
+            CHECK(it != state.functions.end());
+            it->second->function->func_destroy().get();
+            state.functions.erase(it);
+        }
     }
 
     mod_desc->module->destroy().get();
