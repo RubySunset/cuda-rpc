@@ -39,3 +39,18 @@ cudaGetDeviceCount(int *count)
     auto err = (cudaError_t)cuDeviceGetCount(count);
     return_error(err);
 }
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaSetDevice(int device)
+{
+    auto& state [[maybe_unused]] = get_runtime_state();
+    int count;
+    auto err = cudaGetDeviceCount(&count);
+    return_error_maybe(err);
+    if (device < count) {
+        return_error(cudaSuccess);
+    } else {
+        return_error(cudaErrorInvalidDevice);
+    }
+}
