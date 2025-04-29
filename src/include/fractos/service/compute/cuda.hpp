@@ -2,6 +2,7 @@
 
 #include <any>
 #include <cuda.h>
+#include <cuda_runtime.h>
 #include <fractos/core/future.hpp>
 #include <fractos/core/channel.hpp>
 #include <fractos/core/gns.hpp>
@@ -314,6 +315,12 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class Function {
         public:
+            // cuLaunchKernel
+            [[nodiscard]] core::future<void>
+            launch(dim3 gridDim, dim3 blockDim, const void** args, size_t sharedMem,
+                   std::optional<std::reference_wrapper<Stream>> stream);
+
+
             /**
              * @brief Wrapper for cuLaunchKernel()
              */
@@ -355,7 +362,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             bool _destroyed;
         
         };
-        // std::string to_string(const Function& obj);
+
+        std::string to_string(const Function& obj);
 
         /**
          * @brief Wrapper for CUstream operations

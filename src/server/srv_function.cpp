@@ -118,31 +118,30 @@ void gpu_Function::handle_call(auto args) {
         return;
     }
 
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
+    std::shared_ptr<core::channel> ch = args->caps.continuation.get_channel();
 
-    auto args_num = args->imms.args_num;
+    if (not args->has_exactly_caps() or
+        args->imms_size() != args->imms_expected_size() + _args_total_size) {
+        ch->make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .on_channel()
+            .invoke()
+            .as_callback();
+        return;
+    }
+
     auto grid_x = args->imms.grid_x;
     auto grid_y = args->imms.grid_y;
     auto grid_z = args->imms.grid_z;
     auto block_x = args->imms.block_x;
     auto block_y = args->imms.block_y;
     auto block_z = args->imms.block_z;
-    
- 
 
-
-    auto raw_kernel_args = args->imms.kernel_args;
-
-    void* kernel_args[args_num.get()];
-
-    for (uint i = 0; i < args_num; i++) {
-        auto info = (msg::kernel_arg_info*)raw_kernel_args;
-        // LOG(INFO) << "kernel_args" << (void*)(uintptr_t)*(char*)info->value;
-        kernel_args[i] = info->value;
-        raw_kernel_args += info->size.get() + sizeof(msg::kernel_arg_info);
-
-        //kernel_args[i] = (void*)raw_kernel_args;
-        //raw_kernel_args += 8;
+    std::vector<const void*> kernel_args;
+    const char* args_ptr = args->imms.kernel_args;
+    for (size_t i = 0; i < _args_size.size(); i++) {
+        kernel_args.push_back(args_ptr);
+        args_ptr += _args_size[i];
     }
 
 
@@ -159,14 +158,14 @@ void gpu_Function::handle_call(auto args) {
         LOG(INFO) << "get STREAM ID " << (int)args->imms.stream_id;
         checkCudaErrors_lo(cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z, 
             dimBlock.x, dimBlock.y, dimBlock.z,
-            0, _vstream->getCUStream(), kernel_args, 0)); // 0 , stream , args, 0
+            0, _vstream->getCUStream(), (void**)kernel_args.data(), 0)); // 0 , stream , args, 0
     }
     else
     {
         LOG(INFO) << "get default STREAM ID " << (int)args->imms.stream_id;
         checkCudaErrors_lo(cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z, 
             dimBlock.x, dimBlock.y, dimBlock.z,
-            0, 0, kernel_args, 0)); // 0 , stream , args, 0
+            0, 0, (void**)kernel_args.data(), 0)); // 0 , stream , args, 0
     }
 
     ch->make_request_builder<msg::response>(args->caps.continuation)

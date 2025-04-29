@@ -1,7 +1,7 @@
-
 #include <utility>
 
 #include <fractos/wire/error.hpp>
+#include <fractos/core/error.hpp>
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
@@ -9,9 +9,27 @@
 
 #include <function_impl.hpp>
 
+#include <./common.hpp>
+
+
 // #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
 namespace srv = fractos::service::compute::cuda;
+
+std::string
+srv::to_string(const srv::Function& obj)
+{
+    auto& pimpl = impl::Function::get(obj);
+    return impl::to_string(pimpl);
+}
+
+std::string
+impl::to_string(const impl::Function& obj)
+{
+    std::stringstream ss;
+    ss << "cuda::Function(" << &obj << ")";
+    return ss.str();
+}
 
 inline
 impl::Function&
@@ -42,6 +60,54 @@ srv::Function::~Function() {
         // TODO: check why calling ::get() sometimes gets stuck
         func_destroy().as_callback();
     }
+}
+
+core::future<void>
+srv::Function::launch(dim3 gridDim, dim3 blockDim, const void** args,
+                      size_t sharedMemBytes,
+                      std::optional<std::reference_wrapper<Stream>> stream)
+{
+    METHOD(Function, call);
+    LOG_REQ(method)
+        << " {}";
+
+    auto& pimpl = impl::Function::get(*this);
+
+    uint32_t stream_id = 0;
+    if (stream) {
+        stream_id = stream->get().get_stream_id();
+    }
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    auto req = pimpl.ch->make_request_builder<msg::request>(pimpl.req_func_call)
+        .set_imm(&msg::request::imms::grid_x, (uint64_t)gridDim.x)
+        .set_imm(&msg::request::imms::grid_y, (uint64_t)gridDim.y)
+        .set_imm(&msg::request::imms::grid_z, (uint64_t)gridDim.z)
+        .set_imm(&msg::request::imms::block_x, (uint64_t)blockDim.x)
+        .set_imm(&msg::request::imms::block_y, (uint64_t)blockDim.y)
+        .set_imm(&msg::request::imms::block_z, (uint64_t)blockDim.z)
+        .set_imm(&msg::request::imms::stream_id, stream_id)
+        .set_cap(&msg::request::caps::continuation, resp);
+
+    size_t offset = offsetof(msg::request::imms, kernel_args);
+    for (size_t i = 0; i < pimpl.args_size.size(); i++) {
+        auto size = pimpl.args_size[i];
+        req.set_imm(offset, args[i], size);
+        offset += size;
+    }
+
+    return req
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then([this, self=pimpl.self.lock()](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            LOG_RES_PTR(method, self)
+                << wire::to_string(*args);
+            CHECK_ARGS_EXACT();
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
+        });
 }
 
 // template <size_t N, class T, class... Args>

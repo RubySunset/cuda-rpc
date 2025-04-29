@@ -415,6 +415,42 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::get_api_versio
 }
 
 std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Function::call::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(grid_x);
+    print_imm_identity(grid_y);
+    print_imm_identity(grid_z);
+    print_imm_identity(block_x);
+    print_imm_identity(block_y);
+    print_imm_identity(block_z);
+    print_imm_identity(stream_id);
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Function::call::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_extra_imm_error();
+
+    print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
 srv::wire::to_string(CUuuid uuid)
 {
     std::stringstream ss;

@@ -681,7 +681,6 @@ namespace fractos::service::compute::cuda::wire {
         struct call {
             struct request {
                 struct imms {
-                    fractos::wire::endian::uint64_t args_num;
                     fractos::wire::endian::uint64_t grid_x;
                     fractos::wire::endian::uint64_t grid_y;
                     fractos::wire::endian::uint64_t grid_z;
@@ -705,11 +704,6 @@ namespace fractos::service::compute::cuda::wire {
                 struct caps {
                 };
             };
-            struct kernel_arg_info {
-                fractos::wire::endian::uint64_t size;
-                char value[];
-            };
-
         };
 
         struct func_destroy {
@@ -729,6 +723,10 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
     }
+
+    std::string to_string(const core::receive_args<Function::call::request>& req);
+    std::string to_string(const core::receive_args<Function::call::response>& resp);
+
 
     std::string to_string(CUuuid uuid);
 }
