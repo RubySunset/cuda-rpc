@@ -177,3 +177,15 @@ DriverState::get_context_stack()
     DCHECK(ptr);
     return *ptr;
 }
+
+std::shared_ptr<DriverState::module_desc>
+DriverState::get_module(CUmodule module)
+{
+    auto lock = std::shared_lock(modules_mutex);
+    auto it = modules.find(module);
+    if (it != modules.end()) {
+        return it->second;
+    } else {
+        return nullptr;
+    }
+}

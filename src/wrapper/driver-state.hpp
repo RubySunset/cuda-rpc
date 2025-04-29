@@ -43,6 +43,17 @@ public:
     std::stack<std::shared_ptr<fractos::service::compute::cuda::Context>>& get_context_stack();
 
     boost::thread_specific_ptr<std::stack<std::shared_ptr<fractos::service::compute::cuda::Context>>> context_stack;
+
+    struct module_desc {
+        const void* image;
+        size_t image_size;
+        std::shared_ptr<fractos::service::compute::cuda::Module> module;
+    };
+
+    std::shared_ptr<module_desc> get_module(CUmodule module);
+
+    std::shared_mutex modules_mutex;
+    std::unordered_map<CUmodule, std::shared_ptr<module_desc>> modules;
 };
 
 extern std::mutex _driver_state_mutex;
