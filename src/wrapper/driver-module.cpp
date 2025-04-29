@@ -32,7 +32,6 @@ cuModuleGetFunction(CUfunction* hfunc, CUmodule hmod, const char *name)
 
     auto func_desc = std::make_shared<DriverState::func_desc>();
     func_desc->function = mod_desc->module->get_function(name).get();
-    get_args_from_image(*func_desc, func_name, *mod_desc);
 
     CUfunction func = (CUfunction)func_desc.get();
 

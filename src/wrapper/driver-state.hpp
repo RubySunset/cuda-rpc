@@ -58,7 +58,6 @@ public:
     std::unordered_map<CUmodule, std::shared_ptr<module_desc>> modules;
 
     struct func_desc {
-        std::vector<size_t> args_size;
         std::shared_ptr<fractos::service::compute::cuda::Function> function;
     };
 
