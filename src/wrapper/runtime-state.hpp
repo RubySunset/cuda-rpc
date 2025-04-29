@@ -10,6 +10,12 @@
 
 
 struct RuntimeState {
+    struct module_desc {
+        std::mutex funcs_mutex;
+    };
+
+    std::mutex modules_mutex;
+    std::unordered_map<CUmodule, std::shared_ptr<module_desc>> modules;
 };
 
 struct RuntimeThreadState {
