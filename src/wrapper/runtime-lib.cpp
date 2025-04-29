@@ -122,6 +122,8 @@ __cudaUnregisterFatBinary(void** fatCubinHandle)
     auto module = (CUmodule)fatCubinHandle;
 
     auto modules_lock = std::unique_lock(state.global->modules_mutex);
+    auto funcs_lock = std::unique_lock(state.global->funcs_mutex);
+
     state.last_error = (cudaError_t)cuModuleUnload(module);
     if (state.last_error != cudaSuccess) {
         goto out;
@@ -132,6 +134,10 @@ __cudaUnregisterFatBinary(void** fatCubinHandle)
         CHECK(module_desc_it != state.global->modules.end());
         auto module_desc = module_desc_it->second;
 
+        auto module_funcs_lock = std::unique_lock(module_desc->funcs_mutex);
+        for (auto& func : module_desc->funcs) {
+            CHECK(state.global->funcs.erase(func) == 1);
+        }
 
         state.global->modules.erase(module_desc_it);
     }
@@ -141,6 +147,55 @@ out:
         << "__cudaUnregisterFatBinary <-"
         << " err=" << cudaGetErrorName(state.last_error);
 }
+
+extern "C" [[gnu::visibility("default")]]
+void CUDARTAPI __cudaRegisterFunction(
+        void   **fatCubinHandle,
+  const char    *hostFun,
+        char    *deviceFun,
+  const char    *deviceName,
+        int      thread_limit,
+        uint3   *tid,
+        uint3   *bid,
+        dim3    *bDim,
+        dim3    *gDim,
+        int     *wSize
+    )
+{
+    DVLOG(logging::APP)
+        << "__cudaRegisterFunction ->"
+        << " handle=" << fatCubinHandle
+        // << " hostFun=" << (void*)hostFun
+        << " deviceName=" << deviceName;
+
+    auto [err, state_ptr] = get_runtime_state_with_error();
+    if (err) {
+        DVLOG(logging::APP)
+            << "__cudaRegisterFunction <- "
+            << " err=" << cudaGetErrorName((cudaError_t)err);
+        return;
+    }
+    auto& state = *state_ptr;
+
+    auto module = (CUmodule)fatCubinHandle;
+
+    auto modules_lock = std::unique_lock(state.global->modules_mutex);
+    auto module_desc_it = state.global->modules.find(module);
+    CHECK(module_desc_it != state.global->modules.end());
+    auto module_desc = module_desc_it->second;
+
+    auto func_desc = std::make_shared<RuntimeState::func_desc>();
+    func_desc->module = module;
+    func_desc->name = deviceName;
+    func_desc->func = 0;
+
+    auto module_funcs_lock = std::unique_lock(module_desc->funcs_mutex);
+    CHECK(module_desc->funcs.insert((uintptr_t)hostFun).second);
+
+    auto funcs_lock = std::unique_lock(state.global->funcs_mutex);
+    CHECK(state.global->funcs.insert(std::make_pair((uintptr_t)hostFun, func_desc)).second);
+}
+
 static void init_symbols() __attribute__((constructor));
 
 static

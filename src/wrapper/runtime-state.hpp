@@ -9,15 +9,27 @@
 #include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
+#include <unordered_set>
 
 
 struct RuntimeState {
+    struct func_desc {
+        CUmodule module;
+        std::string name;
+        std::atomic<CUfunction> func;
+        std::mutex func_mutex;
+    };
+
     struct module_desc {
         std::mutex funcs_mutex;
+        std::unordered_set<uintptr_t> funcs;
     };
 
     std::mutex modules_mutex;
     std::unordered_map<CUmodule, std::shared_ptr<module_desc>> modules;
+
+    std::shared_mutex funcs_mutex;
+    std::unordered_map<uintptr_t, std::shared_ptr<func_desc>> funcs;
 };
 
 struct RuntimeThreadState {
