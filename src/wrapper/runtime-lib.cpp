@@ -98,7 +98,49 @@ __cudaRegisterFatBinaryEnd(void** fatCubinHandle)
         << " fatCubinHandle=0x" << std::hex << fatCubinHandle;
 }
 
+extern "C" [[gnu::visibility("default")]]
+void CUDARTAPI
+__cudaUnregisterFatBinary(void** fatCubinHandle)
+{
+    if (not fatCubinHandle) {
+        return;
+    }
 
+    DVLOG(logging::APP)
+        << "__cudaUnregisterFatBinary ->"
+        << " fatCubinHandle=0x" << std::hex << fatCubinHandle;
+
+    auto [err, state_ptr] = get_runtime_state_with_error();
+    if (err) {
+        DVLOG(logging::APP)
+            << "__cudaUnregisterFatBinary <- "
+            << " err=" << cudaGetErrorName((cudaError_t)err);
+        return;
+    }
+    auto& state = *state_ptr;
+
+    auto module = (CUmodule)fatCubinHandle;
+
+    auto modules_lock = std::unique_lock(state.global->modules_mutex);
+    state.last_error = (cudaError_t)cuModuleUnload(module);
+    if (state.last_error != cudaSuccess) {
+        goto out;
+    }
+
+    {
+        auto module_desc_it = state.global->modules.find(module);
+        CHECK(module_desc_it != state.global->modules.end());
+        auto module_desc = module_desc_it->second;
+
+
+        state.global->modules.erase(module_desc_it);
+    }
+
+out:
+    DVLOG(logging::APP)
+        << "__cudaUnregisterFatBinary <-"
+        << " err=" << cudaGetErrorName(state.last_error);
+}
 static void init_symbols() __attribute__((constructor));
 
 static
