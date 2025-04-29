@@ -35,6 +35,7 @@ private:
     CUcontext _ctx;
     CUmodule _module;
     std::weak_ptr<test::gpu_Context> _vctx;
+    std::shared_ptr<const char> _data;
 
 public:
     fractos::core::cap::request _req_get_func;

@@ -613,8 +613,8 @@ void gpu_Context::handle_module_data(auto args) {
 
     // CUcontext newContext;
     // checkCudaErrors(cuCtxSetCurrent(_ctx));
-    CUmodule module;
-    checkCudaErrors_lo(cuModuleLoadData(&module, buffer.get()));
+    // CUmodule module;
+    // checkCudaErrors_lo(cuModuleLoadData(&module, buffer.get()));
     
     if (buffer.get()[0] ) //buffer.get()[0] 
     {

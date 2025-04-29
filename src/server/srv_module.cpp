@@ -78,16 +78,15 @@ gpu_Module::gpu_Module(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char>
     _destroyed = false;
     _ctx = ctx;
     _vctx = vctx;
+    _data = buffer;
 
     checkCudaErrors_lo(cuCtxSetCurrent(_ctx));
     // checkCudaErrors_lo(cuCtxSynchronize());
-    char* data = buffer.get();
-    
 
     check_memory();
 
     CUmodule module2;
-    checkCudaErrors_lo(cuModuleLoadData(&module2, data));
+    checkCudaErrors_lo(cuModuleLoadData(&module2, _data.get()));
     _module = module2;
 
     VLOG(fractos::logging::SERVICE) << "load module :  id = " << _id;
