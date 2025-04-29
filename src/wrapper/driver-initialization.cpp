@@ -33,7 +33,8 @@ cuInit(unsigned int flags)
         return CUDA_ERROR_NO_DEVICE;
     }
 
-    _driver_state = state;
+    auto prev = _driver_state.exchange(state);
+    CHECK(not prev);
 
     return CUDA_SUCCESS;
 }
