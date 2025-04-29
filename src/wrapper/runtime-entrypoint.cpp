@@ -24,3 +24,19 @@ cudaGetDriverEntryPoint(
     err = cudaGetDriverEntryPointByVersion(symbol, funcPtr, version, flags, driverStatus);
     return_error(err);
 }
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaGetDriverEntryPointByVersion(
+    const char *symbol,
+    void **funcPtr,
+    unsigned int cudaVersion,
+    unsigned long long flags,
+    cudaDriverEntryPointQueryResult* driverStatus)
+{
+    auto& state = get_runtime_state();
+
+    auto err = (cudaError_t)cuGetProcAddress_v2(symbol, funcPtr, flags, cudaVersion,
+                                                (CUdriverProcAddressQueryResult*)driverStatus);
+    return_error(err);
+}
