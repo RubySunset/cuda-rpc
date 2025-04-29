@@ -175,6 +175,7 @@ srv::Service::get_driver_version()
             LOG_RES_PTR(method, self)
                 << wire::to_string(*args);
             CHECK_ARGS_EXACT();
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             return args->imms.value.get();
         });
@@ -230,6 +231,7 @@ srv::Service::device_get(int ordinal)
             LOG_RES_PTR(method, self)
                 << wire::to_string(*args);
             CHECK_ARGS_EXACT();
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             if ((int)args->imms.device.get() == -1) {
                 return std::shared_ptr<srv::Device>(nullptr);
@@ -270,6 +272,7 @@ srv::Service::device_get_count()
             LOG_RES_PTR(method, self)
                 << wire::to_string(*args);
             CHECK_ARGS_EXACT();
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             return args->imms.count.get();
         });
@@ -298,6 +301,7 @@ srv::Service::module_get_loading_mode()
             LOG_RES_PTR(method, self)
                 << wire::to_string(*args);
             CHECK_ARGS_EXACT();
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             return static_cast<CUmoduleLoadingMode>(args->imms.mode.get());
         });

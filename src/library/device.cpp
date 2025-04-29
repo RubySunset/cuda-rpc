@@ -102,6 +102,7 @@ srv::Device::get_attribute(CUdevice_attribute attrib) const
             LOG_RES_PTR(method, self)
                 << wire::to_string(*args);
             CHECK_ARGS_EXACT();
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             return args->imms.pi;
         });
@@ -134,6 +135,7 @@ srv::Device::get_name() const
                 throw core::other_error("invalid response format for " + method);
             }
             CHECK_ARGS_ERROR();
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             return std::string(args->imms.name, args->imms.len);
         });
@@ -161,6 +163,7 @@ srv::Device::get_uuid() const
             LOG_RES_PTR(method, self)
                 << wire::to_string(*args);
             CHECK_ARGS_EXACT();
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             CUuuid uuid = *(CUuuid*)args->imms.uuid;
             return uuid;
@@ -189,6 +192,7 @@ srv::Device::total_mem() const
             LOG_RES_PTR(method, self)
                 << wire::to_string(*args);
             CHECK_ARGS_EXACT();
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             return args->imms.bytes;
         });

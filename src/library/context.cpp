@@ -121,6 +121,7 @@ srv::Context::get_api_version()
             LOG_RES_PTR(method, self)
                 << wire::to_string(*args);
             CHECK_ARGS_EXACT();
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             return args->imms.version.get();
         });
