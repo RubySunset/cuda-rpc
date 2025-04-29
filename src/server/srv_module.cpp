@@ -229,8 +229,16 @@ void gpu_Module::handle_get_function(auto args) {
             fut.get();
             _func = func;
 
+            auto args_size_offset = offsetof(msg::response::imms, arg_size);
+            std::vector<wire::endian::uint64_t> args_size;
+            for (auto arg: func->_args_size) {
+                args_size.push_back(arg);
+            }
+
             ch->make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
+                .set_imm(&msg::response::imms::nargs, func->_args_size.size())
+                .set_imm(args_size_offset, args_size.data(), sizeof(uint64_t) * func->_args_size.size())
                 .set_cap(&msg::response::caps::call, func->_req_call)
                 .set_cap(&msg::response::caps::func_destroy, func->_req_func_destroy)
                 .on_channel()

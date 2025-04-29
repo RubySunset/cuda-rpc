@@ -30,6 +30,10 @@ private:
     CUcontext _ctx;
     CUmodule _mod;
     CUfunction _func;
+    size_t _args_total_size;
+public:
+    std::vector<size_t> _args_size;
+private:
 
     std::weak_ptr<test::gpu_Context> _vctx; 
     std::weak_ptr<test::gpu_Stream> _vstream;

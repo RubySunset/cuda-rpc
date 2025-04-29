@@ -40,6 +40,19 @@ gpu_Function::gpu_Function(std::string func_name, CUcontext& ctx, CUmodule& mod,
     checkCudaErrors_lo(cuModuleGetFunction(&function, mod, func_name.c_str()));
     _func = function;
 
+    _args_total_size = 0;
+    for (size_t i = 0; true; i++) {
+        size_t offset, size;
+        auto res = cuFuncGetParamInfo(_func, i, &offset, &size);
+        if (res == CUDA_SUCCESS) {
+            _args_total_size += size;
+            _args_size.push_back(size);
+        } else if (res == CUDA_ERROR_INVALID_VALUE) {
+            break;
+        } else {
+            LOG(FATAL) << "unexpected error: " << res;
+        }
+    }
 }
 
 std::shared_ptr<gpu_Function> gpu_Function::factory(std::string func_name, CUcontext& ctx, CUmodule& mod

@@ -15,6 +15,8 @@ namespace impl {
 
         std::weak_ptr<Function> self;
         std::shared_ptr<fractos::core::channel> ch;
+        size_t args_total_size;
+        std::vector<size_t> args_size;
 
         fractos::wire::endian::uint8_t error;
 

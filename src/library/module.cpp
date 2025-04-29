@@ -73,20 +73,28 @@ srv::Module::get_function(const std::string& func_name)
             .unwrap()
             .then([func_name](auto& fut) { // function_name
                 auto [ch, args] = fut.get();
-    
-                if (not args->has_exactly_args()) {
-                    // throw core::other_error("invalvalue response format for Module::get_function");
-                    DVLOG(logging::SERVICE) << "Context::get_function ->"
-                    <<" error= OTHER args";
-                }
-    
+
+                CHECK(args->has_all_imms());
+                CHECK(args->imms_size() == args->imms_expected_size() + sizeof(uint64_t) * args->imms.nargs);
+                CHECK(args->has_exactly_caps());
+
                 DVLOG(logging::SERVICE) << "Context::get_function ->"
                                         << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
                 fractos::wire::error_raise_exception_maybe(args->imms.error);
-    
+
+                size_t args_total_size = 0;
+                std::vector<size_t> args_size;
+                for (size_t i = 0; i < args->imms.nargs; i++) {
+                    auto elem = args->imms.arg_size[i];
+                    args_total_size += elem;
+                    args_size.push_back(elem);
+                }
+
                 //get Function object
                 std::shared_ptr<impl::Function> pimpl_(
-                    new impl::Function{{}, ch, args->imms.error,
+                    new impl::Function{{}, ch,
+                            args_total_size, args_size,
+                            args->imms.error,
                             std::move(args->caps.call),
                             std::move(args->caps.func_destroy)}
                     );
