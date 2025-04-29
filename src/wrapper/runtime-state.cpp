@@ -82,6 +82,7 @@ done_state:
     err = cuCtxSetCurrent(ctx_0);
     tstate->last_error = (cudaError_t)err;
 
+    tstate->device = 0;
     tstate->global = state;
 
     auto tstate_ptr = new std::shared_ptr<RuntimeThreadState>();

@@ -14,6 +14,7 @@ struct RuntimeState {
 
 struct RuntimeThreadState {
     cudaError_t last_error;
+    int device;
     std::shared_ptr<RuntimeState> global;
 };
 
