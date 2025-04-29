@@ -71,3 +71,29 @@ cuModuleLoadData(CUmodule *module, const void *image)
 
     return CUDA_SUCCESS;
 }
+
+extern "C" [[gnu::visibility("default")]]
+CUresult CUDAAPI
+cuModuleUnload(CUmodule hmod)
+{
+    auto& state = get_driver_state();
+
+    std::shared_ptr<DriverState::module_desc> mod_desc;
+
+    {
+        auto modules_lock = std::unique_lock(state.modules_mutex);
+
+        auto it = state.modules.find(hmod);
+        if (it == state.modules.end()) {
+            return CUDA_ERROR_INVALID_IMAGE;
+        }
+
+        mod_desc = it->second;
+
+        state.modules.erase(it);
+    }
+
+    mod_desc->module->destroy().get();
+
+    return CUDA_SUCCESS;
+}
