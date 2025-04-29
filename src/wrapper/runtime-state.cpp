@@ -67,13 +67,20 @@ done_state:
 
     // initialize thread state
 
+    tstate->last_error = (cudaError_t)err;
+    if (tstate->last_error) {
+        return tstate->last_error;
+    }
+
     CUcontext ctx_0;
     err = cuDevicePrimaryCtxRetain(&ctx_0, 0);
-    if (err != CUDA_SUCCESS) {
-        return (cudaError_t)err;
+    tstate->last_error = (cudaError_t)err;
+    if (tstate->last_error) {
+        return tstate->last_error;
     }
 
     err = cuCtxSetCurrent(ctx_0);
+    tstate->last_error = (cudaError_t)err;
 
     tstate->global = state;
 
@@ -81,5 +88,5 @@ done_state:
     *tstate_ptr = tstate;
     _runtime_thread_state.reset(tstate_ptr);
 
-    return (cudaError_t)err;
+    return tstate->last_error;
 }

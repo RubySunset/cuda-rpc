@@ -20,3 +20,17 @@ cudaGetErrorString(cudaError_t error)
 {
     return (*ptr_cudaGetErrorString)(error);
 }
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaGetLastError()
+{
+    auto [err, state] = get_runtime_state_with_error();
+    if (err) {
+        return err;
+    }
+
+    err = state->last_error;
+    state->last_error = cudaSuccess;
+    return err;
+}

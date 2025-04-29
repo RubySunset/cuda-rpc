@@ -2,7 +2,9 @@
 
 #include <atomic>
 #include <boost/thread/tss.hpp>
+#include <cuda.h>
 #include <cuda_runtime.h>
+#include <glog/logging.h>
 #include <memory>
 #include <mutex>
 
@@ -11,6 +13,7 @@ struct RuntimeState {
 };
 
 struct RuntimeThreadState {
+    cudaError_t last_error;
     std::shared_ptr<RuntimeState> global;
 };
 
@@ -22,7 +25,7 @@ cudaError_t do_runtime_init();
 
 #define get_runtime_state_with_error()                                  \
     ({                                                                  \
-        cudaError_t err;                                                \
+        cudaError_t err = cudaSuccess;                                  \
         std::shared_ptr<RuntimeThreadState> state;                      \
         auto tstate = _runtime_thread_state.get();                      \
         if (not tstate) [[unlikely]] {                                  \
@@ -42,7 +45,7 @@ cudaError_t do_runtime_init();
         auto tstate = _runtime_thread_state.get();                      \
         if (not tstate) [[unlikely]] {                                  \
             auto err = do_runtime_init();                               \
-            if (err == cudaSuccess) {                                   \
+            if (err != cudaSuccess) {                                   \
                 return err;                                             \
             }                                                           \
             tstate = _runtime_thread_state.get();                       \
@@ -58,3 +61,13 @@ cudaError_t do_runtime_init();
         DCHECK(*tstate);                                                \
         std::ref(*tstate);                                              \
     }).get()
+
+#define return_error(err)                       \
+    state.last_error = err;                     \
+    return err;                                 \
+
+#define return_error_maybe(err)                 \
+    state.last_error = err;                     \
+    if (err) {                                  \
+        return err;                             \
+    }
