@@ -10,6 +10,20 @@
 
 extern "C" [[gnu::visibility("default")]]
 cudaError_t CUDARTAPI
+cudaDeviceGetAttribute(int *value, enum cudaDeviceAttr attr, int device)
+{
+    auto& state [[maybe_unused]] = get_runtime_state();
+
+    CUdevice dev;
+    auto err = (cudaError_t)cuDeviceGet(&dev, device);
+    return_error_maybe(err);
+
+    err = (cudaError_t)cuDeviceGetAttribute(value, (CUdevice_attribute)attr, device);
+    return_error(err);
+}
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
 cudaGetDeviceCount(int *count)
 {
     auto& state [[maybe_unused]] = get_runtime_state();
