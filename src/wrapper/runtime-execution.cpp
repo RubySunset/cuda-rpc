@@ -15,3 +15,11 @@ __cudaPushCallConfiguration(dim3 gridDim, dim3 blockDim, size_t sharedMem,
 {
     return (*ptr___cudaPushCallConfiguration)(gridDim, blockDim, sharedMem, stream);
 }
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+__cudaPopCallConfiguration(dim3* gridDim, dim3* blockDim, size_t* sharedMem,
+                           void *stream)
+{
+    return (*ptr___cudaPopCallConfiguration)(gridDim, blockDim, sharedMem, stream);
+}
