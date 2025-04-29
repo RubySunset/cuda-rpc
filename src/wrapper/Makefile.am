@@ -26,6 +26,7 @@ libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-device.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-primary-context.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-context.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-module.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-execution.cpp
 
 nodist_libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-default.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-lib.cpp
