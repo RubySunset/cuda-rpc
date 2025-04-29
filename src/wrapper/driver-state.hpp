@@ -40,6 +40,7 @@ public:
     std::unordered_map<CUcontext, std::shared_ptr<fractos::service::compute::cuda::Context>> contexts;
 
 
+    std::shared_ptr<fractos::service::compute::cuda::Context> get_current_context();
     std::stack<std::shared_ptr<fractos::service::compute::cuda::Context>>& get_context_stack();
 
     boost::thread_specific_ptr<std::stack<std::shared_ptr<fractos::service::compute::cuda::Context>>> context_stack;

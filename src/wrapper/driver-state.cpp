@@ -167,6 +167,17 @@ make_context_stack()
     return stack;
 }
 
+std::shared_ptr<fractos::service::compute::cuda::Context>
+DriverState::get_current_context()
+{
+    auto& stack = get_context_stack();
+    if (not stack.empty()) {
+        return stack.top();
+    } else {
+        return nullptr;
+    }
+}
+
 std::stack<std::shared_ptr<fractos::service::compute::cuda::Context>> &
 DriverState::get_context_stack()
 {

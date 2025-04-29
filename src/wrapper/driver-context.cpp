@@ -43,12 +43,11 @@ CUresult
 cuCtxGetCurrent(CUcontext* pctx)
 {
     auto& state = get_driver_state();
-    auto& stack = state.get_context_stack();
-    if (stack.empty()) {
-        *pctx = nullptr;
-    } else {
-        auto ctx = stack.top();
+    auto ctx = state.get_current_context();
+    if (ctx) {
         *pctx = ctx->get_context();
+    } else {
+        *pctx = nullptr;
     }
 
     return CUDA_SUCCESS;
