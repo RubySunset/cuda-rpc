@@ -14,6 +14,10 @@
 #undef cuMemFree
 #endif
 
+#ifdef cuMemcpyDtoD_v2
+#undef cuMemcpyDtoD_v2
+#endif
+
 SYM(cuGetErrorName)
 SYM(cuGetErrorString)
 SYM(cuGetExportTable)
