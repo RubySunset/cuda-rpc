@@ -10,6 +10,10 @@
 #undef cuDeviceTotalMem
 #endif
 
+#ifdef cuMemFree
+#undef cuMemFree
+#endif
+
 SYM(cuGetErrorName)
 SYM(cuGetErrorString)
 SYM(cuGetExportTable)

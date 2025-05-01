@@ -33,3 +33,25 @@ cuMemAlloc(CUdeviceptr* devPtr, size_t size)
 
     return CUDA_SUCCESS;
 }
+
+extern "C" [[gnu::visibility("default")]]
+CUresult CUDAAPI
+cuMemFree_v2(CUdeviceptr dptr)
+{
+    auto& state = get_driver_state();
+
+    std::shared_ptr<srv::Memory> mem_ptr;
+    {
+        auto mems_lock = std::unique_lock(state.mems_mutex);
+        auto it = state.mems.find(dptr);
+        if (it == state.mems.end()) {
+            return CUDA_ERROR_INVALID_VALUE;
+        }
+        mem_ptr = it->second;
+        state.mems.erase(it);
+    }
+
+    mem_ptr->destroy().get();
+
+    return CUDA_SUCCESS;
+}
