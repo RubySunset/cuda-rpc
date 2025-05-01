@@ -7,9 +7,9 @@
 #include <fractos/service/compute/cuda.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 
+#include <common.hpp>
 #include <function_impl.hpp>
-
-#include <./common.hpp>
+#include <stream_impl.hpp>
 
 
 // #include <fractos/service/compute/cuda_msg.hpp>
@@ -75,7 +75,8 @@ srv::Function::launch(dim3 gridDim, dim3 blockDim, const void** args,
 
     uint32_t stream_id = 0;
     if (stream) {
-        stream_id = stream->get().get_stream_id();
+        auto& stream_pimpl = impl::Stream::get(stream->get());
+        stream_id = stream_pimpl.id;
     }
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
