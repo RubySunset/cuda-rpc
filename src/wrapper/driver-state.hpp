@@ -66,6 +66,10 @@ public:
 
     std::shared_mutex functions_mutex;
     std::unordered_map<CUfunction, std::shared_ptr<func_desc>> functions;
+
+
+    std::shared_mutex mems_mutex;
+    std::unordered_map<CUdeviceptr, std::shared_ptr<fractos::service::compute::cuda::Memory>> mems;
 };
 
 extern std::mutex _driver_state_mutex;
