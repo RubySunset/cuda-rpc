@@ -188,6 +188,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             // cuCtxGetDevice
             std::shared_ptr<Device> get_device();
 
+            // cuCtxSynchronize
+            [[nodiscard]] fractos::core::future<void>
+            synchronize();
+
             // /**
             //  * @brief Wrapper for cuModuleLoad() - not in use
             //  */
@@ -250,13 +254,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              */
             [[nodiscard]] core::future<std::shared_ptr<Memory>>
             make_memory(MemoryReservation& reservation, MemoryAllocation& allocation, unsigned long long flags);
-
-
-            /**
-             * @brief Wrapper for cuCtxSynchronize()
-             */
-            [[nodiscard]] fractos::core::future<void>
-            synchronize();
 
             /**
              * @brief Destroy context and all its contents

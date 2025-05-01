@@ -72,6 +72,7 @@ char* gpu_Context::allocate_memory(size_t size, CUcontext& context) {
 
 
 void gpu_Context::context_synchronize() {
+    checkCudaErrors(cuCtxSetCurrent(_ctx));
     checkCudaErrors(cuCtxSynchronize());
 }
 

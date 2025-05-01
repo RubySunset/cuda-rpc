@@ -116,3 +116,15 @@ cuCtxSetCurrent(CUcontext ctx)
 
     return err;
 }
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
+cuCtxSynchronize()
+{
+    auto& state = get_driver_state();
+
+    auto ctx_ptr = state.get_current_context();
+    ctx_ptr->synchronize().get();
+
+    return CUDA_SUCCESS;
+}
