@@ -18,6 +18,10 @@
 #undef cuMemcpyDtoD_v2
 #endif
 
+#ifdef cuMemcpyDtoH_v2
+#undef cuMemcpyDtoH_v2
+#endif
+
 SYM(cuGetErrorName)
 SYM(cuGetErrorString)
 SYM(cuGetExportTable)
