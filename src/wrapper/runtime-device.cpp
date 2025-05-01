@@ -1,4 +1,5 @@
 #include "runtime-state.hpp"
+#include <cuda.h>
 #include <cuda_runtime.h>
 
 #include <./driver-state.hpp>
@@ -19,6 +20,16 @@ cudaDeviceGetAttribute(int *value, enum cudaDeviceAttr attr, int device)
     return_error_maybe(err);
 
     err = (cudaError_t)cuDeviceGetAttribute(value, (CUdevice_attribute)attr, device);
+    return_error(err);
+}
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaDeviceSynchronize()
+{
+    auto& state = get_runtime_state();
+
+    auto err = (cudaError_t)cuCtxSynchronize();
     return_error(err);
 }
 
