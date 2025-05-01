@@ -38,7 +38,7 @@ cudaError_t CUDARTAPI
 cudaGetDevice(int* device)
 {
     auto& state [[maybe_unused]] = get_runtime_state();
-    *device = state.device;
+    *device = state.dev_o;
     return_error(cudaSuccess);
 }
 
@@ -55,13 +55,19 @@ extern "C" [[gnu::visibility("default")]]
 cudaError_t CUDARTAPI
 cudaSetDevice(int device)
 {
-    auto& state [[maybe_unused]] = get_runtime_state();
-    int count;
-    auto err = cudaGetDeviceCount(&count);
+    auto& state = get_runtime_state();
+
+    CUdevice dev;
+    auto err = (cudaError_t)cuDeviceGet(&dev, device);
     return_error_maybe(err);
-    if (device < count) {
-        return_error(cudaSuccess);
-    } else {
-        return_error(cudaErrorInvalidDevice);
-    }
+
+    state.dev_o = device;
+    state.dev = dev;
+
+    CUcontext ctx;
+    err = (cudaError_t)cuDevicePrimaryCtxRetain(&ctx, dev);
+    return_error_maybe(err);
+
+    err = (cudaError_t)cuCtxSetCurrent(ctx);
+    return_error(cudaSuccess);
 }

@@ -14,6 +14,7 @@ cudaError_t
 do_runtime_init()
 {
     CUresult err = CUDA_SUCCESS;
+
     auto tstate = std::make_shared<RuntimeThreadState>();
 
     auto state = _runtime_state.load();
@@ -73,8 +74,7 @@ done_state:
     }
 
     CUcontext ctx_0;
-    err = cuDevicePrimaryCtxRetain(&ctx_0, 0);
-    tstate->last_error = (cudaError_t)err;
+    tstate->last_error = (cudaError_t)cuDevicePrimaryCtxRetain(&ctx_0, 0);
     if (tstate->last_error) {
         return tstate->last_error;
     }
@@ -82,12 +82,18 @@ done_state:
     err = cuCtxSetCurrent(ctx_0);
     tstate->last_error = (cudaError_t)err;
 
-    tstate->device = 0;
     tstate->global = state;
+    tstate->dev_o = 0;
+    tstate->last_error = (cudaError_t)cuDeviceGet(&tstate->dev, tstate->dev_o);
+    if (tstate->last_error) {
+        return tstate->last_error;
+    }
 
-    auto tstate_ptr = new std::shared_ptr<RuntimeThreadState>();
-    *tstate_ptr = tstate;
-    _runtime_thread_state.reset(tstate_ptr);
+    {
+        auto tstate_ptr = new std::shared_ptr<RuntimeThreadState>();
+        *tstate_ptr = tstate;
+        _runtime_thread_state.reset(tstate_ptr);
+    }
 
     return tstate->last_error;
 }
