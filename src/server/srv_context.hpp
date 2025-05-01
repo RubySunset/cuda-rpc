@@ -41,9 +41,9 @@ private:
 
     std::shared_ptr<gpu_Context> _self;
     bool _destroyed;
+public:
     CUcontext _ctx; 
 
-public:
     fractos::core::cap::request _req_generic;
     fractos::core::cap::request _req_memory;
     fractos::core::cap::request _req_memory_rpc_test;

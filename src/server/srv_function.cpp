@@ -130,6 +130,10 @@ void gpu_Function::handle_call(auto args) {
         return;
     }
 
+    auto ctx_ptr = _vctx.lock();
+    CHECK(ctx_ptr);
+    CHECK(cuCtxSetCurrent(ctx_ptr->_ctx) == CUDA_SUCCESS);
+
     auto grid_x = args->imms.grid_x;
     auto grid_y = args->imms.grid_y;
     auto grid_z = args->imms.grid_z;
