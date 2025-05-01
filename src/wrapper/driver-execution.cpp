@@ -25,12 +25,15 @@ cuLaunchKernel(CUfunction f,
         return CUDA_ERROR_INVALID_VALUE;
     }
 
-    std::optional<std::reference_wrapper<srv::Stream>> stream;
-    CHECK(not hStream);
+    std::optional<std::reference_wrapper<srv::Stream>> stream_opt;
+    if (hStream) {
+        LOG(FATAL) << "not implemented";
+    }
 
     func_ptr->function->launch(dim3(gridDimX, gridDimY, gridDimZ),
                                dim3(blockDimX, blockDimY, blockDimZ),
-                               (const void**)kernelParams, sharedMemBytes, stream)
+                               (const void**)kernelParams, sharedMemBytes,
+                               stream_opt)
         .get();
 
     return CUDA_SUCCESS;
