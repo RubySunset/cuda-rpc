@@ -1,6 +1,7 @@
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 #include <dlfcn.h>
+#include <fatbinary_section.h>
 #include <fractos/logging.hpp>
 #include <glog/logging.h>
 #include <string>
@@ -50,24 +51,18 @@ __cudaRegisterFatBinary(void* fatCubin)
     CHECK(state_ptr);
     auto& state [[maybe_unused]] = *state_ptr;
 
-    struct fat_cubin {
-        uint32_t magic; // Always 0x466243b1
-        uint32_t seq;   // Sequence number of the cubin
-        uint64_t ptr;   // The pointer to the real cubin
-        uint64_t data_ptr;    // Some pointer related to the data segment
-    };
-
-    fat_cubin* desc = (fat_cubin*)fatCubin;
-    CHECK(desc->magic == 0x466243b1);
+    auto desc = (const __fatBinC_Wrapper_t*)fatCubin;
+    CHECK(desc->magic == FATBINC_MAGIC);
+    CHECK(desc->version == FATBINC_VERSION);
 
     DVLOG(logging::APP)
         << "__cudaRegisterFatBinary ->"
         << " fatCubin=0x" << std::hex << fatCubin
-        << " desc->ptr=0x" << std::hex << desc->ptr;
+        << " desc->data=0x" << std::hex << desc->data;
 
-    state.last_error = (cudaError_t)cuModuleLoadData(&module, (const void*)desc->ptr);
+    state.last_error = (cudaError_t)cuModuleLoadData(&module, (const void*)desc->data);
     if (state.last_error != cudaSuccess) {
-        LOG(FATAL) << "failed cuModuleLoadData(..., " << (const void*)desc->ptr << "): "
+        LOG(FATAL) << "failed cuModuleLoadData(..., " << (const void*)desc->data << "): "
                    << cudaGetErrorName(state.last_error);
     }
 
