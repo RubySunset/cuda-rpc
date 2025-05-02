@@ -24,3 +24,13 @@ cudaEventCreateWithFlags(cudaEvent_t *event, unsigned int flags)
     auto err = cuEventCreate(event, flags);
     return_error((cudaError_t)err);
 }
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaEventDestroy(cudaEvent_t event)
+{
+    auto& state = get_runtime_state();
+
+    auto err = cuEventDestroy(event);
+    return_error((cudaError_t)err);
+}
