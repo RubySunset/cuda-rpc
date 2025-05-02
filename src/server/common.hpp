@@ -44,8 +44,8 @@ struct receive_args_base_type
         static_assert(std::is_same<msg::request, args_type>::value);    \
     }
 
-#define CHECK_ARGS_EXACT()                                              \
-    if (not args->has_exactly_args()) {                                 \
+#define CHECK_ARGS_COND(cond)                                           \
+    if (not (cond)) {                                                   \
         LOG_RES(method) << " error=ERR_OTHER";                          \
         reqb_cont                                                       \
             .set_imm(&msg::response::imms::error, wire::ERR_OTHER)      \
@@ -54,3 +54,9 @@ struct receive_args_base_type
             .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring"); \
         return;                                                         \
     }
+
+#define CHECK_ARGS_EXACT()                                              \
+    CHECK_ARGS_COND(args->has_exactly_args())
+
+#define CHECK_ARGS_ALL()                                                \
+    CHECK_ARGS_COND(args->has_all_imms() and args->has_exactly_caps())
