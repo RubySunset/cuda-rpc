@@ -10,6 +10,13 @@
 
 extern "C" [[gnu::visibility("default")]]
 cudaError_t CUDARTAPI
+cudaEventCreate(cudaEvent_t *event)
+{
+    return cudaEventCreateWithFlags(event, 0);
+}
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
 cudaEventCreateWithFlags(cudaEvent_t *event, unsigned int flags)
 {
     auto& state = get_runtime_state();
