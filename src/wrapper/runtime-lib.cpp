@@ -117,7 +117,7 @@ __cudaUnregisterFatBinary(void** fatCubinHandle)
     auto module = (CUmodule)fatCubinHandle;
 
     auto modules_lock = std::unique_lock(state.global->modules_mutex);
-    auto funcs_lock = std::unique_lock(state.global->funcs_mutex);
+    auto entries_lock = std::unique_lock(state.global->entries_mutex);
 
     state.last_error = (cudaError_t)cuModuleUnload(module);
     if (state.last_error != cudaSuccess) {
@@ -129,7 +129,7 @@ __cudaUnregisterFatBinary(void** fatCubinHandle)
         CHECK(module_desc_it != state.global->modules.end());
         auto module_desc = module_desc_it->second;
 
-        auto module_funcs_lock = std::unique_lock(module_desc->funcs_mutex);
+        auto module_entries_lock = std::unique_lock(module_desc->entries_mutex);
         for (auto& func : module_desc->funcs) {
             CHECK(state.global->funcs.erase(func) == 1);
         }
@@ -184,10 +184,10 @@ void CUDARTAPI __cudaRegisterFunction(
     func_desc->name = deviceName;
     func_desc->func = 0;
 
-    auto module_funcs_lock = std::unique_lock(module_desc->funcs_mutex);
+    auto module_entries_lock = std::unique_lock(module_desc->entries_mutex);
     CHECK(module_desc->funcs.insert((uintptr_t)hostFun).second);
 
-    auto funcs_lock = std::unique_lock(state.global->funcs_mutex);
+    auto entries_lock = std::unique_lock(state.global->entries_mutex);
     CHECK(state.global->funcs.insert(std::make_pair((uintptr_t)hostFun, func_desc)).second);
 }
 

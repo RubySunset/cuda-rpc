@@ -97,3 +97,34 @@ done_state:
 
     return tstate->last_error;
 }
+
+std::pair<cudaError_t, CUfunction>
+RuntimeThreadState::get_function(const void* address)
+{
+    LOG_FIRST_N(ERROR, 1) << "TODO: must return per-device CUfunction";
+
+    auto lock = std::shared_lock(global->entries_mutex);
+    auto it = global->funcs.find((uintptr_t)address);
+    if (it == global->funcs.end()) [[unlikely]] {
+        return std::make_pair(cudaErrorInvalidDeviceFunction, nullptr);
+    }
+
+    auto desc = it->second;
+    auto func = desc->func.load(std::memory_order_acquire);
+
+    if (func == 0) [[unlikely]] {
+        auto lock = std::unique_lock(desc->mutex);
+        if (desc->func == 0) {
+            CUfunction real_func;
+            auto err = cuModuleGetFunction(&real_func, desc->module, desc->name.c_str());
+            if (err != CUDA_SUCCESS) {
+                return std::make_pair((cudaError_t)err, nullptr);
+            }
+            // NOTE: std::atomic<T*> zeroes source
+            desc->func.store(real_func);
+        }
+        func = desc->func.load();
+    }
+
+    return std::make_pair(cudaSuccess, func);
+}

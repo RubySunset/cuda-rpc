@@ -17,18 +17,18 @@ struct RuntimeState {
         CUmodule module;
         std::string name;
         std::atomic<CUfunction> func;
-        std::mutex func_mutex;
+        std::mutex mutex;
     };
 
     struct module_desc {
-        std::mutex funcs_mutex;
+        std::mutex entries_mutex;
         std::unordered_set<uintptr_t> funcs;
     };
 
     std::mutex modules_mutex;
     std::unordered_map<CUmodule, std::shared_ptr<module_desc>> modules;
 
-    std::shared_mutex funcs_mutex;
+    std::shared_mutex entries_mutex;
     std::unordered_map<uintptr_t, std::shared_ptr<func_desc>> funcs;
 };
 
@@ -37,6 +37,8 @@ struct RuntimeThreadState {
     int dev_o;
     CUdevice dev;
     std::shared_ptr<RuntimeState> global;
+
+    std::pair<cudaError_t, CUfunction> get_function(const void* address);
 };
 
 extern std::mutex _runtime_state_mutex;
