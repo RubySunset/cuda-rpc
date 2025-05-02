@@ -7,6 +7,7 @@
 #include <link.h>
 #include <unordered_map>
 
+#include <common.hpp>
 #include <./driver-state.hpp>
 
 
@@ -97,13 +98,8 @@ static
 void
 init_symbols()
 {
-    std::string lib("libcuda.so");
-
     // allow env to override load path
-    auto lib_env = secure_getenv("FRACTOS_SERVICE_COMPUTE_LIBCUDA");
-    if (lib_env) {
-        lib = lib_env;
-    }
+    auto lib = get_env("FRACTOS_SERVICE_COMPUTE_LIBCUDA", "libcuda.so");
 
     libcuda_handle = dlopen(lib.c_str(), RTLD_LAZY);
     CHECK(libcuda_handle) << "--reason--> " << dlerror();

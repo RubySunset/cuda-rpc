@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 
+#include <common.hpp>
 #include "./runtime-state.hpp"
 #include "./runtime-syms-extern.hpp"
 
@@ -247,13 +248,8 @@ static
 void
 init_symbols()
 {
-    std::string lib("libcudart.so");
-
     // allow env to override load path
-    auto lib_env = secure_getenv("FRACTOS_SERVICE_COMPUTE_LIBCUDART");
-    if (lib_env) {
-        lib = lib_env;
-    }
+    auto lib = get_env("FRACTOS_SERVICE_COMPUTE_LIBCUDART", "libcudart.so");
 
     libcudart_handle = dlopen(lib.c_str(), RTLD_LAZY);
     CHECK(libcudart_handle) << "--reason--> " << dlerror();
