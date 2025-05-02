@@ -17,7 +17,7 @@ cuModuleGetFunction(CUfunction* hfunc, CUmodule hmod, const char *name)
 
     auto mod_desc = state.get_module(hmod);
     if (not mod_desc) {
-        return CUDA_ERROR_INVALID_IMAGE;
+        return CUDA_ERROR_INVALID_VALUE;
     }
 
     std::string func_name(name);
