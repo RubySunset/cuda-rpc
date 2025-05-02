@@ -282,7 +282,12 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class Module {
         public:
-                                                                  
+
+            // cuModuleGetGlobal
+            [[nodiscard]] core::future<CUdeviceptr>
+            get_global(const std::string& file_name);
+
+
             /**
              * @brief Wrapper for cuModuleGetFunction()
              */

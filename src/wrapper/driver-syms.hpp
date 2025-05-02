@@ -26,6 +26,10 @@
 #undef cuMemcpyHtoD_v2
 #endif
 
+#ifdef cuModuleGetGlobal_v2
+#undef cuModuleGetGlobal_v2
+#endif
+
 SYM(cuGetErrorName)
 SYM(cuGetErrorString)
 SYM(cuGetExportTable)

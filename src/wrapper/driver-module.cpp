@@ -53,6 +53,24 @@ cuModuleGetFunction(CUfunction* hfunc, CUmodule hmod, const char *name)
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
+cuModuleGetGlobal_v2(CUdeviceptr* dptr, size_t* bytes, CUmodule hmod, const char *name)
+{
+    auto& state = get_driver_state();
+
+    CHECK(bytes == nullptr) << "not implemented";
+
+    auto mod_desc = state.get_module(hmod);
+    if (not mod_desc) {
+        return CUDA_ERROR_INVALID_VALUE;
+    }
+
+    std::string name_str(name);
+    *dptr = mod_desc->module->get_global(name).get();
+    return CUDA_SUCCESS;
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult CUDAAPI
 cuModuleGetLoadingMode(CUmoduleLoadingMode* mode)
 {
     auto& state = get_driver_state();

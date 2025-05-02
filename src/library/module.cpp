@@ -72,6 +72,36 @@ srv::Module::~Module() {
     }
 }
 
+core::future<CUdeviceptr>
+srv::Module::get_global(const std::string& name)
+{
+    METHOD(Module, get_global);
+    LOG_REQ(method)
+        << " name=" << name;
+
+    auto& pimpl = impl::Module::get(*this);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire::OP_GET_GLOBAL)
+        .set_imm(&msg::request::imms::name_size, name.size())
+        .set_imm(&msg::request::imms::name, name.c_str(), name.size())
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then([this, self=pimpl.self.lock()](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            LOG_RES_PTR(method, self)
+                << wire::to_string(*args);
+            CHECK_ARGS_EXACT();
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
+
+            return args->imms.dptr;
+        });
+}
+
 core::future<std::shared_ptr<srv::Function>>
 srv::Module::get_function(const std::string& func_name)
 {

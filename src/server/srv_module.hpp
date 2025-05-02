@@ -23,6 +23,7 @@ public:
 
 protected:
     void handle_generic(auto ch, auto args);
+    void handle_get_global(auto ch, auto args);
 
     void handle_get_function(auto args);
     void handle_destroy(auto args);

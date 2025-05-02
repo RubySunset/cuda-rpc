@@ -17,9 +17,20 @@ namespace srv = fractos::service::compute::cuda;
 #define print_imm_identity(name)                                        \
     print_imm(name, [](auto& val){ return val; })
 
+#define print_imm_hex(name)                                             \
+    print_imm(name, [](auto& val){ std::stringstream ss; ss << "0x" << std::hex << val.get(); return ss.str(); })
+
 #define print_imm_error(name)                                           \
     print_imm(name, [](auto& val){                                      \
         return fractos::wire::to_string(static_cast<fractos::wire::error_type>(val.get())); })
+
+#define print_imm_string(name_str, name_len)                            \
+    if (obj.imms_size() >= offsetof(msg::imms_type, name_str) and       \
+        obj.has_imm(&msg::imms_type:: name_len)) {                      \
+        ss << " imms." #name_str "=\"" + std::string(obj.imms. name_str, obj.imms. name_len) + "\""; \
+    } else {                                                            \
+        ss << " imms." #name_str "=<missing>";                          \
+    }
 
 #define print_extra_imm_error()                                         \
     if (obj.has_all_imms() and not obj.has_exactly_imms()) {            \
@@ -407,6 +418,39 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::get_api_versio
 
     print_imm_error(error);
     print_imm_identity(version);
+    print_extra_imm_error();
+
+    print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Module::get_global::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(opcode);
+    print_imm_identity(name_size);
+    print_imm_string(name, name_size);
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Module::get_global::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_imm_hex(dptr);
     print_extra_imm_error();
 
     print_empty_caps();

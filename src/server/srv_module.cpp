@@ -227,6 +227,46 @@ gpu_Module::handle_generic(auto ch, auto args)
 #undef HANDLE
 }
 
+void
+gpu_Module::handle_get_global(auto ch, auto args)
+{
+    METHOD(Module, get_global);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_ALL();
+    CHECK_ARGS_COND(args->imms_size() == (sizeof(msg::request::imms) + args->imms.name_size));
+
+    std::string name(args->imms.name, args->imms.name_size);
+
+    auto error = wire::ERR_SUCCESS;
+    auto cuerr = CUDA_SUCCESS;
+    CUdeviceptr dptr = 0;
+
+    cuerr = cuCtxSetCurrent(_ctx);
+    if (cuerr != CUDA_SUCCESS) {
+        goto out;
+    }
+
+    cuerr = cuModuleGetGlobal(&dptr, nullptr, _module, name.c_str());
+
+out:
+    if (cuerr != CUDA_SUCCESS) {
+        error = wire::ERR_OTHER;
+    }
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " dptr=" << (void*)dptr;
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::dptr, dptr)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+}
+
 void gpu_Module::handle_get_function(auto args) {
     auto t_start = std::chrono::high_resolution_clock::now();
     VLOG(fractos::logging::SERVICE) << "CALL handle_get_function";

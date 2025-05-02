@@ -20,7 +20,8 @@
 
 #define METHOD(cls, name)                                               \
     static const std::string method = #name;                            \
-    using msg = ::service::compute::cuda::wire:: cls :: name;
+    namespace srv_wire = ::service::compute::cuda::wire:: cls;          \
+    using msg = srv_wire:: name;
 
 #define CHECK_ARGS_EXACT()                                              \
     if (not args->has_exactly_args()) {                                 \

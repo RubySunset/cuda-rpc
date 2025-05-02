@@ -638,10 +638,33 @@ namespace fractos::service::compute::cuda::wire {
     namespace Module {
 
         enum generic_opcode : uint64_t {
+            OP_GET_GLOBAL,
+
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
 
         using generic = wire::generic;
+
+        struct get_global {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint64_t name_size;
+                    char name[];
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t dptr;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
 
         struct get_function {
             struct request {
@@ -683,6 +706,9 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
     }
+
+    std::string to_string(const core::receive_args<Module::get_global::request>& req);
+    std::string to_string(const core::receive_args<Module::get_global::response>& resp);
 
     namespace Function {
         struct call {
