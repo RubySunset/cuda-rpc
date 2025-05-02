@@ -34,19 +34,6 @@ impl::to_string(const impl::Context& obj)
     return ss.str();
 }
 
-inline
-impl::Context& impl::Context::get(srv::Context& obj)
-{
-    return *reinterpret_cast<impl::Context*>(obj._pimpl.get());
-}
-
-inline
-const impl::Context&
-impl::Context::get(const srv::Context& obj)
-{
-    return *reinterpret_cast<impl::Context*>(obj._pimpl.get());
-}
-
 
 
 srv::Context::Context(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t value)

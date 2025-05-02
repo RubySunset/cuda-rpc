@@ -11,19 +11,6 @@
 using namespace fractos;
 namespace srv = fractos::service::compute::cuda;
 
-inline
-impl::Stream&
-impl::Stream::get(srv::Stream& obj)
-{
-    return *reinterpret_cast<impl::Stream*>(obj._pimpl.get());
-}
-
-inline
-const impl::Stream&
-impl::Stream::get(const srv::Stream& obj)
-{
-    return *reinterpret_cast<impl::Stream*>(obj._pimpl.get());
-}
 
 impl::Stream::Stream(std::shared_ptr<fractos::core::channel> ch,
                      fractos::wire::endian::uint8_t error,

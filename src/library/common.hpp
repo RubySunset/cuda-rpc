@@ -41,3 +41,17 @@
 
 #define CHECK_ARGS_ERROR()                                              \
     fractos::wire::error_raise_exception_maybe(args->imms.error);
+
+
+namespace impl {
+
+    template<class Tsrv, class Timpl>
+    class Base {
+    public:
+        static Timpl& get(Tsrv& obj);
+        static const Timpl& get(const Tsrv& obj);
+    };
+
+}
+
+#include <./common.inc.hpp>

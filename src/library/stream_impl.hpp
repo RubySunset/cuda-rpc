@@ -4,14 +4,14 @@
 #include <fractos/core/channel.hpp>
 #include <memory>
 
+#include <common.hpp>
+
 
 namespace impl {
 
     namespace srv = fractos::service::compute::cuda;
 
-    struct Stream {
-        static Stream& get(srv::Stream& stream);
-        static const Stream& get(const srv::Stream& stream);
+    struct Stream : public impl::Base<srv::Stream, impl::Stream> {
         Stream(std::shared_ptr<fractos::core::channel> ch,
                fractos::wire::endian::uint8_t error,
                fractos::wire::endian::uint32_t id,

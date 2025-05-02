@@ -4,14 +4,14 @@
 #include <fractos/core/channel.hpp>
 #include <memory>
 
+#include <common.hpp>
+
 
 namespace impl {
 
     namespace srv = fractos::service::compute::cuda;
 
-    struct Function {
-        static Function& get(srv::Function& func);
-        static const Function& get(const srv::Function& func);
+    struct Function : public impl::Base<srv::Function, impl::Function> {
         Function(std::shared_ptr<fractos::core::channel> ch,
                  size_t args_total_size, std::vector<size_t> args_size,
                  fractos::wire::endian::uint8_t error,

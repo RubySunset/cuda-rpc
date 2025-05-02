@@ -32,19 +32,6 @@ impl::to_string(const impl::Function& obj)
     return ss.str();
 }
 
-inline
-impl::Function&
-impl::Function::get(srv::Function& obj)
-{
-    return *reinterpret_cast<impl::Function*>(obj._pimpl.get());
-}
-
-inline
-const impl::Function& impl::Function::get(const srv::Function& obj) 
-{
-    return *reinterpret_cast<impl::Function*>(obj._pimpl.get());
-}
-
 impl::Function::Function(std::shared_ptr<fractos::core::channel> ch,
                          size_t args_total_size, std::vector<size_t> args_size,
                          fractos::wire::endian::uint8_t error,

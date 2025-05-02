@@ -30,20 +30,6 @@ impl::to_string(const impl::Service& obj)
     return ss.str();
 }
 
-inline
-impl::Service&
-impl::Service::get(srv::Service& obj)
-{
-    return *reinterpret_cast<impl::Service*>(obj._pimpl.get());
-}
-
-inline
-const impl::Service&
-impl::Service::get(const srv::Service& obj)
-{
-    return *reinterpret_cast<impl::Service*>(obj._pimpl.get());
-}
-
 
 impl::Service::Service(std::shared_ptr<fractos::core::channel> ch,
                        fractos::core::cap::request req_connect,

@@ -11,20 +11,6 @@ using namespace fractos;
 namespace srv = fractos::service::compute::cuda;
 
 
-inline
-impl::Memory&
-impl::Memory::get(srv::Memory& obj)
-{
-    return *reinterpret_cast<impl::Memory*>(obj._pimpl.get());
-}
-
-inline
-const impl::Memory&
-impl::Memory::get(const srv::Memory& obj)
-{
-    return *reinterpret_cast<impl::Memory*>(obj._pimpl.get());
-}
-
 impl::Memory::Memory(std::shared_ptr<fractos::core::channel> ch,
                      fractos::wire::endian::uint8_t error,
                      char* addr, size_t size,

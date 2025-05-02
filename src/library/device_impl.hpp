@@ -4,15 +4,14 @@
 #include <fractos/core/channel.hpp>
 #include <memory>
 
+#include <common.hpp>
+
 
 namespace impl {
 
     namespace srv = fractos::service::compute::cuda;
 
-    struct Device {
-        static Device& get(srv::Device& device);
-        static const Device& get(const srv::Device& device);
-
+    struct Device : public impl::Base<srv::Device, impl::Device> {
         Device(std::shared_ptr<fractos::core::channel> channel,
                CUdevice device,
                fractos::core::cap::request req_generic,

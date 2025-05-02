@@ -29,20 +29,6 @@ impl::to_string(const impl::Device& obj)
     return ss.str();
 }
 
-inline
-impl::Device&
-impl::Device::get(srv::Device& obj)
-{
-    return *reinterpret_cast<impl::Device*>(obj._pimpl.get());
-}
-
-inline
-const impl::Device&
-impl::Device::get(const srv::Device& obj)
-{
-    return *reinterpret_cast<impl::Device*>(obj._pimpl.get());
-}
-
 impl::Device::Device(std::shared_ptr<fractos::core::channel> channel,
                      CUdevice device,
                      fractos::core::cap::request req_generic,

@@ -30,20 +30,6 @@ impl::to_string(const impl::Module& obj)
     return ss.str();
 }
 
-inline
-impl::Module&
-impl::Module::get(srv::Module& obj)
-{
-    return *reinterpret_cast<impl::Module*>(obj._pimpl.get());
-}
-
-inline
-const impl::Module&
-impl::Module::get(const srv::Module& obj)
-{
-    return *reinterpret_cast<impl::Module*>(obj._pimpl.get());
-}
-
 impl::Module::Module(std::shared_ptr<fractos::core::channel> ch,
                      fractos::wire::endian::uint8_t error,
                      fractos::core::cap::request req_generic,

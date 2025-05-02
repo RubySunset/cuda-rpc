@@ -8,14 +8,15 @@
 #include <fractos/service/compute/cuda.hpp>
 #include <memory>
 
+#include <common.hpp>
+
+
 namespace impl {
 
     namespace srv = fractos::service::compute::cuda;
 
-    struct Context {
-        static Context& get(srv::Context& context);
-        static const Context& get(const srv::Context& context);
-
+    struct Context;
+    struct Context : public impl::Base<srv::Context, impl::Context> {
         Context(std::shared_ptr<fractos::core::channel> ch,
                 std::shared_ptr<srv::Device> device,
                 fractos::core::cap::request req_generic,

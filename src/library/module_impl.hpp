@@ -4,14 +4,14 @@
 #include <fractos/core/channel.hpp>
 #include <memory>
 
+#include <common.hpp>
+
 
 namespace impl {
 
     namespace srv = fractos::service::compute::cuda;
 
-    struct Module {
-        static Module& get(srv::Module& module);
-        static const Module& get(const srv::Module& module);
+    struct Module : public impl::Base<srv::Module, impl::Module> {
         Module(std::shared_ptr<fractos::core::channel> ch,
                fractos::wire::endian::uint8_t error,
                fractos::core::cap::request req_generic,

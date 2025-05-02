@@ -5,15 +5,14 @@
 #include <fractos/service/compute/cuda.hpp>
 #include <memory>
 
+#include <common.hpp>
+
 
 namespace impl {
 
     namespace srv = fractos::service::compute::cuda;
 
-    struct Service {
-        static Service& get(srv::Service& service);
-        static const Service& get(const srv::Service& service);
-
+    struct Service : public impl::Base<srv::Service, impl::Service> {
         Service(std::shared_ptr<fractos::core::channel> ch,
                 fractos::core::cap::request req_connect,
                 fractos::core::cap::request req_generic);
