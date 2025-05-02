@@ -39,11 +39,11 @@ __cudaRegisterFatBinary(void* fatCubin)
 
     auto [err, state_ptr] = get_runtime_state_with_error();
     if (err) {
-        DVLOG(logging::APP)
+        DVLOG(logging::SERVICE)
             << "__cudaRegisterFatBinary ->"
             << " fatCubin=0x" << std::hex << fatCubin;
         module = 0;
-        DVLOG(logging::APP)
+        DVLOG(logging::SERVICE)
             << "__cudaRegisterFatBinary <- "
             << "0x" << std::hex << module;
         return (void**)module;
@@ -56,7 +56,7 @@ __cudaRegisterFatBinary(void* fatCubin)
     CHECK(desc->magic == FATBINC_MAGIC);
     CHECK(desc->version == FATBINC_VERSION);
 
-    DVLOG(logging::APP)
+    DVLOG(logging::SERVICE)
         << "__cudaRegisterFatBinary ->"
         << " fatCubin=0x" << std::hex << fatCubin
         << " desc->data=0x" << std::hex << desc->data;
@@ -74,7 +74,7 @@ __cudaRegisterFatBinary(void* fatCubin)
         CHECK(res.second);
     }
 
-    DVLOG(logging::APP)
+    DVLOG(logging::SERVICE)
         << "__cudaRegisterFatBinary <- "
         << "0x" << std::hex << module;
 
@@ -89,7 +89,7 @@ __cudaRegisterFatBinaryEnd(void** fatCubinHandle)
         return;
     }
 
-    DVLOG(logging::APP)
+    DVLOG(logging::SERVICE)
         << "__cudaRegisterFatBinaryEnd ->"
         << " fatCubinHandle=0x" << std::hex << fatCubinHandle;
 }
@@ -102,13 +102,13 @@ __cudaUnregisterFatBinary(void** fatCubinHandle)
         return;
     }
 
-    DVLOG(logging::APP)
+    DVLOG(logging::SERVICE)
         << "__cudaUnregisterFatBinary ->"
         << " fatCubinHandle=0x" << std::hex << fatCubinHandle;
 
     auto [err, state_ptr] = get_runtime_state_with_error();
     if (err) {
-        DVLOG(logging::APP)
+        DVLOG(logging::SERVICE)
             << "__cudaUnregisterFatBinary <- "
             << " err=" << cudaGetErrorName((cudaError_t)err);
         return;
@@ -142,7 +142,7 @@ __cudaUnregisterFatBinary(void** fatCubinHandle)
     }
 
 out:
-    DVLOG(logging::APP)
+    DVLOG(logging::SERVICE)
         << "__cudaUnregisterFatBinary <-"
         << " err=" << cudaGetErrorName(state.last_error);
 }
@@ -161,7 +161,7 @@ void CUDARTAPI __cudaRegisterFunction(
         int     *wSize
     )
 {
-    DVLOG(logging::APP)
+    DVLOG(logging::SERVICE)
         << "__cudaRegisterFunction ->"
         << " handle=" << fatCubinHandle
         // << " hostFun=" << (void*)hostFun
@@ -169,7 +169,7 @@ void CUDARTAPI __cudaRegisterFunction(
 
     auto [err, state_ptr] = get_runtime_state_with_error();
     if (err) {
-        DVLOG(logging::APP)
+        DVLOG(logging::SERVICE)
             << "__cudaRegisterFunction <- "
             << " err=" << cudaGetErrorName((cudaError_t)err);
         return;
@@ -207,7 +207,7 @@ void CUDARTAPI __cudaRegisterVar(
         int    global
     )
 {
-    DVLOG(logging::APP)
+    DVLOG(logging::SERVICE)
         << "__cudaRegisterVar ->"
         << " handle=" << fatCubinHandle
         << " hostVar=" << (void*)hostVar
@@ -215,7 +215,7 @@ void CUDARTAPI __cudaRegisterVar(
 
     auto [err, state_ptr] = get_runtime_state_with_error();
     if (err) {
-        DVLOG(logging::APP)
+        DVLOG(logging::SERVICE)
             << "__cudaRegisterVar <- "
             << " err=" << cudaGetErrorName((cudaError_t)err);
         return;
