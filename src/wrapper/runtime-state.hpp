@@ -23,6 +23,8 @@ struct RuntimeState {
     struct var_desc {
         CUmodule module;
         std::string name;
+        std::atomic<CUdeviceptr> address;
+        std::mutex mutex;
     };
 
     struct module_desc {

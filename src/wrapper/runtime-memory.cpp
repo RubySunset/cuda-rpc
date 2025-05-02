@@ -24,6 +24,19 @@ cudaFree(void* devPtr)
 
 extern "C" [[gnu::visibility("default")]]
 cudaError_t CUDARTAPI
+cudaGetSymbolAddress(void **devPtr, const void *symbol)
+{
+    auto& state = get_runtime_state();
+
+    auto [err, address] = state.get_variable(symbol);
+    return_error_maybe(err);
+
+    *devPtr = (void*)address;
+    return_error(cudaSuccess);
+}
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
 cudaMalloc(void** devPtr, size_t size)
 {
     auto& state = get_runtime_state();

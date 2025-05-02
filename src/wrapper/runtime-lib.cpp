@@ -231,6 +231,7 @@ void CUDARTAPI __cudaRegisterVar(
     auto var_desc = std::make_shared<RuntimeState::var_desc>();
     var_desc->module = module;
     var_desc->name = deviceName;
+    var_desc->address = 0;
 
     auto module_entries_lock = std::unique_lock(module_desc->entries_mutex);
     CHECK(module_desc->vars.insert((uintptr_t)hostVar).second);
