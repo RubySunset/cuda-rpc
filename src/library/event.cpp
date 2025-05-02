@@ -68,15 +68,19 @@ srv::Event::~Event()
 core::future<void>
 srv::Event::destroy()
 {
+    auto& pimpl = impl::Event::get(*this);
+    return pimpl.destroy();
+}
+
+core::future<void>
+impl::Event::do_destroy()
+{
     using msg = ::service::compute::cuda::wire::Event::destroy;
 
     DVLOG(logging::SERVICE) << "Event::destroy <-";
 
-    auto& pimpl = impl::Event::get(*this);
-    _destroyed = true;
-
-    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_event_destroy)
+    auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
+    return ch->make_request_builder<msg::request>(req_event_destroy)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp) // wait for handle_destroy

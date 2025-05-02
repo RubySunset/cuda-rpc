@@ -50,6 +50,12 @@ namespace impl {
     public:
         static Timpl& get(Tsrv& obj);
         static const Timpl& get(const Tsrv& obj);
+
+        fractos::core::future<void> destroy();
+        virtual fractos::core::future<void> do_destroy() = 0;
+
+    private:
+        std::atomic_flag _destroyed;
     };
 
 }

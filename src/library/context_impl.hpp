@@ -47,6 +47,8 @@ namespace impl {
 
         // an opaque data structure in libcuda
         std::unique_ptr<char[]> context_ptr;
+
+        fractos::core::future<void> do_destroy();
     };
 
     std::string to_string(const Context& obj);

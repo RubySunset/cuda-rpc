@@ -19,7 +19,6 @@ impl::Memory::Memory(std::shared_ptr<fractos::core::channel> ch,
     :ch(ch)
     ,error(error)
     ,req_mem_destroy(std::move(req_mem_destroy))
-    ,destroyed(false)
     ,addr(addr)
     ,size(size)
     ,memory(std::move(memory))
@@ -57,28 +56,22 @@ srv::Memory::get_cap_mem()
 }
 
 
-srv::Memory::~Memory() {
-    DLOG(INFO) << "Memory: i am free";
-    if (not _destroyed) {
-        _destroyed = true;
-        // TODO: check why calling ::get() sometimes gets stuck
-        destroy().as_callback();
-    }
-}
-
-
 core::future<void>
 srv::Memory::destroy()
+{
+    auto& pimpl = impl::Memory::get(*this);
+    return pimpl.destroy();
+}
+
+core::future<void>
+impl::Memory::do_destroy()
 {
     using msg = ::service::compute::cuda::wire::Memory::destroy;
 
     DVLOG(logging::SERVICE) << "Memory::destroy <-";
 
-    auto& pimpl = impl::Memory::get(*this);
-    _destroyed = true;
-
-    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_mem_destroy)
+    auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
+    return ch->make_request_builder<msg::request>(req_mem_destroy)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp) // wait for handle_destroy

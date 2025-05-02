@@ -177,15 +177,19 @@ srv::Function::launch(dim3 gridDim, dim3 blockDim, const void** args,
 core::future<void>
 srv::Function::destroy()
 {
+    auto& pimpl = impl::Function::get(*this);
+    return pimpl.destroy();
+}
+
+core::future<void>
+impl::Function::do_destroy()
+{
     using msg = ::service::compute::cuda::wire::Function::func_destroy;
 
     DVLOG(logging::SERVICE) << "Function::func_destroy <-";
 
-    auto& pimpl = impl::Function::get(*this);
-    _destroyed = true;
-
-    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_func_destroy)
+    auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
+    return ch->make_request_builder<msg::request>(req_func_destroy)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp) // wait for handle_destroy
@@ -204,4 +208,3 @@ srv::Function::destroy()
             fractos::wire::error_raise_exception_maybe(args->imms.error);
         });
 }
-

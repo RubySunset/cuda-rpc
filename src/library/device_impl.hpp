@@ -27,7 +27,7 @@ namespace impl {
         // fractos::core::cap::request req_test;
         fractos::core::cap::request req_destroy;
 
-        bool destroyed;
+        fractos::core::future<void> do_destroy();
     };
 
     std::string to_string(const Device& obj);

@@ -23,7 +23,7 @@ namespace impl {
         // fractos::core::cap::request req_event_sync;
         fractos::core::cap::request req_event_destroy;
 
-        bool destroyed;
+        fractos::core::future<void> do_destroy();
     };
 
 }

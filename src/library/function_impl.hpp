@@ -28,7 +28,7 @@ namespace impl {
         fractos::core::cap::request req_func_call;
         fractos::core::cap::request req_func_destroy;
 
-        bool destroyed;
+        fractos::core::future<void> do_destroy();
     };
 
     std::string to_string(const Function& obj);

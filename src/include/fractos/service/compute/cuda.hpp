@@ -167,10 +167,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             Device(std::shared_ptr<void> pimpl);
             ~Device();
             std::shared_ptr<void> _pimpl;
-        private:
-
-            bool _destroyed;
-        
         };
 
         std::string to_string(const Device& obj);
@@ -266,13 +262,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
 
         public:
-            Context(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t value);
             ~Context();
             // NOTE: not for public use
+            Context(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t value);
             std::shared_ptr<void> _pimpl;
-        private:
-            bool _destroyed;
-        
         };
 
         std::string to_string(const Context& obj);
@@ -309,9 +302,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             ~Module();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
-        private:
-            bool _destroyed;
-        
         };
         // std::string to_string(const Module& obj);
 
@@ -363,9 +353,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             ~Function();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
-        private:
-            bool _destroyed;
-        
         };
 
         std::string to_string(const Function& obj);
@@ -395,9 +382,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             fractos::wire::endian::uint32_t get_stream_id();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
-            
         private:
-            bool _destroyed;
             fractos::wire::endian::uint32_t _id;
         };
 
@@ -439,9 +424,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             ~Event();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
-            
         private:
-            bool _destroyed;
             fractos::wire::endian::uint32_t _id;
         };
 
@@ -466,10 +449,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             fractos::core::cap::memory& get_cap_mem();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
-        private:
-
-            bool _destroyed;
-        
         };
 
         std::string to_string(const Module& obj);
@@ -489,9 +468,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
-        private:
-            bool _destroyed;
-            
         };
 
 

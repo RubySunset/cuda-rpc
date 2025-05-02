@@ -159,7 +159,7 @@ cuModuleUnload(CUmodule hmod)
         for (auto& func: mod_desc->functions) {
             auto it = state.functions.find(func.second);
             CHECK(it != state.functions.end());
-            it->second->function->func_destroy().get();
+            it->second->function->destroy().get();
             state.functions.erase(it);
         }
     }

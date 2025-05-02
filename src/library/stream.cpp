@@ -85,15 +85,19 @@ srv::Stream::synchronize()
 core::future<void>
 srv::Stream::destroy()
 {
+    auto& pimpl = impl::Stream::get(*this);
+    return pimpl.destroy();
+}
+
+core::future<void>
+impl::Stream::do_destroy()
+{
     using msg = ::service::compute::cuda::wire::Stream::destroy;
 
     DVLOG(logging::SERVICE) << "Stream::destroy <-";
 
-    auto& pimpl = impl::Stream::get(*this);
-    _destroyed = true;
-
-    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_stream_destroy)
+    auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
+    return ch->make_request_builder<msg::request>(req_stream_destroy)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp) // wait for handle_destroy

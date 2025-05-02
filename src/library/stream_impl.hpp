@@ -27,7 +27,7 @@ namespace impl {
         fractos::core::cap::request req_stream_destroy;
         fractos::wire::endian::uint32_t id;
 
-        bool destroyed;
+        fractos::core::future<void> do_destroy();
     };
 
 }

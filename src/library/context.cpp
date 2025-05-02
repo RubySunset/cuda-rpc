@@ -470,15 +470,19 @@ srv::Context::synchronize()
 core::future<void>
 srv::Context::destroy()
 {
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.destroy();
+}
+
+core::future<void>
+impl::Context::do_destroy()
+{
     using msg = ::service::compute::cuda::wire::Context::destroy;
 
     DVLOG(logging::SERVICE) << "Context::destroy <-";
 
-    auto& pimpl = impl::Context::get(*this);
-    _destroyed = true;
-
-    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_ctx_destroy)
+    auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
+    return ch->make_request_builder<msg::request>(req_ctx_destroy)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp) // wait for handle_destroy
@@ -497,4 +501,3 @@ srv::Context::destroy()
             fractos::wire::error_raise_exception_maybe(args->imms.error);
         });
 }
-

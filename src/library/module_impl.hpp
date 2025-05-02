@@ -26,7 +26,7 @@ namespace impl {
         fractos::core::cap::request req_get_func;
         fractos::core::cap::request req_module_unload;
 
-        bool destroyed;
+        fractos::core::future<void> do_destroy();
     };
 
     std::string to_string(const Module& obj);

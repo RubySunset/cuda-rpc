@@ -234,15 +234,19 @@ srv::Device::make_context(unsigned int flags)
 core::future<void>
 srv::Device::destroy()
 {
+    auto& pimpl = impl::Device::get(*this);
+    return pimpl.destroy();
+}
+
+core::future<void>
+impl::Device::do_destroy()
+{
     using msg = ::service::compute::cuda::wire::Device::destroy;
 
     DVLOG(logging::SERVICE) << "virtual_device::destroy <-";
 
-    auto& pimpl = impl::Device::get(*this);
-    _destroyed = true;
-
-    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_destroy)
+    auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
+    return ch->make_request_builder<msg::request>(req_destroy)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp) // wait for handle_destroy
