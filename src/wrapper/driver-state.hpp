@@ -70,6 +70,10 @@ public:
 
     std::shared_mutex mems_mutex;
     std::unordered_map<CUdeviceptr, std::shared_ptr<fractos::service::compute::cuda::Memory>> mems;
+
+
+    std::shared_mutex events_mutex;
+    std::unordered_map<CUevent, std::shared_ptr<fractos::service::compute::cuda::Event>> events;
 };
 
 extern std::mutex _driver_state_mutex;
