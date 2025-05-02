@@ -1,22 +1,20 @@
 #include "srv_module.hpp"
-#include <pthread.h>
-#include <glog/logging.h>
+#include <cuda.h>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
-
 #include <fstream>
+#include <glog/logging.h>
 #include <iostream>
+#include <pthread.h>
 
-
-
-// #include <fstream>
+#include <./common.hpp>
 
 
 using namespace fractos;
+namespace srv = fractos::service::compute::cuda;
 using namespace ::test;
 
-// using namespace impl;
 
 #define checkCudaErrors_lo(err)  handleError_lo(err, __FILE__, __LINE__)
 
@@ -303,3 +301,10 @@ void gpu_Module::handle_destroy(auto args) {
 
 }
 
+std::string
+test::to_string(const gpu_Module& obj)
+{
+    std::stringstream ss;
+    ss << "Module(" << &obj << ")";
+    return ss.str();
+}

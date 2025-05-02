@@ -1,15 +1,34 @@
-#include <utility>
-
-#include <fractos/wire/error.hpp>
+#include <fractos/core/error.hpp>
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
-#include <module_impl.hpp>
+#include <fractos/wire/error.hpp>
+#include <utility>
+
+#include <common.hpp>
 #include <function_impl.hpp>
+#include <module_impl.hpp>
+
 
 using namespace fractos;
 namespace srv = fractos::service::compute::cuda;
+
+
+std::string
+srv::to_string(const srv::Module& obj)
+{
+    auto& pimpl = impl::Module::get(obj);
+    return impl::to_string(pimpl);
+}
+
+std::string
+impl::to_string(const impl::Module& obj)
+{
+    std::stringstream ss;
+    ss << "cuda::Module(" << &obj << ")";
+    return ss.str();
+}
 
 inline
 impl::Module&

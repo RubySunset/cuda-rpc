@@ -465,6 +465,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         
         };
 
+        std::string to_string(const Module& obj);
+
         class MemoryAllocation : public Memory {
         public:
             /**
