@@ -43,8 +43,6 @@ namespace impl {
         fractos::core::cap::request req_ctx_sync;
         fractos::core::cap::request req_ctx_destroy;
 
-        bool destroyed;
-
         // an opaque data structure in libcuda
         std::unique_ptr<char[]> context_ptr;
 
