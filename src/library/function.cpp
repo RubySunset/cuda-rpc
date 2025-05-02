@@ -179,7 +179,8 @@ srv::Function::launch(dim3 gridDim, dim3 blockDim, const void** args,
 
 
 core::future<void>
-srv::Function::func_destroy() {
+srv::Function::destroy()
+{
     using msg = ::service::compute::cuda::wire::Function::func_destroy;
 
     DVLOG(logging::SERVICE) << "Function::func_destroy <-";

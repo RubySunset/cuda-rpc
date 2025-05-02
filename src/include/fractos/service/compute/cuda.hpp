@@ -353,10 +353,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             call(Stream& stream, const std::tuple<size_t, size_t, size_t>& grid, Args&&... args);
 
             /**
-             * @brief Destroy function 
+             * @brief Destroy function
              */
             [[nodiscard]] core::future<void>
-            func_destroy();
+            destroy();
 
         public:
             Function(std::shared_ptr<void> pimpl, std::string function_name);
