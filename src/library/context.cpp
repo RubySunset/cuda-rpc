@@ -257,11 +257,11 @@ srv::Context::make_memory(uint64_t size)
             char* tmp = reinterpret_cast<char*>(args->imms.address.get());
 
             // get Device object
-            std::shared_ptr<impl::Memory> pimpl_(
-                new impl::Memory{{}, ch, args->imms.error, 
-                        std::move(args->caps.destroy), 
-                    false, tmp, size, std::move(args->caps.memory)}
-                );
+            auto pimpl_ = std::make_shared<impl::Memory>(
+                ch, args->imms.error,
+                tmp, size,
+                std::move(args->caps.destroy),
+                std::move(args->caps.memory));
             pimpl_->self = pimpl_;
             auto pimpl = static_pointer_cast<void>(pimpl_);
             std::shared_ptr<Memory> res(new Memory{pimpl, size});
@@ -304,11 +304,11 @@ srv::Context::make_stream(CUstream_flags stream_flags, fractos::wire::endian::ui
             fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             // get Device object
-            std::shared_ptr<impl::Stream> pimpl_(
-                new impl::Stream{{}, ch, args->imms.error, 
-                        std::move(args->caps.synchronize),
-                        std::move(args->caps.destroy), id}
-                );
+            auto pimpl_ = std::make_shared<impl::Stream>(
+                ch, args->imms.error,
+                id,
+                std::move(args->caps.synchronize),
+                std::move(args->caps.destroy));
             pimpl_->self = pimpl_;
             auto pimpl = static_pointer_cast<void>(pimpl_);
             std::shared_ptr<Stream> res(new Stream{pimpl, flag, id});
@@ -349,11 +349,10 @@ srv::Context::make_event(fractos::wire::endian::uint32_t flags)
             fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             // get Device object
-            std::shared_ptr<impl::Event> pimpl_(
-                new impl::Event{{}, ch, args->imms.error, 
-                        // std::move(args->caps.synchronize),std::move(args->caps.record),
-                        std::move(args->caps.destroy)}
-                );
+            auto pimpl_ = std::make_shared<impl::Event>(
+                ch, args->imms.error,
+                // std::move(args->caps.synchronize),std::move(args->caps.record),
+                std::move(args->caps.destroy));
             pimpl_->self = pimpl_;
             auto pimpl = static_pointer_cast<void>(pimpl_);
             std::shared_ptr<Event> res(new Event{pimpl, flag});
@@ -441,12 +440,11 @@ srv::Context::make_module_data(core::cap::memory& contents, uint64_t module_id)
             fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             // get Module object
-            std::shared_ptr<impl::Module> pimpl_(
-                new impl::Module{{}, ch, args->imms.error,
-                        std::move(args->caps.generic),
-                        std::move(args->caps.get_function),
-                        std::move(args->caps.destroy)}
-                );
+            auto pimpl_ = std::make_shared<impl::Module>(
+                ch, args->imms.error,
+                std::move(args->caps.generic),
+                std::move(args->caps.get_function),
+                std::move(args->caps.destroy));
             pimpl_->self = pimpl_;
             auto pimpl = static_pointer_cast<void>(pimpl_);
             std::shared_ptr<Module> res(new Module{pimpl, module_id});

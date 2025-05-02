@@ -44,6 +44,18 @@ impl::Module::get(const srv::Module& obj)
     return *reinterpret_cast<impl::Module*>(obj._pimpl.get());
 }
 
+impl::Module::Module(std::shared_ptr<fractos::core::channel> ch,
+                     fractos::wire::endian::uint8_t error,
+                     fractos::core::cap::request req_generic,
+                     fractos::core::cap::request req_get_func,
+                     fractos::core::cap::request req_module_unload)
+    :ch(ch)
+    ,error(error)
+    ,req_generic(std::move(req_generic))
+    ,req_get_func(std::move(req_get_func))
+    ,req_module_unload(std::move(req_module_unload))
+{
+}
 
 // Module::Module(std::shared_ptr<void> pimpl, std::string name) : _pimpl(pimpl) {
 
@@ -140,13 +152,12 @@ srv::Module::get_function(const std::string& func_name)
                 }
 
                 //get Function object
-                std::shared_ptr<impl::Function> pimpl_(
-                    new impl::Function{{}, ch,
-                            args_total_size, args_size,
-                            args->imms.error,
-                            std::move(args->caps.call),
-                            std::move(args->caps.func_destroy)}
-                    );
+                auto pimpl_ = std::make_shared<impl::Function>(
+                    ch,
+                    args_total_size, args_size,
+                    args->imms.error,
+                    std::move(args->caps.call),
+                    std::move(args->caps.func_destroy));
                 pimpl_->self = pimpl_;
                 auto pimpl = static_pointer_cast<void>(pimpl_);
                 std::shared_ptr<Function> res(new Function{pimpl, func_name});

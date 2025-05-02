@@ -24,6 +24,15 @@ const impl::Event& impl::Event::get(const srv::Event& obj)
     return *reinterpret_cast<impl::Event*>(obj._pimpl.get());
 }
 
+impl::Event::Event(std::shared_ptr<fractos::core::channel> ch,
+                   fractos::wire::endian::uint8_t error,
+                   fractos::core::cap::request req_event_destroy)
+    :ch(ch)
+    ,error(error)
+    ,req_event_destroy(std::move(req_event_destroy))
+{
+}
+
 srv::Event::Event(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t flags)
     :_pimpl(pimpl)
 {

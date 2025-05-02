@@ -16,6 +16,7 @@
 using namespace fractos;
 namespace srv = fractos::service::compute::cuda;
 
+
 std::string
 srv::to_string(const srv::Function& obj)
 {
@@ -42,6 +43,20 @@ inline
 const impl::Function& impl::Function::get(const srv::Function& obj) 
 {
     return *reinterpret_cast<impl::Function*>(obj._pimpl.get());
+}
+
+impl::Function::Function(std::shared_ptr<fractos::core::channel> ch,
+                         size_t args_total_size, std::vector<size_t> args_size,
+                         fractos::wire::endian::uint8_t error,
+                         fractos::core::cap::request req_func_call,
+                         fractos::core::cap::request req_func_destroy)
+    :ch(ch)
+    ,args_total_size(args_total_size)
+    ,args_size(args_size)
+    ,error(error)
+    ,req_func_call(std::move(req_func_call))
+    ,req_func_destroy(std::move(req_func_destroy))
+{
 }
 
 srv::Function::Function(std::shared_ptr<void> pimpl, std::string func_name)

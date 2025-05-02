@@ -25,8 +25,20 @@ impl::Memory::get(const srv::Memory& obj)
     return *reinterpret_cast<impl::Memory*>(obj._pimpl.get());
 }
 
-
-
+impl::Memory::Memory(std::shared_ptr<fractos::core::channel> ch,
+                     fractos::wire::endian::uint8_t error,
+                     char* addr, size_t size,
+                     fractos::core::cap::request req_mem_destroy,
+                     fractos::core::cap::memory memory)
+    :ch(ch)
+    ,error(error)
+    ,req_mem_destroy(std::move(req_mem_destroy))
+    ,destroyed(false)
+    ,addr(addr)
+    ,size(size)
+    ,memory(std::move(memory))
+{
+}
 
 srv::Memory::Memory(std::shared_ptr<void> pimpl, fractos::wire::endian::uint64_t size)
     :_pimpl(pimpl)
