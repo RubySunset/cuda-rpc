@@ -168,8 +168,63 @@ core::future<void> gpu_Module::register_methods(std::shared_ptr<core::channel> c
         .unwrap()
         .then([ch, self, this](auto& fut) {
             self->_req_destroy = fut.get();
-        });
 
+            return ch->make_request_builder<msg_base::generic::request>(
+                ch->get_default_endpoint(),
+                [self](auto ch, auto args) {
+                    self->handle_generic(ch, std::move(args));
+                })
+                .on_channel()
+                .make_request();
+        })
+        .unwrap()
+        .then([ch, self, this](auto& fut) {
+            self->_req_generic = fut.get();
+        });
+}
+
+void
+gpu_Module::handle_generic(auto ch, auto args)
+{
+    static const std::string method = "handle_generic";
+    namespace srv_wire = srv::wire::Module;
+    using msg = srv_wire::generic;
+
+    auto opcode = srv_wire::OP_INVALID;
+
+    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+        LOG_OP(method)
+            << " [error] request without continuation, ignoring";
+        return;
+    } else if (args->has_imm(&msg::request::imms::opcode)) {
+        opcode = static_cast<srv::wire::Module::generic_opcode>(args->imms.opcode.get());
+    }
+
+    auto reinterpreted = []<class T>(auto args) {
+        using ptr = core::receive_args<T>;
+        return std::unique_ptr<ptr>(reinterpret_cast<ptr*>(args.release()));
+    };
+
+#define HANDLE(name) \
+    handle_ ## name(ch, reinterpreted.template operator()<srv::wire::Module:: name ::request>(std::move(args)))
+
+    switch (opcode) {
+    case srv::wire::Module::OP_GET_GLOBAL:
+        HANDLE(get_global);
+        break;
+
+    default:
+        LOG_OP(method)
+            << " [error] invalid opcode";
+        ch->template make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .on_channel()
+            .invoke()
+            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        break;
+    }
+
+#undef HANDLE
 }
 
 void gpu_Module::handle_get_function(auto args) {

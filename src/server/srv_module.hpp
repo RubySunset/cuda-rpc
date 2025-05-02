@@ -22,6 +22,8 @@ public:
     fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
 protected:
+    void handle_generic(auto ch, auto args);
+
     void handle_get_function(auto args);
     void handle_destroy(auto args);
     
@@ -38,6 +40,7 @@ private:
     std::shared_ptr<const char> _data;
 
 public:
+    fractos::core::cap::request _req_generic;
     fractos::core::cap::request _req_get_func;
     fractos::core::cap::request _req_destroy;
 

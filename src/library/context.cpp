@@ -414,6 +414,7 @@ srv::Context::make_module_data(core::cap::memory& contents, uint64_t module_id)
             // get Module object
             std::shared_ptr<impl::Module> pimpl_(
                 new impl::Module{{}, ch, args->imms.error,
+                        std::move(args->caps.generic),
                         std::move(args->caps.get_function),
                         std::move(args->caps.destroy)}
                 );

@@ -637,6 +637,7 @@ void gpu_Context::handle_module_data(auto args) {
 
             ch->make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
+                .set_cap(&msg::response::caps::generic, mod->_req_generic)
                 .set_cap(&msg::response::caps::get_function, mod->_req_get_func)
                 .set_cap(&msg::response::caps::destroy, mod->_req_destroy)
                 .on_channel()
