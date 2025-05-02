@@ -437,7 +437,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         public:
             Event(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t flags);
             ~Event();
-            fractos::wire::endian::uint32_t get_event_id();
             // NOTE: not for public use
             std::shared_ptr<void> _pimpl;
             
