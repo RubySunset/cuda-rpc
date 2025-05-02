@@ -30,3 +30,24 @@ cuEventCreate(CUevent *phEvent, unsigned int Flags)
 
     return CUDA_SUCCESS;
 }
+
+extern "C" [[gnu::visibility("default")]]
+CUresult CUDAAPI
+cuEventDestroy_v2(CUevent hEvent)
+{
+    auto& state = get_driver_state();
+
+    auto events_lock = std::unique_lock(state.events_mutex);
+
+    auto it = state.events.find(hEvent);
+    if (it == state.events.end()) {
+        return CUDA_ERROR_INVALID_HANDLE;
+    }
+
+    auto event_ptr = it->second;
+    event_ptr->destroy().get();
+
+    state.events.erase(it);
+
+    return CUDA_SUCCESS;
+}

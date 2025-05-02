@@ -10,6 +10,10 @@
 #undef cuDeviceTotalMem
 #endif
 
+#ifdef cuEventDestroy_v2
+#undef cuEventDestroy_v2
+#endif
+
 #ifdef cuMemFree
 #undef cuMemFree
 #endif
