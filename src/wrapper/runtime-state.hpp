@@ -20,9 +20,15 @@ struct RuntimeState {
         std::mutex mutex;
     };
 
+    struct var_desc {
+        CUmodule module;
+        std::string name;
+    };
+
     struct module_desc {
         std::mutex entries_mutex;
         std::unordered_set<uintptr_t> funcs;
+        std::unordered_set<uintptr_t> vars;
     };
 
     std::mutex modules_mutex;
@@ -30,6 +36,7 @@ struct RuntimeState {
 
     std::shared_mutex entries_mutex;
     std::unordered_map<uintptr_t, std::shared_ptr<func_desc>> funcs;
+    std::unordered_map<uintptr_t, std::shared_ptr<var_desc>> vars;
 };
 
 struct RuntimeThreadState {
@@ -39,6 +46,7 @@ struct RuntimeThreadState {
     std::shared_ptr<RuntimeState> global;
 
     std::pair<cudaError_t, CUfunction> get_function(const void* address);
+    std::pair<cudaError_t, CUdeviceptr> get_variable(const void* address);
 };
 
 extern std::mutex _runtime_state_mutex;

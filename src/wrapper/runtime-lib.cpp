@@ -133,6 +133,9 @@ __cudaUnregisterFatBinary(void** fatCubinHandle)
         for (auto& func : module_desc->funcs) {
             CHECK(state.global->funcs.erase(func) == 1);
         }
+        for (auto& func : module_desc->vars) {
+            CHECK(state.global->vars.erase(func) == 1);
+        }
 
         state.global->modules.erase(module_desc_it);
     }
@@ -190,6 +193,52 @@ void CUDARTAPI __cudaRegisterFunction(
     auto entries_lock = std::unique_lock(state.global->entries_mutex);
     CHECK(state.global->funcs.insert(std::make_pair((uintptr_t)hostFun, func_desc)).second);
 }
+
+extern "C" [[gnu::visibility("default")]]
+void CUDARTAPI __cudaRegisterVar(
+        void **fatCubinHandle,
+        char  *hostVar,
+        char  *deviceAddress,
+  const char  *deviceName,
+        int    ext,
+        size_t size,
+        int    constant,
+        int    global
+    )
+{
+    DVLOG(logging::APP)
+        << "__cudaRegisterVar ->"
+        << " handle=" << fatCubinHandle
+        << " hostVar=" << (void*)hostVar
+        << " deviceName=" << deviceName;
+
+    auto [err, state_ptr] = get_runtime_state_with_error();
+    if (err) {
+        DVLOG(logging::APP)
+            << "__cudaRegisterVar <- "
+            << " err=" << cudaGetErrorName((cudaError_t)err);
+        return;
+    }
+    auto& state = *state_ptr;
+
+    auto module = (CUmodule)fatCubinHandle;
+
+    auto modules_lock = std::unique_lock(state.global->modules_mutex);
+    auto module_desc_it = state.global->modules.find(module);
+    CHECK(module_desc_it != state.global->modules.end());
+    auto module_desc = module_desc_it->second;
+
+    auto var_desc = std::make_shared<RuntimeState::var_desc>();
+    var_desc->module = module;
+    var_desc->name = deviceName;
+
+    auto module_entries_lock = std::unique_lock(module_desc->entries_mutex);
+    CHECK(module_desc->vars.insert((uintptr_t)hostVar).second);
+
+    auto entries_lock = std::unique_lock(state.global->entries_mutex);
+    CHECK(state.global->vars.insert(std::make_pair((uintptr_t)hostVar, var_desc)).second);
+}
+
 
 static void init_symbols() __attribute__((constructor));
 

@@ -128,3 +128,34 @@ RuntimeThreadState::get_function(const void* address)
 
     return std::make_pair(cudaSuccess, func);
 }
+
+std::pair<cudaError_t, CUdeviceptr>
+RuntimeThreadState::get_variable(const void* address)
+{
+    LOG_FIRST_N(ERROR, 1) << "TODO: must return per-device CUdeviceptr";
+
+    auto lock = std::shared_lock(global->entries_mutex);
+    auto it = global->vars.find((uintptr_t)address);
+    if (it == global->vars.end()) [[unlikely]] {
+        return std::make_pair(cudaErrorInvalidSymbol, (CUdeviceptr)nullptr);
+    }
+
+    auto desc = it->second;
+    auto cuaddr = desc->address.load(std::memory_order_acquire);
+
+    if (cuaddr == 0) [[unlikely]] {
+        auto lock = std::unique_lock(desc->mutex);
+        if (desc->address == 0) {
+            CUdeviceptr real_cuaddr;
+            auto err = cuModuleGetGlobal(&real_cuaddr, nullptr, desc->module, desc->name.c_str());
+            if (err != CUDA_SUCCESS) {
+                return std::make_pair((cudaError_t)err, (CUdeviceptr)nullptr);
+            }
+            // NOTE: std::atomic<T*> zeroes source
+            desc->address.store(real_cuaddr);
+        }
+        cuaddr = desc->address.load();
+    }
+
+    return std::make_pair(cudaSuccess, cuaddr);
+}
