@@ -15,7 +15,7 @@ cudaFree(void* devPtr)
     auto& state = get_runtime_state();
 
     if (devPtr == nullptr) {
-        return cudaSuccess;
+        return_error(cudaSuccess);
     }
 
     auto err = (cudaError_t)cuMemFree((CUdeviceptr)devPtr);
@@ -48,23 +48,25 @@ extern "C" [[gnu::visibility("default")]]
 cudaError_t CUDARTAPI
 cudaMemcpy(void *dst, const void *src, size_t count, enum cudaMemcpyKind kind)
 {
+    auto& state = get_runtime_state();
+
     switch (kind) {
     case cudaMemcpyHostToHost:
-        return (cudaError_t)cuMemcpy((CUdeviceptr)dst, (CUdeviceptr)src, count);
+        return_error((cudaError_t)cuMemcpy((CUdeviceptr)dst, (CUdeviceptr)src, count));
         break;
     case cudaMemcpyHostToDevice:
-        return (cudaError_t)cuMemcpyHtoD((CUdeviceptr)dst, src, count);
+        return_error((cudaError_t)cuMemcpyHtoD((CUdeviceptr)dst, src, count));
         break;
     case cudaMemcpyDeviceToHost:
-        return (cudaError_t)cuMemcpyDtoH(dst, (CUdeviceptr)src, count);
+        return_error((cudaError_t)cuMemcpyDtoH(dst, (CUdeviceptr)src, count));
         break;
     case cudaMemcpyDeviceToDevice:
-        return (cudaError_t)cuMemcpyDtoD((CUdeviceptr)dst, (CUdeviceptr)src, count);
+        return((cudaError_t)cuMemcpyDtoD((CUdeviceptr)dst, (CUdeviceptr)src, count));
         break;
     case cudaMemcpyDefault:
-        return (cudaError_t)cuMemcpy((CUdeviceptr)dst, (CUdeviceptr)src, count);
+        return_error((cudaError_t)cuMemcpy((CUdeviceptr)dst, (CUdeviceptr)src, count));
         break;
     default:
-        return cudaErrorInvalidValue;
+        return_error(cudaErrorInvalidValue);
     }
 }
