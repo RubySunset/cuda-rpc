@@ -188,6 +188,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             // cuCtxGetDevice
             std::shared_ptr<Device> get_device();
 
+            // cuCtxGetLimit
+            core::future<size_t> get_limit(CUlimit limit);
+
             // cuCtxSynchronize
             [[nodiscard]] fractos::core::future<void>
             synchronize();

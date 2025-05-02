@@ -7,6 +7,7 @@
 #include <fstream>
 
 #include "./common.hpp"
+#include "common.hpp"
 
 
 using namespace fractos;
@@ -223,6 +224,9 @@ gpu_Context::handle_generic(auto ch, auto args)
     case srv::wire::Context::OP_GET_API_VERSION:
         HANDLE(get_api_version);
         break;
+    case srv::wire::Context::OP_GET_LIMIT:
+        HANDLE(get_limit);
+        break;
 
     default:
         LOG_OP(method)
@@ -262,6 +266,45 @@ gpu_Context::handle_get_api_version(auto ch, auto args)
     reqb_cont
         .set_imm(&msg::response::imms::error, error)
         .set_imm(&msg::response::imms::version, version)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+}
+
+void
+gpu_Context::handle_get_limit(auto ch, auto args)
+{
+    METHOD(Context, get_limit);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT();
+
+    CUlimit limit = (CUlimit)args->imms.limit.get();
+
+    auto error = wire::ERR_SUCCESS;
+    auto cuerr = CUDA_SUCCESS;
+    size_t value = 0;
+
+    cuerr = cuCtxSetCurrent(_ctx);
+    if (cuerr != CUDA_SUCCESS) {
+        goto out;
+    }
+
+    cuerr = cuCtxGetLimit(&value, limit);
+
+out:
+    if (cuerr != CUDA_SUCCESS) {
+        error = wire::ERR_OTHER;
+    }
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " value=" << value;
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::value, value)
         .on_channel()
         .invoke()
         .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");

@@ -22,6 +22,8 @@ public:
 protected:
     void handle_generic(auto ch, auto args);
     void handle_get_api_version(auto ch, auto args);
+    void handle_get_limit(auto ch, auto args);
+
     void handle_memory(auto args);
     void handle_memory_rpc_test(auto args);
     void handle_stream(auto args);

@@ -70,6 +70,19 @@ cuCtxGetDevice(CUdevice *device)
 
 extern "C" [[gnu::visibility("default")]]
 CUresult
+cuCtxGetLimit(size_t *pvalue, CUlimit limit)
+{
+    auto& state = get_driver_state();
+
+    auto ctx_ptr = state.get_current_context();
+    CHECK(ctx_ptr);
+
+    *pvalue = ctx_ptr->get_limit(limit).get();
+    return CUDA_SUCCESS;
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
 cuCtxPopCurrent_v2(CUcontext *pctx)
 {
     auto& state = get_driver_state();

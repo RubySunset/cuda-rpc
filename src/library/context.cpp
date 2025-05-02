@@ -127,6 +127,35 @@ srv::Context::get_api_version()
         });
 }
 
+core::future<size_t>
+srv::Context::get_limit(CUlimit limit)
+{
+    METHOD(Context, get_limit);
+    LOG_REQ(method)
+        << " {}";
+
+    auto& pimpl = impl::Context::get(*this);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+        .set_imm(&msg::request::imms::opcode, srv::wire::Context::OP_GET_LIMIT)
+        .set_imm(&msg::request::imms::limit, limit)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then([this, self=pimpl.self.lock()](auto& fut) {
+            auto [ch, args] = fut.get();
+
+            LOG_RES_PTR(method, self)
+                << wire::to_string(*args);
+            CHECK_ARGS_EXACT();
+            fractos::wire::error_raise_exception_maybe(args->imms.error);
+
+            return args->imms.value.get();
+        });
+}
+
 std::shared_ptr<srv::Device>
 srv::Context::get_device()
 {
