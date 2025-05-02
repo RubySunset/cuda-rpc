@@ -29,7 +29,15 @@ impl::Memory::Memory(std::shared_ptr<fractos::core::channel> ch,
 srv::Memory::Memory(std::shared_ptr<void> pimpl, fractos::wire::endian::uint64_t size)
     :_pimpl(pimpl)
 {
-    DLOG(INFO) << "initialize memory : " << size;
+}
+
+srv::Memory::~Memory()
+{
+    destroy()
+        .then([pimpl=this->_pimpl](auto& fut) {
+            fut.get();
+        })
+        .as_callback();
 }
 
 char*

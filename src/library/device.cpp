@@ -47,15 +47,13 @@ srv::Device::Device(std::shared_ptr<void> pimpl)
 {
 }
 
-
 srv::Device::~Device()
 {
-    DLOG(INFO) << "Device: i am free";
-    if (not _destroyed) {
-        _destroyed = true;
-        // TODO: check why calling ::get() sometimes gets stuck
-        destroy().as_callback();
-    }
+    destroy()
+        .then([pimpl=this->_pimpl](auto& fut) {
+            fut.get();
+        })
+        .as_callback();
 }
 
 CUdevice

@@ -25,18 +25,15 @@ impl::Event::Event(std::shared_ptr<fractos::core::channel> ch,
 srv::Event::Event(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t flags)
     :_pimpl(pimpl)
 {
-    DLOG(INFO) << "initialize event flag : " << flags;
 }
-
 
 srv::Event::~Event()
 {
-    DLOG(INFO) << "Event: i am free";
-    if (not _destroyed) {
-        _destroyed = true;
-        // TODO: check why calling ::get() sometimes gets stuck
-        destroy().as_callback();
-    }
+    destroy()
+        .then([pimpl=this->_pimpl](auto& fut) {
+            fut.get();
+        })
+        .as_callback();
 }
 
 // core::future<void> Event::synchronize() {

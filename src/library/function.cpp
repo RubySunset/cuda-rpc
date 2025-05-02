@@ -49,19 +49,15 @@ impl::Function::Function(std::shared_ptr<fractos::core::channel> ch,
 srv::Function::Function(std::shared_ptr<void> pimpl, std::string func_name)
     :_pimpl(pimpl)
 {
-    DLOG(INFO) << "initialize function : " << func_name;
 }
 
-
-
-
-srv::Function::~Function() {
-    DLOG(INFO) << "Function: i am free";
-    if (not _destroyed) {
-        _destroyed = true;
-        // TODO: check why calling ::get() sometimes gets stuck
-        func_destroy().as_callback();
-    }
+srv::Function::~Function()
+{
+    destroy()
+        .then([pimpl=this->_pimpl](auto& fut) {
+            fut.get();
+        })
+        .as_callback();
 }
 
 core::future<void>

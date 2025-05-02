@@ -29,18 +29,16 @@ srv::Stream::Stream(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t
                     fractos::wire::endian::uint32_t id)
     :_pimpl(pimpl)
 {
-    DLOG(INFO) << "initialize steam flag : " << flags;
 }
 
 
 srv::Stream::~Stream()
 {
-    DLOG(INFO) << "Stream: i am free";
-    if (not _destroyed) {
-        _destroyed = true;
-        // TODO: check why calling ::get() sometimes gets stuck
-        destroy().as_callback();
-    }
+    destroy()
+        .then([pimpl=this->_pimpl](auto& fut) {
+            fut.get();
+        })
+        .as_callback();
 }
 
 

@@ -36,22 +36,6 @@ impl::to_string(const impl::Context& obj)
 
 
 
-srv::Context::Context(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t value)
-    :_pimpl(pimpl)
-{
-    DLOG(INFO) << "initialize context : " << value;
-}
-
-srv::Context::~Context()
-{
-    DLOG(INFO) << "Context: i am free";
-    if (not _destroyed) {
-        _destroyed = true;
-        // TODO: check why calling ::get() sometimes gets stuck
-        destroy().as_callback();
-    }
-}
-
 impl::Context::Context(std::shared_ptr<fractos::core::channel> ch,
                        std::shared_ptr<srv::Device> device,
                        fractos::core::cap::request req_generic,
@@ -76,6 +60,20 @@ impl::Context::Context(std::shared_ptr<fractos::core::channel> ch,
     ,context_ptr(new char[512])
 {
     const_cast<CUcontext&>(context) = (CUcontext)context_ptr.get();
+}
+
+srv::Context::Context(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t value)
+    :_pimpl(pimpl)
+{
+}
+
+srv::Context::~Context()
+{
+    destroy()
+        .then([pimpl=this->_pimpl](auto& fut) {
+            fut.get();
+        })
+        .as_callback();
 }
 
 

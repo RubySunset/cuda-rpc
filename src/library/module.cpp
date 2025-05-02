@@ -52,7 +52,6 @@ impl::Module::Module(std::shared_ptr<fractos::core::channel> ch,
 srv::Module::Module(std::shared_ptr<void> pimpl, uint64_t module_id)
     : _pimpl(pimpl)
 {
-    DLOG(INFO) << "initialize module id : " << module_id << " from memory buffer";
 }
 
 
@@ -61,13 +60,13 @@ srv::Module::Module(std::shared_ptr<void> pimpl, uint64_t module_id)
 //     DLOG(INFO) << "initialize module : " << name << " from data buffer";
 // }
 
-srv::Module::~Module() {
-    DLOG(INFO) << "Module: i am free";
-    if (not _destroyed) {
-        _destroyed = true;
-        // TODO: check why calling ::get() sometimes gets stuck
-        destroy().as_callback();
-    }
+srv::Module::~Module()
+{
+    destroy()
+        .then([pimpl=this->_pimpl](auto& fut) {
+            fut.get();
+        })
+        .as_callback();
 }
 
 core::future<CUdeviceptr>
