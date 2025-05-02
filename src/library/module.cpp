@@ -31,12 +31,10 @@ impl::to_string(const impl::Module& obj)
 }
 
 impl::Module::Module(std::shared_ptr<fractos::core::channel> ch,
-                     fractos::wire::endian::uint8_t error,
                      fractos::core::cap::request req_generic,
                      fractos::core::cap::request req_get_func,
                      fractos::core::cap::request req_module_unload)
     :ch(ch)
-    ,error(error)
     ,req_generic(std::move(req_generic))
     ,req_get_func(std::move(req_get_func))
     ,req_module_unload(std::move(req_module_unload))
@@ -140,7 +138,6 @@ srv::Module::get_function(const std::string& func_name)
                 auto pimpl_ = std::make_shared<impl::Function>(
                     ch,
                     args_total_size, args_size,
-                    args->imms.error,
                     std::move(args->caps.call),
                     std::move(args->caps.func_destroy));
                 pimpl_->self = pimpl_;

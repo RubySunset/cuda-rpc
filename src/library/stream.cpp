@@ -13,12 +13,10 @@ namespace srv = fractos::service::compute::cuda;
 
 
 impl::Stream::Stream(std::shared_ptr<fractos::core::channel> ch,
-                     fractos::wire::endian::uint8_t error,
                      fractos::wire::endian::uint32_t id,
                      fractos::core::cap::request req_stream_sync,
                      fractos::core::cap::request req_stream_destroy)
     :ch(ch)
-    ,error(error)
     ,req_stream_sync(std::move(req_stream_sync))
     ,req_stream_destroy(std::move(req_stream_destroy))
     ,id(id)

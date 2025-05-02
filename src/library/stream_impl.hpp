@@ -13,15 +13,12 @@ namespace impl {
 
     struct Stream : public impl::Base<srv::Stream, impl::Stream> {
         Stream(std::shared_ptr<fractos::core::channel> ch,
-               fractos::wire::endian::uint8_t error,
                fractos::wire::endian::uint32_t id,
                fractos::core::cap::request req_stream_sync,
                fractos::core::cap::request req_stream_destroy);
 
         std::weak_ptr<Stream> self;
         std::shared_ptr<fractos::core::channel> ch;
-
-        fractos::wire::endian::uint8_t error;
 
         fractos::core::cap::request req_stream_sync;
         fractos::core::cap::request req_stream_destroy;

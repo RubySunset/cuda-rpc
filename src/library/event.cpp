@@ -14,10 +14,8 @@ namespace srv = fractos::service::compute::cuda;
 
 
 impl::Event::Event(std::shared_ptr<fractos::core::channel> ch,
-                   fractos::wire::endian::uint8_t error,
                    fractos::core::cap::request req_event_destroy)
     :ch(ch)
-    ,error(error)
     ,req_event_destroy(std::move(req_event_destroy))
 {
 }

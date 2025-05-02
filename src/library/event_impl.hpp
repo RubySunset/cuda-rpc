@@ -12,13 +12,10 @@ namespace impl {
 
     struct Event : public impl::Base<srv::Event, impl::Event> {
         Event(std::shared_ptr<fractos::core::channel> ch,
-              fractos::wire::endian::uint8_t error,
               fractos::core::cap::request req_event_destroy);
 
         std::weak_ptr<Event> self;
         std::shared_ptr<fractos::core::channel> ch;
-
-        fractos::wire::endian::uint8_t error;
 
         // fractos::core::cap::request req_event_sync;
         fractos::core::cap::request req_event_destroy;

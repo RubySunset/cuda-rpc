@@ -12,12 +12,10 @@ namespace srv = fractos::service::compute::cuda;
 
 
 impl::Memory::Memory(std::shared_ptr<fractos::core::channel> ch,
-                     fractos::wire::endian::uint8_t error,
                      char* addr, size_t size,
                      fractos::core::cap::request req_mem_destroy,
                      fractos::core::cap::memory memory)
     :ch(ch)
-    ,error(error)
     ,req_mem_destroy(std::move(req_mem_destroy))
     ,addr(addr)
     ,size(size)

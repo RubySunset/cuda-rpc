@@ -14,7 +14,6 @@ namespace impl {
     struct Function : public impl::Base<srv::Function, impl::Function> {
         Function(std::shared_ptr<fractos::core::channel> ch,
                  size_t args_total_size, std::vector<size_t> args_size,
-                 fractos::wire::endian::uint8_t error,
                  fractos::core::cap::request req_func_call,
                  fractos::core::cap::request req_func_destroy);
 
@@ -22,8 +21,6 @@ namespace impl {
         std::shared_ptr<fractos::core::channel> ch;
         size_t args_total_size;
         std::vector<size_t> args_size;
-
-        fractos::wire::endian::uint8_t error;
 
         fractos::core::cap::request req_func_call;
         fractos::core::cap::request req_func_destroy;

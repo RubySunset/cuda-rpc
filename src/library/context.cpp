@@ -192,7 +192,7 @@ srv::Context::make_memory_rpc_test(uint64_t size)
 
             // // get Device object
             // std::shared_ptr<Memory_impl> pimpl_(
-            //     new Memory_impl{{}, ch, args->imms.error, 
+            //     new Memory_impl{{}, ch,
             //             std::move(args->caps.destroy), 
             //         false, tmp, size, std::move(args->caps.memory)}
             //     );
@@ -243,7 +243,7 @@ srv::Context::make_memory(uint64_t size)
 
             // get Device object
             auto pimpl_ = std::make_shared<impl::Memory>(
-                ch, args->imms.error,
+                ch,
                 tmp, size,
                 std::move(args->caps.destroy),
                 std::move(args->caps.memory));
@@ -290,7 +290,7 @@ srv::Context::make_stream(CUstream_flags stream_flags, fractos::wire::endian::ui
 
             // get Device object
             auto pimpl_ = std::make_shared<impl::Stream>(
-                ch, args->imms.error,
+                ch,
                 id,
                 std::move(args->caps.synchronize),
                 std::move(args->caps.destroy));
@@ -335,7 +335,7 @@ srv::Context::make_event(fractos::wire::endian::uint32_t flags)
 
             // get Device object
             auto pimpl_ = std::make_shared<impl::Event>(
-                ch, args->imms.error,
+                ch,
                 // std::move(args->caps.synchronize),std::move(args->caps.record),
                 std::move(args->caps.destroy));
             pimpl_->self = pimpl_;
@@ -381,7 +381,7 @@ srv::Context::make_event(fractos::wire::endian::uint32_t flags)
 
 //             // get Module object
 //             std::shared_ptr<Module_impl> pimpl_(
-//                 new Module_impl{{}, ch, args->imms.error,
+//                 new Module_impl{{}, ch,
 //                         std::move(args->caps.get_function),
 //                         std::move(args->caps.destroy)}
 //                 );
@@ -426,7 +426,7 @@ srv::Context::make_module_data(core::cap::memory& contents, uint64_t module_id)
 
             // get Module object
             auto pimpl_ = std::make_shared<impl::Module>(
-                ch, args->imms.error,
+                ch,
                 std::move(args->caps.generic),
                 std::move(args->caps.get_function),
                 std::move(args->caps.destroy));

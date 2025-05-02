@@ -13,7 +13,6 @@ namespace impl {
 
     struct Module : public impl::Base<srv::Module, impl::Module> {
         Module(std::shared_ptr<fractos::core::channel> ch,
-               fractos::wire::endian::uint8_t error,
                fractos::core::cap::request req_generic,
                fractos::core::cap::request req_get_func,
                fractos::core::cap::request req_module_unload);
@@ -21,7 +20,6 @@ namespace impl {
         std::weak_ptr<Module> self;
         std::shared_ptr<fractos::core::channel> ch;
 
-        fractos::wire::endian::uint8_t error;
         fractos::core::cap::request req_generic;
         fractos::core::cap::request req_get_func;
         fractos::core::cap::request req_module_unload;
