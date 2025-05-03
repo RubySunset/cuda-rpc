@@ -25,7 +25,6 @@ protected:
     void handle_get_limit(auto ch, auto args);
 
     void handle_memory(auto args);
-    void handle_memory_rpc_test(auto args);
     void handle_stream(auto args);
     void handle_event(auto args);
     void handle_module_file(auto args);
@@ -48,7 +47,6 @@ public:
 
     fractos::core::cap::request _req_generic;
     fractos::core::cap::request _req_memory;
-    fractos::core::cap::request _req_memory_rpc_test;
     fractos::core::cap::request _req_stream;
     fractos::core::cap::request _req_event;
     fractos::core::cap::request _req_module_data;

@@ -301,7 +301,6 @@ void gpu_Device::handle_make_context(auto args) {
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
                 .set_cap(&msg::response::caps::generic, vctx->_req_generic)
                 .set_cap(&msg::response::caps::make_memory, vctx->_req_memory)
-                .set_cap(&msg::response::caps::make_memory_rpc_test, vctx->_req_memory_rpc_test)
                 .set_cap(&msg::response::caps::make_stream, vctx->_req_stream)
                 .set_cap(&msg::response::caps::make_event, vctx->_req_event)
                 .set_cap(&msg::response::caps::make_module_data, vctx->_req_module_data) // data

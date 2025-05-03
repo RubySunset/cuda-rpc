@@ -211,9 +211,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Memory>>
             make_memory(uint64_t size); // size_t make_memory(size_t size);
 
-            [[nodiscard]] core::future<void> 
-            make_memory_rpc_test(uint64_t size); // size_t make_memory(size_t size);
-
             /**
              * @brief TODO:Wrapper for cuEventCreate()
              */

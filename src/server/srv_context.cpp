@@ -103,19 +103,6 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
         .make_request()
         .then([ch, self](auto& fut) {
             self->_req_memory = fut.get();
-            VLOG(fractos::logging::SERVICE) << "SET req_memory_rpc_test"; 
-            return ch->make_request_builder<msg_base::make_memory_rpc_test::request>( // file
-                ch->get_default_endpoint(), 
-                [self](auto ch, auto args) {
-                    
-                    self->handle_memory_rpc_test(std::move(args)); // file
-                })
-                .on_channel()
-                .make_request();
-            })
-        .unwrap()
-        .then([ch, self](auto& fut) {
-            self->_req_memory_rpc_test = fut.get();
             VLOG(fractos::logging::SERVICE) << "SET req_memory"; 
             return ch->make_request_builder<msg_base::make_stream::request>( // file
                 ch->get_default_endpoint(), 
@@ -415,36 +402,6 @@ void gpu_Context::handle_memory(auto args_) {
     LOG(INFO)  << "time for make_memory server: "<< t_usec.count() << std::endl;
 
 }
-
-void gpu_Context::handle_memory_rpc_test(auto args) {
-
-    using clock = std::chrono::high_resolution_clock;
-    std::chrono::microseconds t_usec;
-    auto t_start = clock::now();
-
-    using msg = ::service::compute::cuda::wire::Context::make_memory_rpc_test;
-
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        LOG(ERROR) << "no continuation";
-        return;
-    }
-
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
-    
-    LOG(INFO) << "Revoke test";
-
-    ch->make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
-            .on_channel()
-            .invoke()
-            .as_callback();
-
-        // return;
-
-    t_usec = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t_start);
-    LOG(INFO)  << "time for memory_rpc_test server: "<< t_usec.count() << std::endl;
-}
-
 
 void gpu_Context::handle_stream(auto args) {
     DVLOG(logging::SERVICE) << "CALL handle_stream";
@@ -748,12 +705,6 @@ void gpu_Context::handle_destroy(auto args) {
         .then([ch, self](auto& fut) {
                   fut.get();
                   VLOG(fractos::logging::SERVICE) << "Revoke _req_memory";
-                  return ch->revoke(self->_req_memory_rpc_test); // file
-        })
-        .unwrap()
-        .then([ch, self](auto& fut) {
-            fut.get();
-            VLOG(fractos::logging::SERVICE) << "Revoke _req_memory";
             return ch->revoke(self->_req_stream); // file
         })
         .unwrap()
