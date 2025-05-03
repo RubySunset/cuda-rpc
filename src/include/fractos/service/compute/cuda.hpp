@@ -176,6 +176,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class Context {
         public:
+            void set_default_channel(std::shared_ptr<fractos::core::channel> ch);
+
             CUcontext get_context() const;
 
             // cuCtxGetApiVersion

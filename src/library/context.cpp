@@ -77,6 +77,13 @@ srv::Context::~Context()
 }
 
 
+void
+srv::Context::set_default_channel(std::shared_ptr<core::channel> ch)
+{
+    auto& pimpl = impl::Context::get(*this);
+    pimpl.ch = ch;
+}
+
 CUcontext
 srv::Context::get_context() const
 {
