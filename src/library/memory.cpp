@@ -23,7 +23,7 @@ impl::Memory::Memory(std::shared_ptr<fractos::core::channel> ch,
 {
 }
 
-srv::Memory::Memory(std::shared_ptr<void> pimpl, fractos::wire::endian::uint64_t size)
+srv::Memory::Memory(std::shared_ptr<void> pimpl)
     :_pimpl(pimpl)
 {
 }

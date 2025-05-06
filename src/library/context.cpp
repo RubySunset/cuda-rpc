@@ -201,8 +201,7 @@ srv::Context::make_memory(uint64_t size)
                 std::move(args->caps.memory));
             pimpl_->self = pimpl_;
             auto pimpl = static_pointer_cast<void>(pimpl_);
-            std::shared_ptr<Memory> res(new Memory{pimpl, size});
-            return res;
+            return std::make_shared<Memory>(pimpl);
         });
 }
 

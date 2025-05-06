@@ -446,7 +446,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
 
         public:
-            Memory(std::shared_ptr<void> pimpl, fractos::wire::endian::uint64_t size);
+            Memory(std::shared_ptr<void> pimpl);
             ~Memory();
 
             char* get_addr();
