@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cuda.h>
 #include <fractos/core/cap.hpp>
 #include <fractos/core/channel.hpp>
 #include <memory>
@@ -13,7 +14,7 @@ namespace impl {
 
     struct Memory : public impl::Base<srv::Memory, impl::Memory> {
         Memory(std::shared_ptr<fractos::core::channel> ch,
-               char* addr, size_t size,
+               CUdeviceptr addr, size_t size,
                fractos::core::cap::request req_mem_destroy,
                fractos::core::cap::memory memory);
 
@@ -22,7 +23,7 @@ namespace impl {
 
         fractos::core::cap::request req_mem_destroy;
 
-        char* addr;
+        CUdeviceptr addr;
         size_t size;
         fractos::core::cap::memory memory;
 

@@ -158,45 +158,31 @@ srv::Context::get_limit(CUlimit limit)
 core::future<std::shared_ptr<srv::Memory>>
 srv::Context::mem_alloc(size_t size)
 {
-    // using clock = std::chrono::high_resolution_clock;
-    // auto t_start = clock::now();
+    METHOD(Context, mem_alloc);
+    LOG_REQ(method)
+        << " {}";
 
-    using msg = ::service::compute::cuda::wire::Context::make_memory;
-
-    DVLOG(logging::SERVICE) << "Context::make_memory <-";
     auto& pimpl = impl::Context::get(*this);
 
+    auto self = pimpl.self.lock();
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_memory)
-        .set_imm(&msg::request::imms::size, size) // unsigned int vs uint32_t
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+        .set_imm(&msg::request::imms::opcode, srv::wire::Context::OP_MEM_ALLOC)
+        .set_imm(&msg::request::imms::size, size)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
-        .invoke(resp) // wait for srv_handle
+        .invoke(resp)
         .unwrap()
-        .then([size /*, t_start */](auto& fut) {
+        .then_cuda_response()
+        .then([this, self, size](auto& fut) {
             auto [ch, args] = fut.get();
 
-            
-            // auto t_usec = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t_start);
+            CHECK_ARGS_EXACT();
+            CUdeviceptr address = (CUdeviceptr)args->imms.address.get();
 
-            // LOG(INFO) << "time for make_memory server sync at client: " << t_usec.count() << std::endl;
-
-            if (not args->has_exactly_args()) {
-                // throw core::other_error("invalvalue response format for  Context::make_memory");
-                DVLOG(logging::SERVICE) << "Context::make_memory ->"
-                <<" error= OTHER args";
-            }
-
-            DVLOG(logging::SERVICE) << "Context::make_memory ->"
-                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
-            fractos::wire::error_raise_exception_maybe(args->imms.error);
-
-            char* tmp = reinterpret_cast<char*>(args->imms.address.get());
-
-            // get Device object
             auto pimpl_ = std::make_shared<impl::Memory>(
                 ch,
-                tmp, size,
+                address, size,
                 std::move(args->caps.destroy),
                 std::move(args->caps.memory));
             pimpl_->self = pimpl_;

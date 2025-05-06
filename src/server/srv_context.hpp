@@ -1,13 +1,16 @@
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <queue>
 #include <chrono>
+#include <cuda.h>
 #include <fractos/service/compute/cuda.hpp>
-// #include <fractos/service/compute/cuda_msg.hpp>
+#include <queue>
+#include <stdlib.h>
+#include <sys/stat.h>
+
 #include "./srv_memory.hpp"
 #include "./srv_module.hpp"
 #include "./srv_stream.hpp"
 #include "./srv_event.hpp"
+
+
 using namespace fractos;
 
 
@@ -23,8 +26,8 @@ protected:
     void handle_generic(auto ch, auto args);
     void handle_get_api_version(auto ch, auto args);
     void handle_get_limit(auto ch, auto args);
+    void handle_mem_alloc(auto ch, auto args);
 
-    void handle_memory(auto args);
     void handle_stream(auto args);
     void handle_event(auto args);
     void handle_module_file(auto args);
@@ -34,7 +37,6 @@ protected:
 
 
 private:
-    char* allocate_memory(size_t size, CUcontext& context); // type?
     void context_synchronize(); // type?
     void context_destroy(CUcontext& context); // type?
 
@@ -46,7 +48,6 @@ public:
     CUcontext _ctx; 
 
     fractos::core::cap::request _req_generic;
-    fractos::core::cap::request _req_memory;
     fractos::core::cap::request _req_stream;
     fractos::core::cap::request _req_event;
     fractos::core::cap::request _req_module_data;
@@ -55,7 +56,6 @@ public:
     fractos::core::cap::request _req_destroy;
 
     gpu_Context(fractos::wire::endian::uint32_t value, CUdevice device);
-    std::shared_ptr<test::gpu_Memory> _dev_mem;
     std::shared_ptr<test::gpu_Stream> _stream; 
     std::shared_ptr<test::gpu_Event> _event; 
     std::shared_ptr<test::gpu_Module> _mod; 

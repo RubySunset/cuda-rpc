@@ -1,3 +1,4 @@
+#include <cuda_runtime.h>
 #include <fractos/core/builder.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
@@ -23,6 +24,10 @@ namespace srv = fractos::service::compute::cuda;
 #define print_imm_error(name)                                           \
     print_imm(name, [](auto& val){                                      \
         return fractos::wire::to_string(static_cast<fractos::wire::error_type>(val.get())); })
+
+#define print_imm_cuerror(name)                                         \
+    print_imm(name, [](auto& val){                                      \
+        return cudaGetErrorName((cudaError)val.get()); })
 
 #define print_imm_string(name_str, name_len)                            \
     if (obj.imms_size() >= offsetof(msg::imms_type, name_str) and       \
@@ -454,6 +459,42 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::get_limit::res
     print_extra_imm_error();
 
     print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::mem_alloc::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(opcode);
+    print_imm_identity(size);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::mem_alloc::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_imm_cuerror(cuerror);
+    print_imm_hex(address);
+    print_extra_imm_error();
+
+    print_cap(memory);
+    print_cap(destroy);
+    print_extra_cap_error();
 
     return ss.str();
 }

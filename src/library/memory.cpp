@@ -12,7 +12,7 @@ namespace srv = fractos::service::compute::cuda;
 
 
 impl::Memory::Memory(std::shared_ptr<fractos::core::channel> ch,
-                     char* addr, size_t size,
+                     CUdeviceptr addr, size_t size,
                      fractos::core::cap::request req_mem_destroy,
                      fractos::core::cap::memory memory)
     :ch(ch)
@@ -42,7 +42,7 @@ srv::Memory::get_addr()
 {
     auto& pimpl = impl::Memory::get(*this);
 
-    return pimpl.addr;
+    return (char*)pimpl.addr;
 }
 
 core::cap::memory&

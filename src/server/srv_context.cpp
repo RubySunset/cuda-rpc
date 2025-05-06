@@ -55,22 +55,6 @@ const std::unordered_map<int, std::shared_ptr<gpu_Stream>>& gpu_Context::getVStr
 }
 
 
-char* gpu_Context::allocate_memory(size_t size, CUcontext& context) {
-
-    char* addr = nullptr;
-    checkCudaErrors(cuCtxSetCurrent(context));
-    CUdeviceptr d_A;
-   
-    // Allocate memory on the device
-    checkCudaErrors(cuMemAlloc(&d_A, size));
-
- 
-    addr = (char*)d_A;
-    //checkCudaErrors(cuCtxPopCurrent(nullptr));
-    return addr;
-}
-
-
 
 void gpu_Context::context_synchronize() {
     checkCudaErrors(cuCtxSetCurrent(_ctx));
@@ -93,17 +77,15 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
     auto self = _self;
 
 
-    return ch->make_request_builder<msg_base::make_memory::request>(
-        ch->get_default_endpoint(), // resv msg
+    return ch->make_request_builder<msg_base::generic::request>(
+        ch->get_default_endpoint(),
         [self](auto ch, auto args) {
-            VLOG(fractos::logging::SERVICE) << "In register_service context handler";
-            self->handle_memory(std::move(args));
+            self->handle_generic(ch, std::move(args));
         })
         .on_channel()
         .make_request()
         .then([ch, self](auto& fut) {
-            self->_req_memory = fut.get();
-            VLOG(fractos::logging::SERVICE) << "SET req_memory"; 
+            self->_req_generic = fut.get();
             return ch->make_request_builder<msg_base::make_stream::request>( // file
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -169,18 +151,6 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
         .then([ch, self, this](auto& fut) {
             VLOG(fractos::logging::SERVICE) << "SET req_destroy context";
             self->_req_destroy = fut.get();
-
-            return ch->make_request_builder<msg_base::generic::request>(
-                ch->get_default_endpoint(),
-                [self](auto ch, auto args) {
-                    self->handle_generic(ch, std::move(args));
-                })
-                .on_channel()
-                .make_request();
-        })
-        .unwrap()
-        .then([ch, self, this](auto& fut) {
-            self->_req_generic = fut.get();
         });
 }
 void
@@ -213,6 +183,9 @@ gpu_Context::handle_generic(auto ch, auto args)
         break;
     case srv::wire::Context::OP_GET_LIMIT:
         HANDLE(get_limit);
+        break;
+    case srv::wire::Context::OP_MEM_ALLOC:
+        HANDLE(mem_alloc);
         break;
 
     default:
@@ -297,110 +270,80 @@ out:
         .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
 }
 
-/*
- *  Destroy a Context, revoke all of its caps
- */
-void gpu_Context::handle_memory(auto args_) {
-    using clock = std::chrono::high_resolution_clock;
-    std::chrono::microseconds t_usec;
-    auto t_start = clock::now();
-    // auto t_end = clock::now();
-    // auto t_temp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-    // LOG(INFO) << "time for make_memory server start: " << t_temp << std::endl;
+void
+gpu_Context::handle_mem_alloc(auto ch, auto args)
+{
+    METHOD(Context, mem_alloc);
+    LOG_REQ(method) << srv::wire::to_string(*args);
 
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT();
 
+    size_t size = args->imms.size.get();
 
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+    CUdeviceptr base = 0;
 
-    VLOG(fractos::logging::SERVICE) << "CALL handle handle_memory";
-    std::shared_ptr<typename decltype(args_)::element_type> args(std::move(args_));
-    using msg = ::service::compute::cuda::wire::Context::make_memory;
-    
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        DLOG(ERROR) << "got request without continuation, ignoring";
-        return;
+    cuerror = cuCtxSetCurrent(_ctx);
+    if (cuerror != CUDA_SUCCESS) {
+        goto out_err;
     }
-    
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
 
-    if (not args->has_exactly_args()) {
-        ch->make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-            .on_channel()
-            .invoke()
-            .as_callback();
-        return;
+    cuerror = cuMemAlloc(&base, size);
+    if (cuerror != CUDA_SUCCESS) {
+        goto out_err;
     }
-    auto self = _self;
-    std::size_t size = args->imms.size; // uint64_t MAX_IO_SIZE;
 
-    
-    // char *base;
-    // if (posix_memalign((void **) &base, 4096, MAX_IO_SIZE) != 0) {
-    //     throw std::runtime_error("Failed to allocate I/O buffer for worker.");
-    // }
+    {
+        auto cont = std::make_shared<core::cap::request>(std::move(args->caps.continuation));
 
-    char* base = allocate_memory(size , _ctx);//, context);
+        ch->make_memory((void*)base, size)
+            .then([this, self=_self, ch, error, cuerror, base, size, cont](auto& fut) {
+                auto mem = fut.get();
 
+                auto dev_mem = std::shared_ptr<gpu_Memory>(gpu_Memory::factory(size, _ctx));
+                dev_mem->_memory = std::move(mem);
+                dev_mem->base = base;
 
-    t_usec = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t_start);
-    LOG(INFO)  << "time for make_memory CUDA API server: "<< t_usec.count() << std::endl;
+                dev_mem->register_methods(ch)
+                    .then([this, self, ch, error, cuerror, dev_mem, cont](auto& fut) {
+                        fut.get();
 
+                        LOG_RES(method)
+                            << " error=" << wire::to_string(error)
+                            << " cuerror=" << cudaGetErrorName((cudaError)cuerror)
+                            << " memory=" << core::to_string(dev_mem->_memory)
+                            << " destroy=" << core::to_string(dev_mem->_req_destroy);
 
-
-    auto mr_ = ch->make_memory_region(base, size, core::memory_region::translation_type::PIN); // PIN
-    std::shared_ptr<typename decltype(mr_)::element_type> mr(std::move(mr_)); // element_type??
-
-    auto temp = t_usec.count();
-    t_usec = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t_start);
-    LOG(INFO)  << "time for make_memory make_memory_region server: "<< t_usec.count() - temp << std::endl;
-
-
-
-    ch->make_memory(base, size, *mr)
-        .then([ch, args, size, this, base, mr](auto& fut) {
-            // auto mem = fut.get();
-
-        auto self = _self; // lock()
-        // VLOG(fractos::logging::SERVICE) << "cuda device addr: " << (void*)base;
-        VLOG(fractos::logging::SERVICE) << "mem size is: " << size;
-
-        auto dev_mem = std::shared_ptr<gpu_Memory>(gpu_Memory::factory(size, _ctx));
-        
-
-        dev_mem->_memory = fut.get();
-        dev_mem->base = (char*)base;
-        dev_mem->_mr = mr;
-
-        dev_mem->register_methods(ch)
-            .then([this, ch, self, dev_mem, size, args ](auto& fut) { //, args=std::move(args),  mr_=std::move(mr_)
-                fut.get();
-                _dev_mem = dev_mem;
-
-                auto t_temp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-                LOG(INFO)  << "time for make_memory make_memory server: "<< t_temp << std::endl;
-
-                // VLOG(fractos::logging::SERVICE) << "BACKEND memory size is " << dev_mem->_memory.get_size();
-
-                ch->make_request_builder<msg::response>(args->caps.continuation)
-                    .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
-                    .set_imm(&msg::response::imms::address, dev_mem->_memory.get_addr())
-                    .set_cap(&msg::response::caps::memory, dev_mem->_memory)
-                    .set_cap(&msg::response::caps::destroy, dev_mem->_req_destroy)
-                    .on_channel()
-                    .invoke()
+                        ch->template make_request_builder<msg::response>(*cont)
+                            .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+                            .set_imm(&msg::response::imms::cuerror, CUDA_SUCCESS)
+                            .set_imm(&msg::response::imms::address, dev_mem->base)
+                            .set_cap(&msg::response::caps::memory, dev_mem->_memory)
+                            .set_cap(&msg::response::caps::destroy, dev_mem->_req_destroy)
+                            .on_channel()
+                            .invoke()
+                            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+                    })
                     .as_callback();
-                })
+            })
             .as_callback();
-        })
-        .as_callback();
+    }
 
-    // temp = t_usec.count();
-    // t_usec = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t_start);
-    // LOG(INFO)  << "time for make_memory make_memory server: "<< t_usec.count() - temp << std::endl;
+    return;
 
-    t_usec = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - t_start);
-    LOG(INFO)  << "time for make_memory server: "<< t_usec.count() << std::endl;
+out_err:
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
 
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
 }
 
 void gpu_Context::handle_stream(auto args) {
@@ -701,10 +644,9 @@ void gpu_Context::handle_destroy(auto args) {
 
     VLOG(fractos::logging::SERVICE) << "Revoke destroy";
 
-    ch->revoke(self->_req_memory)
+    ch->revoke(self->_req_generic)
         .then([ch, self](auto& fut) {
-                  fut.get();
-                  VLOG(fractos::logging::SERVICE) << "Revoke _req_memory";
+            fut.get();
             return ch->revoke(self->_req_stream); // file
         })
         .unwrap()

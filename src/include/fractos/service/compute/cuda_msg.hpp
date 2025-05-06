@@ -342,6 +342,7 @@ namespace fractos::service::compute::cuda::wire {
         enum generic_opcode : uint64_t {
             OP_GET_API_VERSION,
             OP_GET_LIMIT,
+            OP_MEM_ALLOC,
 
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
@@ -400,20 +401,20 @@ namespace fractos::service::compute::cuda::wire {
     std::string to_string(const core::receive_args<Context::get_limit::response>& resp);
 
     namespace Context {
-
-        struct make_memory {
+        struct mem_alloc {
             struct request {
                 struct imms {
-                    // fractos::wire::endian::uint64_t virtual_device_id;
-                    fractos::wire::endian::uint64_t size; // unsigned int
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint64_t size;
                 } __attribute__((packed));
                 struct caps {
-                    fractos::core::cap::request continuation; 
+                    fractos::core::cap::request continuation;
                 };
             };
             struct response {
                 struct imms {
                     fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
                     fractos::wire::endian::uint64_t address;
                 } __attribute__ ((packed));
                 struct caps {
@@ -422,6 +423,12 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+    }
+
+    std::string to_string(const core::receive_args<Context::mem_alloc::request>& req);
+    std::string to_string(const core::receive_args<Context::mem_alloc::response>& resp);
+
+    namespace Context {
 
         struct make_stream {
             struct request {
