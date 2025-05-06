@@ -23,3 +23,9 @@ void srv::ErrorChecker::handleError(CUresult err, const std::string& file, int l
     }
     DVLOG(logging::SERVICE) << "CUDA Driver API SUCCESS " << " from file <" << file << ">, line " << line << ".\n";;
 }
+
+srv::CudaError::CudaError(cudaError cuerror)
+    :std::runtime_error(cudaGetErrorName(cuerror))
+    ,cuerror(cuerror)
+{
+}
