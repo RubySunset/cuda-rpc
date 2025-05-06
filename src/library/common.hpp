@@ -43,6 +43,25 @@
     fractos::wire::error_raise_exception_maybe(args->imms.error);
 
 
+#define then_cuda_response()                                            \
+    then([this, self](auto& fut) {                                      \
+        auto [ch, args] = fut.get();                                    \
+        LOG_RES_PTR(method, self)                                       \
+            << wire::to_string(*args);                                  \
+        if (not args->has_imm(&msg::response::imms::error)) [[unlikely]] { \
+            throw core::other_error("invalid response format for " + method); \
+        }                                                               \
+        fractos::wire::error_raise_exception_maybe(args->imms.error);   \
+        if (not args->has_imm(&msg::response::imms::cuerror)) [[unlikely]] { \
+            throw core::other_error("invalid response format for " + method); \
+        }                                                               \
+        if (args->imms.cuerror) {                                       \
+            throw fractos::service::compute::cuda::CudaError((cudaError_t)args->imms.cuerror.get()); \
+        }                                                               \
+        return std::make_pair(std::move(ch), std::move(args));          \
+    })
+
+
 namespace impl {
 
     template<class Tsrv, class Timpl>
