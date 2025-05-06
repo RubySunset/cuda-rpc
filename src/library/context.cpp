@@ -119,6 +119,13 @@ srv::Context::get_api_version()
         });
 }
 
+std::shared_ptr<srv::Device>
+srv::Context::get_device()
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.device.lock();
+}
+
 core::future<size_t>
 srv::Context::get_limit(CUlimit limit)
 {
@@ -147,14 +154,6 @@ srv::Context::get_limit(CUlimit limit)
             return args->imms.value.get();
         });
 }
-
-std::shared_ptr<srv::Device>
-srv::Context::get_device()
-{
-    auto& pimpl = impl::Context::get(*this);
-    return pimpl.device.lock();
-}
-
 
 core::future<std::shared_ptr<srv::Memory>>
 srv::Context::make_memory(uint64_t size)
