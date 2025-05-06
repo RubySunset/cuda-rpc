@@ -31,7 +31,7 @@ public:
     fractos::core::cap::memory _memory;
     std::shared_ptr<fractos::core::memory_region> _mr;
     
-    char* base;
+    CUdeviceptr base;
 
     gpu_Memory(fractos::wire::endian::uint32_t size, CUcontext& ctx);
 

@@ -47,7 +47,6 @@ core::future<void> gpu_Memory::register_methods(std::shared_ptr<core::channel> c
 
     auto self = _self;
 
-
     return ch->make_request_builder<msg_base::destroy::request>(
         ch->get_default_endpoint(), 
         [self](auto ch, auto args) {
@@ -82,7 +81,7 @@ void gpu_Memory::handle_destroy(auto args) {
         return;
     }
 
-    memory_free(base);
+    memory_free((char*)base);
 
     DVLOG(logging::SERVICE) << "Revoke destroy";
 
