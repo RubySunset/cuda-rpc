@@ -156,7 +156,7 @@ srv::Context::get_limit(CUlimit limit)
 }
 
 core::future<std::shared_ptr<srv::Memory>>
-srv::Context::make_memory(uint64_t size)
+srv::Context::mem_alloc(size_t size)
 {
     // using clock = std::chrono::high_resolution_clock;
     // auto t_start = clock::now();
@@ -203,6 +203,13 @@ srv::Context::make_memory(uint64_t size)
             auto pimpl = static_pointer_cast<void>(pimpl_);
             return std::make_shared<Memory>(pimpl);
         });
+}
+
+
+core::future<std::shared_ptr<srv::Memory>>
+srv::Context::make_memory(uint64_t size)
+{
+    return mem_alloc(size);
 }
 
 
