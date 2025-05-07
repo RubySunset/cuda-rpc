@@ -22,9 +22,14 @@ cuMemAlloc(CUdeviceptr* devPtr, size_t size)
     LOG_FIRST_N(WARNING, 1) << "TODO: reserve allocated memory on host side to ensure access error?";
 
     auto ctx_ptr = state.get_current_context();
-    auto mem_ptr = ctx_ptr->make_memory(size).get();
-    *devPtr = (CUdeviceptr)mem_ptr->get_addr();
+    std::shared_ptr<srv::Memory> mem_ptr;
+    try {
+        mem_ptr = ctx_ptr->make_memory(size).get();
+    } catch (const srv::CudaError& e) {
+        return e.cuerror;
+    }
 
+    *devPtr = (CUdeviceptr)mem_ptr->get_addr();
     {
         auto mems_lock = std::unique_lock(state.mems_mutex);
         auto res = state.mems.insert(std::make_pair(*devPtr, mem_ptr));
