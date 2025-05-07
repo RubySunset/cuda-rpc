@@ -56,7 +56,7 @@
             throw core::other_error("invalid response format for " + method); \
         }                                                               \
         if (args->imms.cuerror) {                                       \
-            throw fractos::service::compute::cuda::CudaError((cudaError_t)args->imms.cuerror.get()); \
+            throw fractos::service::compute::cuda::CudaError((CUresult)args->imms.cuerror.get()); \
         }                                                               \
         return std::make_pair(std::move(ch), std::move(args));          \
     })

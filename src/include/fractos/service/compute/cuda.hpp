@@ -52,8 +52,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         };
 
         struct CudaError : public std::runtime_error {
-            CudaError(cudaError_t cuerror);
-            const cudaError_t cuerror;
+            CudaError(CUresult cuerror);
+            const CUresult cuerror;
         };
 
 

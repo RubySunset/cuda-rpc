@@ -24,8 +24,18 @@ void srv::ErrorChecker::handleError(CUresult err, const std::string& file, int l
     DVLOG(logging::SERVICE) << "CUDA Driver API SUCCESS " << " from file <" << file << ">, line " << line << ".\n";;
 }
 
-srv::CudaError::CudaError(cudaError cuerror)
-    :std::runtime_error(cudaGetErrorName(cuerror))
+static
+const char *
+get_cuda_error(CUresult error)
+{
+    const char* msg = nullptr;
+    auto err = cuGetErrorName(error, &msg);
+    CHECK(err == CUDA_SUCCESS) << err;
+    return msg;
+}
+
+srv::CudaError::CudaError(CUresult cuerror)
+    :std::runtime_error(get_cuda_error(cuerror))
     ,cuerror(cuerror)
 {
 }
