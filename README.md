@@ -41,9 +41,12 @@ The reason why interosition is so difficult without these changes, is that vario
 
 ## Starting applications with the wrapper library
 
-To start your application with the CUDA wrapper library, you must set the `LD_LIBRARY_PATH` environment variable to the installed directory `lib/libfractos-service-compute-cuda-wrapper` (created during `make install` on this repository).
+To start your application with the CUDA wrapper library, you must set the `LD_LIBRARY_PATH` environment variable to the installation directory `lib/libfractos-service-compute-cuda-wrapper` (created during `make install` on this repository).
+This directory has links with the name of the core CUDA libraries to the wrapper library installed in `lib/libfractos-service-compute-cuda-wrapper.so`.
 
-This directory has links with the name of the core CUDA libraries to the wrapper library in `lib/libfractos-service-compute-cuda-wrapper.so`.
+Alternatively, you can directly link against the wrapper library that is installed in `lib/libfractos-service-compute-cuda-wrapper.so`:
+
+    nvcc -o example exmaple.cu -lcublas_static -lcublasLt_static -lfractos-service-compute-cuda-wrapper
 
 
 ## Configuring the wrapper library
