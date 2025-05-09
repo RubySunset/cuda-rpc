@@ -51,6 +51,7 @@ impl::make_function(std::shared_ptr<test::gpu_Context> ctx_ptr, CUmodule mod, co
             args_total_size += size;
             args_size.push_back(size);
         } else if (error == CUDA_ERROR_INVALID_VALUE) {
+            error = CUDA_SUCCESS;
             break;
         } else {
             return std::make_pair(error, res);
