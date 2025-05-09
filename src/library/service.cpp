@@ -304,4 +304,5 @@ core::future<void>
 impl::Service::do_destroy()
 {
     LOG(FATAL) << "not implemented";
+    return core::make_ready_future();
 }
