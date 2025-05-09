@@ -4,7 +4,7 @@
 #include <chrono>
 #include <fractos/service/compute/cuda.hpp>
 // #include <fractos/service/compute/cuda_msg.hpp>
-#include "./srv_function.hpp"
+#include "./function.hpp"
 // #include "./srv_context.hpp"
 
 
