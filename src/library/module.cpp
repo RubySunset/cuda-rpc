@@ -139,7 +139,6 @@ srv::Module::get_function(const std::string& func_name)
                     ch,
                     args_total_size, args_size,
                     std::move(args->caps.generic),
-                    std::move(args->caps.call),
                     std::move(args->caps.func_destroy));
                 pimpl_->self = pimpl_;
                 auto pimpl = static_pointer_cast<void>(pimpl_);

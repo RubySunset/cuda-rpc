@@ -86,18 +86,6 @@ core::future<void> gpu_Function::register_methods(std::shared_ptr<core::channel>
         .make_request()
         .then([self, ch](auto& fut) {
             self->_req_generic = fut.get();
-            return ch->make_request_builder<msg_base::launch::request>(
-                ch->get_default_endpoint(), 
-                [self](auto ch, auto args) {
-                    self->handle_call(std::move(args));
-                })
-                .on_channel()
-                .make_request();
-        })
-        .unwrap()
-        .then([ch, self](auto& fut) {
-            self->_req_call = fut.get();
-            VLOG(fractos::logging::SERVICE) << "SET req_call"; // virtua
             return ch->make_request_builder<msg_base::func_destroy::request>(
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -155,84 +143,66 @@ gpu_Function::handle_generic(auto ch, auto args)
 #undef HANDLE
 }
 
+void
+gpu_Function::handle_launch(auto ch, auto args)
+{
+    METHOD(Function, launch);
+    LOG_REQ(method) << srv::wire::to_string(*args);
 
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_CAPS_EXACT();
+    CHECK_IMMS_ALL();
+    CHECK_ARGS_COND(args->imms_size() == (sizeof(msg::request::imms) + _args_total_size));
 
-
-void gpu_Function::handle_call(auto args) {
-
-    auto t_start = std::chrono::high_resolution_clock::now();
-
-
-    VLOG(fractos::logging::SERVICE) << "CALL handle call";
-    using msg = ::service::compute::cuda::wire::Function::launch;
-
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        LOG(ERROR) << "no continuation";
-        return;
-    }
-
-    std::shared_ptr<core::channel> ch = args->caps.continuation.get_channel();
-
-    if (not args->has_exactly_caps() or
-        args->imms_size() != args->imms_expected_size() + _args_total_size) {
-        ch->make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-            .on_channel()
-            .invoke()
-            .as_callback();
-        return;
-    }
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
 
     auto ctx_ptr = _vctx.lock();
     CHECK(ctx_ptr);
-    CHECK(cuCtxSetCurrent(ctx_ptr->_ctx) == CUDA_SUCCESS);
-
-    auto grid_x = args->imms.grid_x;
-    auto grid_y = args->imms.grid_y;
-    auto grid_z = args->imms.grid_z;
-    auto block_x = args->imms.block_x;
-    auto block_y = args->imms.block_y;
-    auto block_z = args->imms.block_z;
-
-    std::vector<const void*> kernel_args;
-    const char* args_ptr = args->imms.kernel_args;
-    for (size_t i = 0; i < _args_size.size(); i++) {
-        kernel_args.push_back(args_ptr);
-        args_ptr += _args_size[i];
+    cuerror = cuCtxSetCurrent(ctx_ptr->_ctx);
+    if (cuerror != CUDA_SUCCESS) {
+        goto out;
     }
 
-
-    dim3 dimGrid(grid_x, grid_y, grid_z);
-    dim3 dimBlock(block_x, block_y, block_z);
-
-    // CUevent event;
-    // CUstream stream;
-
-    LOG(INFO) << "STREAM ID " << (int)args->imms.stream_id;
-    if ((int)args->imms.stream_id)
     {
-        auto _vstream = _vctx.lock()->getVStreamMap().at((int)args->imms.stream_id); // const qualifier _vctx.lock()
-        LOG(INFO) << "get STREAM ID " << (int)args->imms.stream_id;
-        checkCudaErrors_lo(cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z, 
-            dimBlock.x, dimBlock.y, dimBlock.z,
-            0, _vstream->getCUStream(), (void**)kernel_args.data(), 0)); // 0 , stream , args, 0
-    }
-    else
-    {
-        LOG(INFO) << "get default STREAM ID " << (int)args->imms.stream_id;
-        checkCudaErrors_lo(cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z, 
-            dimBlock.x, dimBlock.y, dimBlock.z,
-            0, 0, (void**)kernel_args.data(), 0)); // 0 , stream , args, 0
+        dim3 dimGrid(args->imms.grid_x, args->imms.grid_y, args->imms.grid_z);
+        dim3 dimBlock(args->imms.block_x, args->imms.block_y, args->imms.block_z);
+
+        std::vector<const void*> kernel_args;
+        const char* args_ptr = args->imms.kernel_args;
+        for (size_t i = 0; i < _args_size.size(); i++) {
+            kernel_args.push_back(args_ptr);
+            args_ptr += _args_size[i];
+        }
+
+        int stream_id = args->imms.stream_id;
+        if (stream_id) {
+            LOG_FIRST_N(WARNING, 1) << "TODO: add a proper API to query/get stream_ids";
+            LOG_FIRST_N(WARNING, 1) << "TODO: return error when stream_id is incorrect";
+            auto _vstream = ctx_ptr->getVStreamMap().at(stream_id);
+            cuerror = cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z,
+                                     dimBlock.x, dimBlock.y, dimBlock.z,
+                                     0, _vstream->getCUStream(),
+                                     (void**)kernel_args.data(), 0);
+        } else {
+            cuerror = cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z,
+                                     dimBlock.x, dimBlock.y, dimBlock.z,
+                                     0, 0,
+                                     (void**)kernel_args.data(), 0);
+        }
     }
 
-    ch->make_request_builder<msg::response>(args->caps.continuation)
-        .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+out:
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
         .on_channel()
         .invoke()
-        .as_callback();
-
-    auto t_usec = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - t_start);
-    LOG(INFO) << "time for launch kernel server: " << t_usec.count() << std::endl;
+        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
 }
 
 /*
@@ -261,11 +231,6 @@ void gpu_Function::handle_func_destroy(auto args) {
     DVLOG(logging::SERVICE) << "Revoke destroy";
 
     ch->revoke(self->_req_generic)
-        .then([ch, self](auto& fut) {
-            fut.get();
-            return  ch->revoke(self->_req_call);
-        })
-        .unwrap()
         .then([ch, self](auto& fut) {
             fut.get();
             VLOG(fractos::logging::SERVICE) << "Revoke _req_memory";

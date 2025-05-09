@@ -732,6 +732,7 @@ namespace fractos::service::compute::cuda::wire {
     namespace Function {
 
         enum generic_opcode : uint64_t {
+            OP_LAUNCH,
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
 
@@ -754,14 +755,12 @@ namespace fractos::service::compute::cuda::wire {
                 } __attribute__((packed));
                 struct caps {
                     fractos::core::cap::request continuation;
-                    // fractos::core::cap::request continuation_success; 
-                    // fractos::core::cap::request continuation_failure;
-
                 };
             };
             struct response {
                 struct imms {
                     fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
                 } __attribute__ ((packed));
                 struct caps {
                 };

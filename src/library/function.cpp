@@ -35,13 +35,11 @@ impl::to_string(const impl::Function& obj)
 impl::Function::Function(std::shared_ptr<fractos::core::channel> ch,
                          size_t args_total_size, std::vector<size_t> args_size,
                          fractos::core::cap::request req_generic,
-                         fractos::core::cap::request req_func_call,
                          fractos::core::cap::request req_func_destroy)
     :ch(ch)
     ,args_total_size(args_total_size)
     ,args_size(args_size)
     ,req_generic(std::move(req_generic))
-    ,req_func_call(std::move(req_func_call))
     ,req_func_destroy(std::move(req_func_destroy))
 {
 }
@@ -70,6 +68,7 @@ srv::Function::launch(dim3 gridDim, dim3 blockDim, const void** args,
         << " {}";
 
     auto& pimpl = impl::Function::get(*this);
+    auto self = pimpl.self.lock();
 
     uint32_t stream_id = 0;
     if (stream) {
@@ -78,7 +77,8 @@ srv::Function::launch(dim3 gridDim, dim3 blockDim, const void** args,
     }
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    auto req = pimpl.ch->make_request_builder<msg::request>(pimpl.req_func_call)
+    auto req = pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire::OP_LAUNCH)
         .set_imm(&msg::request::imms::grid_x, (uint64_t)gridDim.x)
         .set_imm(&msg::request::imms::grid_y, (uint64_t)gridDim.y)
         .set_imm(&msg::request::imms::grid_z, (uint64_t)gridDim.z)
@@ -99,13 +99,10 @@ srv::Function::launch(dim3 gridDim, dim3 blockDim, const void** args,
         .on_channel()
         .invoke(resp)
         .unwrap()
+        .then_cuda_response()
         .then([this, self=pimpl.self.lock()](auto& fut) {
             auto [ch, args] = fut.get();
-
-            LOG_RES_PTR(method, self)
-                << wire::to_string(*args);
             CHECK_ARGS_EXACT();
-            fractos::wire::error_raise_exception_maybe(args->imms.error);
         });
 }
 

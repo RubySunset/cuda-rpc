@@ -561,6 +561,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Function::launch::respo
     std::stringstream ss;
 
     print_imm_error(error);
+    print_imm_cuerror(cuerror);
     print_extra_imm_error();
 
     print_empty_caps();
