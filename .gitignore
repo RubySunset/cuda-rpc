@@ -18,3 +18,4 @@ Makefile.in
 !m4/ax_check_cuda.m4
 /missing
 /configure~
+/.cache
