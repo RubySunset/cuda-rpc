@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fractos/logging.hpp>
+#include <fractos/service/compute/cuda_msg.hpp>
 
 
 #define LOG_OP(func)                            \
@@ -20,6 +21,7 @@
 
 #define METHOD(cls, name)                                               \
     static const std::string method = #name;                            \
+    namespace srv = ::service::compute::cuda;                           \
     namespace srv_wire = ::service::compute::cuda::wire:: cls;          \
     using msg = srv_wire:: name;
 
@@ -47,7 +49,7 @@
     then([this, self](auto& fut) {                                      \
         auto [ch, args] = fut.get();                                    \
         LOG_RES_PTR(method, self)                                       \
-            << wire::to_string(*args);                                  \
+            << srv::wire::to_string(*args);                             \
         if (not args->has_imm(&msg::response::imms::error)) [[unlikely]] { \
             throw core::other_error("invalid response format for " + method); \
         }                                                               \
