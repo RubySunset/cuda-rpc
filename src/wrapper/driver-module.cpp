@@ -111,8 +111,13 @@ cuModuleLoadData(CUmodule *module, const void *image)
 
     // load module into service
 
-    // RO cap, uses default MR, implicitly prefetched
-    auto image_cap = get_channel().make_memory(image, image_size).get();
+    auto& ch = get_channel();
+
+    // RO cap, synchronously prefetch default MR to avoid unexpected perm errors
+    auto& mr = ch.get_default_memory_region();
+    mr.prefetch(fractos::core::memory_region::prefetch_type::ODP_RD_SYNC,
+                image, image_size);
+    auto image_cap = ch.make_memory(image, image_size, mr).get();
     CHECK(not image_cap.has_any_perms(fractos::core::cap::PERM_WR));
 
     LOG(ERROR) << "TODO: no use for module_id arg";
