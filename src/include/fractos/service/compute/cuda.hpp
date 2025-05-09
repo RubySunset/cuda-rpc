@@ -356,9 +356,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             destroy();
 
         public:
-            Function(std::shared_ptr<void> pimpl, std::string function_name);
-            ~Function();
             // NOTE: not for public use
+            Function(std::shared_ptr<void> pimpl);
+            ~Function();
             std::shared_ptr<void> _pimpl;
         };
 

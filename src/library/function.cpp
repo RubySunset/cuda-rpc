@@ -40,7 +40,7 @@ impl::Function::Function(std::shared_ptr<fractos::core::channel> ch,
 {
 }
 
-srv::Function::Function(std::shared_ptr<void> pimpl, std::string func_name)
+srv::Function::Function(std::shared_ptr<void> pimpl)
     :_pimpl(pimpl)
 {
 }
