@@ -68,7 +68,7 @@ void check_memory()
 }
 
 
-gpu_Module::gpu_Module(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char>& buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx) {
+gpu_Module::gpu_Module(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx) {
     //fork();
     // 
 
@@ -115,7 +115,7 @@ std::shared_ptr<gpu_Module> gpu_Module::factory(std::string& name, CUcontext& ct
     return res;
 }
 
-std::shared_ptr<gpu_Module> gpu_Module::factory(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char>& buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx){
+std::shared_ptr<gpu_Module> gpu_Module::factory(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx){
     auto res = std::shared_ptr<gpu_Module>(new gpu_Module(module_id, ctx, buffer, size, vctx));
     res->_self = res;
     return res;

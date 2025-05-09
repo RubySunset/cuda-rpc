@@ -16,7 +16,7 @@ class gpu_Context;
 class gpu_Module {
 public:
     static std::shared_ptr<gpu_Module> factory(std::string& name, CUcontext& ctx);
-    static std::shared_ptr<gpu_Module> factory(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char>& buffer, size_t size
+    static std::shared_ptr<gpu_Module> factory(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size
                                 , std::weak_ptr<test::gpu_Context> vctx);
 
     fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
@@ -38,7 +38,7 @@ private:
     CUcontext _ctx;
     CUmodule _module;
     std::weak_ptr<test::gpu_Context> _vctx;
-    std::shared_ptr<const char> _data;
+    std::shared_ptr<const char[]> _data;
 
 public:
     fractos::core::cap::request _req_generic;
@@ -48,7 +48,7 @@ public:
     std::shared_ptr<test::gpu_Function> _func; 
 
     gpu_Module(std::string& name, CUcontext& ctx);
-    gpu_Module(uint64_t module_id, CUcontext& ctx,  std::shared_ptr<char>& buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx);
+    gpu_Module(uint64_t module_id, CUcontext& ctx,  std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx);
 
     ~gpu_Module();
 

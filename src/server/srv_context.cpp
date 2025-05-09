@@ -537,7 +537,7 @@ void gpu_Context::handle_module_data(auto args) {
     
     auto size = args->caps.cuda_file.get_size();
 
-    std::shared_ptr<char> buffer(new char[size], std::default_delete<char[]>());
+    std::shared_ptr<char[]> buffer(new char[size]);
     // char* buffer = (char*)malloc(size);
 
     auto mr_lo = ch->make_memory_region(buffer.get(), size, core::memory_region::translation_type::PIN);
