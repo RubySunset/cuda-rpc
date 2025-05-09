@@ -560,12 +560,8 @@ void gpu_Context::handle_module_data(auto args) {
     // CUmodule module;
     // checkCudaErrors_lo(cuModuleLoadData(&module, buffer.get()));
     
-    if (buffer.get()[0] ) //buffer.get()[0] 
-    {
-        std::cout << "Buffer for ptx file is valid." << std::endl;
-    }
-    else{
-        std::cerr << "ptx buffer is not valid for load" << std::endl;
+    if (not buffer.get()[0]) {
+        LOG(FATAL) << "ptx buffer is not valid for load";
     }
 
     auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(module_id, _ctx, buffer, size, self));
