@@ -533,7 +533,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Module::get_global::res
 }
 
 std::string
-srv::wire::to_string(const core::receive_args<srv::wire::Function::call::request>& obj)
+srv::wire::to_string(const core::receive_args<srv::wire::Function::launch::request>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
 
@@ -554,7 +554,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Function::call::request
 }
 
 std::string
-srv::wire::to_string(const core::receive_args<srv::wire::Function::call::response>& obj)
+srv::wire::to_string(const core::receive_args<srv::wire::Function::launch::response>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
 

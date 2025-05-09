@@ -76,7 +76,7 @@ core::future<void> gpu_Function::register_methods(std::shared_ptr<core::channel>
     auto self = _self;
 
 
-    return ch->make_request_builder<msg_base::call::request>(
+    return ch->make_request_builder<msg_base::launch::request>(
         ch->get_default_endpoint(), 
         [self](auto ch, auto args) {
             self->handle_call(std::move(args));
@@ -111,7 +111,7 @@ void gpu_Function::handle_call(auto args) {
 
 
     VLOG(fractos::logging::SERVICE) << "CALL handle call";
-    using msg = ::service::compute::cuda::wire::Function::call;
+    using msg = ::service::compute::cuda::wire::Function::launch;
 
     if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
         LOG(ERROR) << "no continuation";
@@ -181,7 +181,6 @@ void gpu_Function::handle_call(auto args) {
     auto t_usec = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - t_start);
     LOG(INFO) << "time for launch kernel server: " << t_usec.count() << std::endl;
 }
-
 
 /*
  *  Destroy a Function, revoke all of its caps

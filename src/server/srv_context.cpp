@@ -153,6 +153,7 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
             self->_req_destroy = fut.get();
         });
 }
+
 void
 gpu_Context::handle_generic(auto ch, auto args)
 {

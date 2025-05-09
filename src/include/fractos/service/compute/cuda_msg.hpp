@@ -729,7 +729,7 @@ namespace fractos::service::compute::cuda::wire {
     std::string to_string(const core::receive_args<Module::get_global::response>& resp);
 
     namespace Function {
-        struct call {
+        struct launch {
             struct request {
                 struct imms {
                     fractos::wire::endian::uint64_t grid_x;
@@ -756,7 +756,12 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+    }
 
+    std::string to_string(const core::receive_args<Function::launch::request>& req);
+    std::string to_string(const core::receive_args<Function::launch::response>& resp);
+
+    namespace Function {
         struct func_destroy {
             struct request {
                 struct imms {
@@ -774,9 +779,6 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
     }
-
-    std::string to_string(const core::receive_args<Function::call::request>& req);
-    std::string to_string(const core::receive_args<Function::call::response>& resp);
 
 
     std::string to_string(CUuuid uuid);

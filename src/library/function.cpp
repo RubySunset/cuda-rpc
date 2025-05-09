@@ -63,7 +63,7 @@ srv::Function::launch(dim3 gridDim, dim3 blockDim, const void** args,
                       size_t sharedMemBytes,
                       std::optional<std::reference_wrapper<Stream>> stream)
 {
-    METHOD(Function, call);
+    METHOD(Function, launch);
     LOG_REQ(method)
         << " {}";
 
