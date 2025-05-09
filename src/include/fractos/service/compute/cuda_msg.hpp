@@ -46,6 +46,13 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
 
+    }
+
+    std::string to_string(const core::receive_args<Service::connect::request>& req);
+    std::string to_string(const core::receive_args<Service::connect::response>& resp);
+
+    namespace Service {
+
         enum generic_opcode : uint64_t {
             OP_GET_DRIVER_VERSION,
             OP_INIT,
@@ -60,6 +67,9 @@ namespace fractos::service::compute::cuda::wire {
 
         using generic = wire::generic;
 
+    }
+
+    namespace Service {
         struct get_driver_version {
             struct request {
                 struct imms {
@@ -78,7 +88,12 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+    }
 
+    std::string to_string(const core::receive_args<Service::get_driver_version::request>& req);
+    std::string to_string(const core::receive_args<Service::get_driver_version::response>& resp);
+
+    namespace Service {
         struct init {
             struct request {
                 struct imms {
@@ -97,21 +112,13 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
-
     }
-
-    std::string to_string(const core::receive_args<Service::connect::request>& req);
-    std::string to_string(const core::receive_args<Service::connect::response>& resp);
-
-    std::string to_string(const core::receive_args<Service::get_driver_version::request>& req);
-    std::string to_string(const core::receive_args<Service::get_driver_version::response>& resp);
 
     std::string to_string(const core::receive_args<Service::init::request>& req);
     std::string to_string(const core::receive_args<Service::init::response>& resp);
 
 
     namespace Service {
-
         struct device_get {
             struct request {
                 struct imms {
@@ -134,7 +141,12 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+    }
 
+    std::string to_string(const core::receive_args<Service::device_get::request>& req);
+    std::string to_string(const core::receive_args<Service::device_get::response>& resp);
+
+    namespace Service {
         struct device_get_count {
             struct request {
                 struct imms {
@@ -156,15 +168,11 @@ namespace fractos::service::compute::cuda::wire {
 
     }
 
-    std::string to_string(const core::receive_args<Service::device_get::request>& req);
-    std::string to_string(const core::receive_args<Service::device_get::response>& resp);
-
     std::string to_string(const core::receive_args<Service::device_get_count::request>& req);
     std::string to_string(const core::receive_args<Service::device_get_count::response>& resp);
 
 
     namespace Service {
-
         struct module_get_loading_mode {
             struct request {
                 struct imms {
@@ -183,7 +191,6 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
-
     }
 
     std::string to_string(const core::receive_args<Service::module_get_loading_mode::request>& req);
@@ -202,7 +209,9 @@ namespace fractos::service::compute::cuda::wire {
         };
 
         using generic = wire::generic;
+    }
 
+    namespace Device {
         struct get_attribute {
             struct request {
                 struct imms {
@@ -222,7 +231,12 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+    }
 
+    std::string to_string(const core::receive_args<Device::get_attribute::request>& req);
+    std::string to_string(const core::receive_args<Device::get_attribute::response>& resp);
+
+    namespace Device {
         struct get_name {
             struct request {
                 struct imms {
@@ -242,7 +256,12 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+    }
 
+    std::string to_string(const core::receive_args<Device::get_name::request>& req);
+    std::string to_string(const core::receive_args<Device::get_name::response>& resp);
+
+    namespace Device {
         struct get_uuid {
             struct request {
                 struct imms {
@@ -261,7 +280,12 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+    }
 
+    std::string to_string(const core::receive_args<Device::get_uuid::request>& req);
+    std::string to_string(const core::receive_args<Device::get_uuid::response>& resp);
+
+    namespace Device {
         struct total_mem {
             struct request {
                 struct imms {
@@ -280,7 +304,12 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+    }
 
+    std::string to_string(const core::receive_args<Device::total_mem::request>& req);
+    std::string to_string(const core::receive_args<Device::total_mem::response>& resp);
+
+    namespace Device {
         struct make_context {
             struct request {
                 struct imms {
@@ -323,18 +352,6 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
     }
-
-    std::string to_string(const core::receive_args<Device::get_attribute::request>& req);
-    std::string to_string(const core::receive_args<Device::get_attribute::response>& resp);
-
-    std::string to_string(const core::receive_args<Device::get_name::request>& req);
-    std::string to_string(const core::receive_args<Device::get_name::response>& resp);
-
-    std::string to_string(const core::receive_args<Device::get_uuid::request>& req);
-    std::string to_string(const core::receive_args<Device::get_uuid::response>& resp);
-
-    std::string to_string(const core::receive_args<Device::total_mem::request>& req);
-    std::string to_string(const core::receive_args<Device::total_mem::response>& resp);
 
 
     namespace Context {
@@ -662,7 +679,9 @@ namespace fractos::service::compute::cuda::wire {
         };
 
         using generic = wire::generic;
+    }
 
+    namespace Module {
         struct get_global {
             struct request {
                 struct imms {
@@ -683,7 +702,12 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+    }
 
+    std::string to_string(const core::receive_args<Module::get_global::request>& req);
+    std::string to_string(const core::receive_args<Module::get_global::response>& resp);
+
+    namespace Module {
         struct get_function {
             struct request {
                 struct imms {
@@ -702,8 +726,6 @@ namespace fractos::service::compute::cuda::wire {
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::request generic;
-                    fractos::core::cap::request call;
-                    fractos::core::cap::request func_destroy; 
                 };
             };
         };
@@ -725,9 +747,6 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
     }
-
-    std::string to_string(const core::receive_args<Module::get_global::request>& req);
-    std::string to_string(const core::receive_args<Module::get_global::response>& resp);
 
     namespace Function {
 
