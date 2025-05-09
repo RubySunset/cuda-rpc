@@ -202,6 +202,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Memory>>
             mem_alloc(size_t size);
 
+            // cuModuleLoad
+            [[nodiscard]] core::future<std::shared_ptr<Module>>
+            module_load(const std::string path);
+
             // /**
             //  * @brief Wrapper for cuModuleLoad() - not in use
             //  */

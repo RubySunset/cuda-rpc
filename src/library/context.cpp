@@ -1,11 +1,11 @@
-#include <utility>
-
-#include <fractos/wire/error.hpp>
 #include <fractos/core/error.hpp>
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
+#include <fractos/wire/error.hpp>
+#include <fstream>
+#include <utility>
 
 #include <./common.hpp>
 #include <context_impl.hpp>
@@ -163,8 +163,8 @@ srv::Context::mem_alloc(size_t size)
         << " {}";
 
     auto& pimpl = impl::Context::get(*this);
-
     auto self = pimpl.self.lock();
+
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
         .set_imm(&msg::request::imms::opcode, srv::wire::Context::OP_MEM_ALLOC)
@@ -289,53 +289,36 @@ srv::Context::make_event(fractos::wire::endian::uint32_t flags)
         });
 }
 
+core::future<std::shared_ptr<srv::Module>>
+srv::Context::module_load(const std::string path)
+{
+    auto& pimpl = impl::Context::get(*this);
 
+    std::ifstream file(path, std::ifstream::ate | std::ifstream::binary);
+    if (not file.is_open()) {
+        return core::make_exceptional_future<std::shared_ptr<srv::Module>>(
+            CudaError(CUDA_ERROR_FILE_NOT_FOUND));
+    }
+    auto size = file.tellg();
+    file.seekg(0);
 
-// core::future<std::shared_ptr<Module>> Context::make_module_file(
-// // core::future<void> Context::make_module_file(
-//             const std::string& file_name) {
+    std::shared_ptr<char[]> contents(new char[size]);
+    CHECK(file.rdbuf()->sgetn(contents.get(), size) == size);
 
-//     using msg = ::service::compute::cuda::wire::Context::make_module_file;
-
-//     DVLOG(logging::SERVICE) << "Context::make_module_file <-";
-
-//     auto& pimpl = impl::Context::get(*this);
-
-//     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-//     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_module_data)// file
-//         // .set_imm(&msg::request::imms::name, name) // unsigned int vs uint32_t
-//         .set_imm(&msg::request::imms::file_name_size, file_name.size())
-//         .set_imm(offsetof(msg::request::imms, file_name), file_name.c_str(), file_name.size())
-//         .set_cap(&msg::request::caps::continuation, resp)
-//         .on_channel()
-//         .invoke(resp) // wait for srv_handle
-//         .unwrap()
-//         .then([file_name](auto& fut) { // function_name
-//             auto [ch, args] = fut.get();
-
-//             if (not args->has_exactly_args()) {
-//                 // throw core::other_error("invalvalue response format for Context::make_module_file");
-//                 DVLOG(logging::SERVICE) << "Context::make_module_file ->"
-//                 <<" error= OTHER args";
-//             }
-
-//             DVLOG(logging::SERVICE) << "Context::make_module_file ->"
-//                                     << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-//             fractos::wire::error_raise_exception_maybe(args->imms.error);
-
-//             // get Module object
-//             std::shared_ptr<Module_impl> pimpl_(
-//                 new Module_impl{{}, ch,
-//                         std::move(args->caps.get_function),
-//                         std::move(args->caps.destroy)}
-//                 );
-//             pimpl_->self = pimpl_;
-//             auto pimpl = static_pointer_cast<void>(pimpl_);
-//             std::shared_ptr<Module> res(new Module{pimpl, file_name});
-//             return res;
-//         });
-// }
-
+    // RO cap, synchronously prefetch default MR to avoid unexpected perm errors
+    auto& mr = pimpl.ch->get_default_memory_region();
+    mr.prefetch(fractos::core::memory_region::prefetch_type::ODP_RD_SYNC,
+                (const void*)contents.get(), size);
+    return pimpl.ch->make_memory((const void*)contents.get(), size, mr)
+        .then([this, self=pimpl.self.lock(), contents](auto& fut) {
+            auto mem = fut.get();
+            return this->make_module_data(mem, 0)
+                .then([contents, mem=std::move(mem)](auto& fut) mutable {
+                    return fut.get();
+                });
+        })
+        .unwrap();
+}
 
 core::future<std::shared_ptr<srv::Module>>
 srv::Context::make_module_data(core::cap::memory& contents, uint64_t module_id)
