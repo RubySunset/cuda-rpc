@@ -234,7 +234,8 @@ gpu_Module::handle_get_global(auto ch, auto args)
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_ARGS_ALL();
+    CHECK_CAPS_EXACT();
+    CHECK_IMMS_ALL();
     CHECK_ARGS_COND(args->imms_size() == (sizeof(msg::request::imms) + args->imms.name_size));
 
     std::string name(args->imms.name, args->imms.name_size);

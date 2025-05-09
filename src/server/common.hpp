@@ -58,5 +58,14 @@ struct receive_args_base_type
 #define CHECK_ARGS_EXACT()                                              \
     CHECK_ARGS_COND(args->has_exactly_args())
 
-#define CHECK_ARGS_ALL()                                                \
-    CHECK_ARGS_COND(args->has_all_imms() and args->has_exactly_caps())
+#define CHECK_IMMS_EXACT()                                              \
+    CHECK_ARGS_COND(args->has_exactly_imms())
+
+#define CHECK_CAPS_EXACT()                                              \
+    CHECK_ARGS_COND(args->has_exactly_caps())
+
+#define CHECK_IMMS_ALL()                                                \
+    CHECK_ARGS_COND(args->has_all_imms())
+
+#define CHECK_CAPS_ALL()                                                \
+    CHECK_ARGS_COND(args->has_all_caps())
