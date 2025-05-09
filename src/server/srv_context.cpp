@@ -538,12 +538,13 @@ void gpu_Context::handle_module_data(auto args) {
     auto size = args->caps.cuda_file.get_size();
 
     std::shared_ptr<char[]> buffer(new char[size]);
-    // char* buffer = (char*)malloc(size);
 
-    auto mr_lo = ch->make_memory_region(buffer.get(), size, core::memory_region::translation_type::PIN);
-
-    auto copied_mem = ch->make_memory(buffer.get(), size, *mr_lo).get();
-    ch->copy(args->caps.cuda_file, copied_mem).get();
+    {
+        // passing explicit MR avoids MR creation and prefetching
+        auto& mr = ch->get_default_memory_region();
+        auto copied_mem = ch->make_memory(buffer.get(), size, mr).get();
+        ch->copy(args->caps.cuda_file, copied_mem).get();
+    }
     LOG(INFO) << "get cuda_file in memory";
 
     // std::ofstream outfile("module_code.ptx", std::ios::binary | std::ios::app);
