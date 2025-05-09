@@ -38,7 +38,8 @@ struct receive_args_base_type
 
 #define METHOD(cls, name)                                               \
     static const std::string method = "handle_" #name;                  \
-    using msg = srv::wire:: cls :: name;                                \
+    namespace srv_wire = srv::wire:: cls;                               \
+    using msg = srv_wire:: name;                                        \
     {                                                                   \
         using args_type = receive_args_base_type<decltype(args)>::type; \
         static_assert(std::is_same<msg::request, args_type>::value);    \

@@ -34,11 +34,13 @@ impl::to_string(const impl::Function& obj)
 
 impl::Function::Function(std::shared_ptr<fractos::core::channel> ch,
                          size_t args_total_size, std::vector<size_t> args_size,
+                         fractos::core::cap::request req_generic,
                          fractos::core::cap::request req_func_call,
                          fractos::core::cap::request req_func_destroy)
     :ch(ch)
     ,args_total_size(args_total_size)
     ,args_size(args_size)
+    ,req_generic(std::move(req_generic))
     ,req_func_call(std::move(req_func_call))
     ,req_func_destroy(std::move(req_func_destroy))
 {

@@ -138,6 +138,7 @@ srv::Module::get_function(const std::string& func_name)
                 auto pimpl_ = std::make_shared<impl::Function>(
                     ch,
                     args_total_size, args_size,
+                    std::move(args->caps.generic),
                     std::move(args->caps.call),
                     std::move(args->caps.func_destroy));
                 pimpl_->self = pimpl_;

@@ -1,17 +1,18 @@
-// #include "srv_function.hpp"
-#include "srv_context.hpp"
-#include <pthread.h>
-#include <glog/logging.h>
+#include <cuda_runtime.h>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
+#include <glog/logging.h>
+#include <pthread.h>
 
-#include <cuda_runtime.h>
+#include "common.hpp"
+#include "srv_context.hpp"
+// #include "srv_function.hpp"
 
 
 using namespace fractos;
+namespace srv = fractos::service::compute::cuda;
 using namespace ::test;
-// using namespace impl;
 
 #define checkCudaErrors_lo(err)  handleError(err, __FILE__, __LINE__)
 
@@ -76,20 +77,30 @@ core::future<void> gpu_Function::register_methods(std::shared_ptr<core::channel>
     auto self = _self;
 
 
-    return ch->make_request_builder<msg_base::launch::request>(
-        ch->get_default_endpoint(), 
+    return ch->make_request_builder<msg_base::generic::request>(
+        ch->get_default_endpoint(),
         [self](auto ch, auto args) {
-            self->handle_call(std::move(args));
+            self->handle_generic(ch, std::move(args));
         })
         .on_channel()
         .make_request()
+        .then([self, ch](auto& fut) {
+            self->_req_generic = fut.get();
+            return ch->make_request_builder<msg_base::launch::request>(
+                ch->get_default_endpoint(), 
+                [self](auto ch, auto args) {
+                    self->handle_call(std::move(args));
+                })
+                .on_channel()
+                .make_request();
+        })
+        .unwrap()
         .then([ch, self](auto& fut) {
             self->_req_call = fut.get();
             VLOG(fractos::logging::SERVICE) << "SET req_call"; // virtua
             return ch->make_request_builder<msg_base::func_destroy::request>(
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
-                    
                     self->handle_func_destroy(std::move(args));
                 })
                 .on_channel()
@@ -100,6 +111,48 @@ core::future<void> gpu_Function::register_methods(std::shared_ptr<core::channel>
             self->_req_func_destroy = fut.get();
         });
 
+}
+
+void
+gpu_Function::handle_generic(auto ch, auto args)
+{
+    METHOD(Function, generic);
+
+    auto opcode = srv_wire::OP_INVALID;
+
+    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
+        LOG_OP(method)
+            << " [error] request without continuation, ignoring";
+        return;
+    } else if (args->has_imm(&msg::request::imms::opcode)) {
+        opcode = static_cast<srv_wire::generic_opcode>(args->imms.opcode.get());
+    }
+
+    auto reinterpreted = []<class T>(auto args) {
+        using ptr = core::receive_args<T>;
+        return std::unique_ptr<ptr>(reinterpret_cast<ptr*>(args.release()));
+    };
+
+#define HANDLE(name) \
+    handle_ ## name(ch, reinterpreted.template operator()<srv_wire:: name ::request>(std::move(args)))
+
+    switch (opcode) {
+    case srv_wire::OP_LAUNCH:
+        HANDLE(launch);
+        break;
+
+    default:
+        LOG_OP(method)
+            << " [error] invalid opcode";
+        ch->template make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .on_channel()
+            .invoke()
+            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        break;
+    }
+
+#undef HANDLE
 }
 
 
@@ -207,7 +260,12 @@ void gpu_Function::handle_func_destroy(auto args) {
 
     DVLOG(logging::SERVICE) << "Revoke destroy";
 
-    ch->revoke(self->_req_call)
+    ch->revoke(self->_req_generic)
+        .then([ch, self](auto& fut) {
+            fut.get();
+            return  ch->revoke(self->_req_call);
+        })
+        .unwrap()
         .then([ch, self](auto& fut) {
             fut.get();
             VLOG(fractos::logging::SERVICE) << "Revoke _req_memory";
@@ -228,3 +286,10 @@ void gpu_Function::handle_func_destroy(auto args) {
 
 }
 
+std::string
+test::to_string(const gpu_Function& obj)
+{
+    std::stringstream ss;
+    ss << "Function(" << &obj << ")";
+    return ss.str();
+}
