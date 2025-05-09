@@ -14,8 +14,7 @@ namespace impl {
     struct Function : public impl::Base<srv::Function, impl::Function> {
         Function(std::shared_ptr<fractos::core::channel> ch,
                  size_t args_total_size, std::vector<size_t> args_size,
-                 fractos::core::cap::request req_generic,
-                 fractos::core::cap::request req_func_destroy);
+                 fractos::core::cap::request req_generic);
 
         std::weak_ptr<Function> self;
         std::shared_ptr<fractos::core::channel> ch;
@@ -23,7 +22,6 @@ namespace impl {
         std::vector<size_t> args_size;
 
         fractos::core::cap::request req_generic;
-        fractos::core::cap::request req_func_destroy;
 
         fractos::core::future<void> do_destroy();
     };

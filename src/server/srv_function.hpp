@@ -21,9 +21,8 @@ public:
 protected:
     void handle_generic(auto ch, auto args);
     void handle_launch(auto ch, auto args);
-    void handle_call(auto args);
-    void handle_func_destroy(auto args);
-    
+    void handle_destroy(auto ch, auto args);
+
 private:
     // void free(char* base);  
     std::string _name;
@@ -42,7 +41,6 @@ private:
 
 public:
     fractos::core::cap::request _req_generic;
-    fractos::core::cap::request _req_func_destroy;
 
     gpu_Function(std::string func_name, CUcontext& ctx, CUmodule& mod, std::weak_ptr<test::gpu_Context> vctx);
 

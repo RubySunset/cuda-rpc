@@ -1,18 +1,16 @@
-#include <utility>
-
-#include <fractos/wire/error.hpp>
 #include <fractos/core/error.hpp>
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
+#include <fractos/wire/error.hpp>
+#include <utility>
 
 #include <common.hpp>
 #include <function_impl.hpp>
 #include <stream_impl.hpp>
 
 
-// #include <fractos/service/compute/cuda_msg.hpp>
 using namespace fractos;
 namespace srv = fractos::service::compute::cuda;
 
@@ -34,13 +32,11 @@ impl::to_string(const impl::Function& obj)
 
 impl::Function::Function(std::shared_ptr<fractos::core::channel> ch,
                          size_t args_total_size, std::vector<size_t> args_size,
-                         fractos::core::cap::request req_generic,
-                         fractos::core::cap::request req_func_destroy)
+                         fractos::core::cap::request req_generic)
     :ch(ch)
     ,args_total_size(args_total_size)
     ,args_size(args_size)
     ,req_generic(std::move(req_generic))
-    ,req_func_destroy(std::move(req_func_destroy))
 {
 }
 
@@ -51,9 +47,11 @@ srv::Function::Function(std::shared_ptr<void> pimpl, std::string func_name)
 
 srv::Function::~Function()
 {
-    destroy()
+    auto& pimpl = impl::Function::get(*this);
+    pimpl.destroy_maybe()
+        // keep pimpl alive
         .then([pimpl=this->_pimpl](auto& fut) {
-            fut.get();
+            (void)fut.get();
         })
         .as_callback();
 }
@@ -175,33 +173,34 @@ core::future<void>
 srv::Function::destroy()
 {
     auto& pimpl = impl::Function::get(*this);
-    return pimpl.destroy();
+    auto self = pimpl.self.lock();
+    return pimpl.destroy()
+        // keep self alive
+        .then([self](auto& fut) {
+            return fut.get();
+        });
 }
 
 core::future<void>
 impl::Function::do_destroy()
 {
-    using msg = ::service::compute::cuda::wire::Function::func_destroy;
+    METHOD(Function, destroy);
+    LOG_REQ(method)
+        << " {}";
 
-    DVLOG(logging::SERVICE) << "Function::func_destroy <-";
+    // NOTE: kept alive by Function::destroy() and ~Function()
+    auto self = this;
 
     auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
-    return ch->make_request_builder<msg::request>(req_func_destroy)
+    return ch->make_request_builder<msg::request>(req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire::OP_DESTROY)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
-        .invoke(resp) // wait for handle_destroy
+        .invoke(resp)
         .unwrap()
+        .then_cuda_response()
         .then([](auto& fut) {
             auto [ch, args] = fut.get();
-
-            if (not args->has_exactly_args()) {
-                // throw core::other_error("invalid response format for Function::destroy");
-                DVLOG(logging::SERVICE) << "Function::func_destroy ->"
-                                << " error=OTHER args";
-            }
-
-            DVLOG(logging::SERVICE) << "Function::func_destroy ->"
-                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
-            fractos::wire::error_raise_exception_maybe(args->imms.error);
+            CHECK_ARGS_EXACT();
         });
 }

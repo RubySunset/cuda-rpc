@@ -67,17 +67,12 @@ gpu_Function::~gpu_Function() {
     // checkCudaErrors(cuCtxDestroy(context));
 }
 
-/*
- *  Make handlers for a Function's caps
- */
-core::future<void> gpu_Function::register_methods(std::shared_ptr<core::channel> ch)
+core::future<void>
+gpu_Function::register_methods(std::shared_ptr<core::channel> ch)
 {
-    namespace msg_base = ::service::compute::cuda::wire::Function;
-
     auto self = _self;
 
-
-    return ch->make_request_builder<msg_base::generic::request>(
+    return ch->make_request_builder<srv::wire::Function::generic::request>(
         ch->get_default_endpoint(),
         [self](auto ch, auto args) {
             self->handle_generic(ch, std::move(args));
@@ -86,17 +81,6 @@ core::future<void> gpu_Function::register_methods(std::shared_ptr<core::channel>
         .make_request()
         .then([self, ch](auto& fut) {
             self->_req_generic = fut.get();
-            return ch->make_request_builder<msg_base::func_destroy::request>(
-                ch->get_default_endpoint(), 
-                [self](auto ch, auto args) {
-                    self->handle_func_destroy(std::move(args));
-                })
-                .on_channel()
-                .make_request();
-            })
-        .unwrap()
-        .then([ch, self, this](auto& fut) {
-            self->_req_func_destroy = fut.get();
         });
 
 }
@@ -127,6 +111,9 @@ gpu_Function::handle_generic(auto ch, auto args)
     switch (opcode) {
     case srv_wire::OP_LAUNCH:
         HANDLE(launch);
+        break;
+    case srv_wire::OP_DESTROY:
+        HANDLE(destroy);
         break;
 
     default:
@@ -205,49 +192,50 @@ out:
         .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
 }
 
-/*
- *  Destroy a Function, revoke all of its caps
- */
-void gpu_Function::handle_func_destroy(auto args) {
-    DVLOG(logging::SERVICE) << "CALL handle destroy";
-    using msg = ::service::compute::cuda::wire::Function::func_destroy;
+void
+gpu_Function::handle_destroy(auto ch, auto args)
+{
+    METHOD(Function, destroy);
+    LOG_REQ(method) << srv::wire::to_string(*args);
 
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
-    
-    auto self = this->_self;
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT();
 
-    if (not args->has_exactly_args() or _destroyed) {
-        ch->make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+    auto self = _self;
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+
+    if (_destroyed) {
+        error = wire::ERR_OTHER;
+        LOG_RES(method)
+            << " error=" << wire::to_string(error)
+            << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
+        reqb_cont
+            .set_imm(&msg::response::imms::error, error)
+            .set_imm(&msg::response::imms::cuerror, cuerror)
             .on_channel()
             .invoke()
-            .as_callback();
-
+            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
         return;
     }
 
-    // memory_free(base);
-
-    DVLOG(logging::SERVICE) << "Revoke destroy";
-
-    ch->revoke(self->_req_generic)
-        .then([ch, self](auto& fut) {
+    ch->revoke(_req_generic)
+        .then([ch, this, self, args=std::move(args)](auto& fut) {
+            auto error = wire::ERR_SUCCESS;
+            auto cuerror = CUDA_SUCCESS;
+            LOG_RES(method)
+                << " error=" << wire::to_string(error)
+                << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
             fut.get();
-            VLOG(fractos::logging::SERVICE) << "Revoke _req_memory";
-            return ch->revoke(self->_req_func_destroy);
-        })
-        .unwrap()
-        .then([this, ch, self, args=std::move(args)](auto& fut) {
-            fut.get();
-            DVLOG(fractos::logging::SERVICE) << "cuda function destroyed";
             this->_destroyed = true;
-            ch->make_request_builder<msg::response>(args->caps.continuation) // response
-                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+            ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::cuerror, cuerror)
                 .on_channel()
                 .invoke()
-                .as_callback();
+                .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
         })
-    .as_callback();
+        .as_callback();
 
 }
 

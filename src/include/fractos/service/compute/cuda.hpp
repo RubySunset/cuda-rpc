@@ -357,6 +357,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
             /**
              * @brief Destroy function
+             *
+             * Called implicitly during object destruction, if it was not
+             * already called.
              */
             [[nodiscard]] core::future<void>
             destroy();

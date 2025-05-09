@@ -733,6 +733,7 @@ namespace fractos::service::compute::cuda::wire {
 
         enum generic_opcode : uint64_t {
             OP_LAUNCH,
+            OP_DESTROY,
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
 
@@ -772,9 +773,10 @@ namespace fractos::service::compute::cuda::wire {
     std::string to_string(const core::receive_args<Function::launch::response>& resp);
 
     namespace Function {
-        struct func_destroy {
+        struct destroy {
             struct request {
                 struct imms {
+                    fractos::wire::endian::uint64_t opcode;
                 } __attribute__((packed));
                 struct caps {
                     fractos::core::cap::request continuation;
@@ -783,12 +785,16 @@ namespace fractos::service::compute::cuda::wire {
             struct response {
                 struct imms {
                     fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
                 } __attribute__ ((packed));
                 struct caps {
                 };
             };
         };
     }
+
+    std::string to_string(const core::receive_args<Function::destroy::request>& req);
+    std::string to_string(const core::receive_args<Function::destroy::response>& resp);
 
 
     std::string to_string(CUuuid uuid);

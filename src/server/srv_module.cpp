@@ -333,7 +333,6 @@ void gpu_Module::handle_get_function(auto args) {
                 .set_imm(&msg::response::imms::nargs, func->_args_size.size())
                 .set_imm(args_size_offset, args_size.data(), sizeof(uint64_t) * func->_args_size.size())
                 .set_cap(&msg::response::caps::generic, func->_req_generic)
-                .set_cap(&msg::response::caps::func_destroy, func->_req_func_destroy)
                 .on_channel()
                 .invoke()
                 .as_callback();

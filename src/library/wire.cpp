@@ -546,6 +546,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Function::launch::reque
     print_imm_identity(block_y);
     print_imm_identity(block_z);
     print_imm_identity(stream_id);
+    print_extra_imm_error();
 
     print_cap(continuation);
     print_extra_cap_error();
@@ -555,6 +556,37 @@ srv::wire::to_string(const core::receive_args<srv::wire::Function::launch::reque
 
 std::string
 srv::wire::to_string(const core::receive_args<srv::wire::Function::launch::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_imm_cuerror(cuerror);
+    print_extra_imm_error();
+
+    print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Function::destroy::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Function::destroy::response>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
 
