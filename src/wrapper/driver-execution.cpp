@@ -30,11 +30,16 @@ cuLaunchKernel(CUfunction f,
         LOG(FATAL) << "not implemented";
     }
 
-    func_ptr->function->launch(dim3(gridDimX, gridDimY, gridDimZ),
-                               dim3(blockDimX, blockDimY, blockDimZ),
-                               (const void**)kernelParams, sharedMemBytes,
-                               stream_opt)
-        .get();
+    CUresult error = CUDA_SUCCESS;
+    try {
+        func_ptr->function->launch(dim3(gridDimX, gridDimY, gridDimZ),
+                                   dim3(blockDimX, blockDimY, blockDimZ),
+                                   (const void**)kernelParams, sharedMemBytes,
+                                   stream_opt)
+            .get();
+    } catch (const srv::CudaError& e) {
+        error = e.cuerror;
+    }
 
-    return CUDA_SUCCESS;
+    return error;
 }
