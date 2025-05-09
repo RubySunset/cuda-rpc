@@ -111,8 +111,9 @@ cuModuleLoadData(CUmodule *module, const void *image)
 
     // load module into service
 
-    auto image_cap_base = get_channel().make_memory(image, image_size).get();
-    auto image_cap = get_channel().diminish(image_cap_base, 0, image_size, fractos::core::cap::PERM_WR).get();
+    // RO cap, uses default MR, implicitly prefetched
+    auto image_cap = get_channel().make_memory(image, image_size).get();
+    CHECK(not image_cap.has_any_perms(fractos::core::cap::PERM_WR));
 
     LOG(ERROR) << "TODO: no use for module_id arg";
     auto module_ptr = ctx_ptr->make_module_data(image_cap, 0).get();
