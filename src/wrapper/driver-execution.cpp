@@ -32,10 +32,10 @@ cuLaunchKernel(CUfunction f,
 
     CUresult error = CUDA_SUCCESS;
     try {
-        func_ptr->function->launch(dim3(gridDimX, gridDimY, gridDimZ),
+        func_ptr->function->launch((const void**)kernelParams,
+                                   dim3(gridDimX, gridDimY, gridDimZ),
                                    dim3(blockDimX, blockDimY, blockDimZ),
-                                   (const void**)kernelParams, sharedMemBytes,
-                                   stream_opt)
+                                   sharedMemBytes, stream_opt)
             .get();
     } catch (const srv::CudaError& e) {
         error = e.cuerror;

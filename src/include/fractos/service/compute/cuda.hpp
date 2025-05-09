@@ -325,35 +325,26 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         public:
             // cuLaunchKernel
             [[nodiscard]] core::future<void>
-            launch(dim3 gridDim, dim3 blockDim, const void** args, size_t sharedMem,
+            launch(const void** args, dim3 gridDim, dim3 blockDim, size_t sharedMem,
                    std::optional<std::reference_wrapper<Stream>> stream);
 
+            // shorthands with variadic kernel arguments
 
-            /**
-             * @brief Wrapper for cuLaunchKernel()
-             */
-            template<class... Args>
-            [[nodiscard]]core::future<void> 
-            call(std::pair<size_t, size_t>& gpu_grid, Args&&... ker_args);
-
-            template<class... Args>
-            [[nodiscard]]core::future<void> 
-            call(std::array<size_t, 6>& gpu_grid, Args&&... ker_args);
-
-            template<class... Args>
-            [[nodiscard]]core::future<void> 
-            call(Stream& stream, std::pair<size_t, size_t>& gpu_grid, Args&&... ker_args);
-
-            template<class... Args>
-            [[nodiscard]]core::future<void> 
-            call(Stream& stream,std::array<size_t, 6>& gpu_grid, Args&&... ker_args);
-
-             /**
-             * @brief TODO: Wrapper for cuLaunchKernel()
-             */
             template<class... Args>
             [[nodiscard]] core::future<void>
-            call(Stream& stream, const std::tuple<size_t, size_t, size_t>& grid, Args&&... args);
+            launch(dim3 gridDim, dim3 blockDim, Args&&... args);
+
+            template<class... Args>
+            [[nodiscard]] core::future<void>
+            launch(size_t sharedMem, dim3 gridDim, dim3 blockDim, Args&&... args);
+
+            template<class... Args>
+            [[nodiscard]] core::future<void>
+            launch(Stream& stream, dim3 gridDim, dim3 blockDim, Args&&... args);
+
+            template<class... Args>
+            [[nodiscard]] core::future<void>
+            launch(Stream& stream, size_t sharedMem, dim3 gridDim, dim3 blockDim, Args&&... args);
 
             /**
              * @brief Destroy function
@@ -507,3 +498,5 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
     } // namespace cuda
 } // namespace fractos::service::compute
+
+#include <fractos/service/compute/cuda.inc.hpp>
