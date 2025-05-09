@@ -23,9 +23,27 @@ inline
 fractos::core::future<void>
 impl::Base<Tsrv, Timpl>::destroy()
 {
+    return destroy_maybe()
+        .then([](auto& fut) {
+            auto did_destroy = fut.get();
+            if (not did_destroy) {
+                throw std::runtime_error("cannot destroy object twice");
+            }
+        });
+}
+
+template <class Tsrv, class Timpl>
+inline
+fractos::core::future<bool>
+impl::Base<Tsrv, Timpl>::destroy_maybe()
+{
     if (not _destroyed.test_and_set()) {
-        return do_destroy();
+        return do_destroy()
+            .then([](auto& fut) {
+                fut.get();
+                return true;
+            });
     } else {
-        return fractos::core::make_ready_future();
+        return fractos::core::make_ready_future<bool>(false);
     }
 }

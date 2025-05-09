@@ -71,6 +71,7 @@ namespace impl {
         static const Timpl& get(const Tsrv& obj);
 
         fractos::core::future<void> destroy();
+        fractos::core::future<bool> destroy_maybe();
         virtual fractos::core::future<void> do_destroy() = 0;
 
     private:
