@@ -69,9 +69,11 @@ srv::Context::Context(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32
 
 srv::Context::~Context()
 {
-    destroy()
+    auto& pimpl = impl::Context::get(*this);
+    pimpl.destroy_maybe()
+        // keep pimpl alive
         .then([pimpl=this->_pimpl](auto& fut) {
-            fut.get();
+            (void)fut.get();
         })
         .as_callback();
 }

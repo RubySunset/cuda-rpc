@@ -30,9 +30,11 @@ srv::Memory::Memory(std::shared_ptr<void> pimpl)
 
 srv::Memory::~Memory()
 {
-    destroy()
+    auto& pimpl = impl::Memory::get(*this);
+    pimpl.destroy_maybe()
+        // keep pimpl alive
         .then([pimpl=this->_pimpl](auto& fut) {
-            fut.get();
+            (void)fut.get();
         })
         .as_callback();
 }

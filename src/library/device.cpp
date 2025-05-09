@@ -49,9 +49,11 @@ srv::Device::Device(std::shared_ptr<void> pimpl)
 
 srv::Device::~Device()
 {
-    destroy()
+    auto& pimpl = impl::Device::get(*this);
+    pimpl.destroy_maybe()
+        // keep pimpl alive
         .then([pimpl=this->_pimpl](auto& fut) {
-            fut.get();
+            (void)fut.get();
         })
         .as_callback();
 }

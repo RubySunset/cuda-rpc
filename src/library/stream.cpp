@@ -32,9 +32,11 @@ srv::Stream::Stream(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t
 
 srv::Stream::~Stream()
 {
-    destroy()
+    auto& pimpl = impl::Stream::get(*this);
+    pimpl.destroy_maybe()
+        // keep pimpl alive
         .then([pimpl=this->_pimpl](auto& fut) {
-            fut.get();
+            (void)fut.get();
         })
         .as_callback();
 }

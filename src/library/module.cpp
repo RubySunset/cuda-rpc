@@ -60,9 +60,11 @@ srv::Module::Module(std::shared_ptr<void> pimpl, uint64_t module_id)
 
 srv::Module::~Module()
 {
-    destroy()
+    auto& pimpl = impl::Module::get(*this);
+    pimpl.destroy_maybe()
+        // keep pimpl alive
         .then([pimpl=this->_pimpl](auto& fut) {
-            fut.get();
+            (void)fut.get();
         })
         .as_callback();
 }

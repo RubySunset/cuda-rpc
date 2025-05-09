@@ -27,9 +27,11 @@ srv::Event::Event(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t f
 
 srv::Event::~Event()
 {
-    destroy()
+    auto& pimpl = impl::Event::get(*this);
+    pimpl.destroy_maybe()
+        // keep pimpl alive
         .then([pimpl=this->_pimpl](auto& fut) {
-            fut.get();
+            (void)fut.get();
         })
         .as_callback();
 }
