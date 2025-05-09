@@ -359,6 +359,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             // NOTE: not for public use
             Function(std::shared_ptr<void> pimpl);
             ~Function();
+            void _launch_check_args(const std::vector<size_t>& args_size);
             std::shared_ptr<void> _pimpl;
         };
 

@@ -104,6 +104,22 @@ srv::Function::launch(const void** args, dim3 gridDim, dim3 blockDim,
         });
 }
 
+void
+srv::Function::_launch_check_args(const std::vector<size_t>& args_size)
+{
+    auto& pimpl = impl::Function::get(*this);
+    if (pimpl.args_size.size() != args_size.size()) {
+        throw std::runtime_error("invalid number of arguments");
+    }
+    for (size_t i = 0; i < args_size.size(); i++) {
+        if (pimpl.args_size[i] != args_size[i]) {
+            std::stringstream ss;
+            ss << "invalid size for argument " << i;
+            throw std::runtime_error(ss.str());
+        }
+    }
+}
+
 core::future<void>
 srv::Function::destroy()
 {
