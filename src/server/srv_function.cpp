@@ -37,7 +37,7 @@ gpu_Function::gpu_Function(std::string func_name, CUcontext& ctx, CUmodule& mod,
     checkCudaErrors_lo(cuCtxSetCurrent(_ctx));
 
     CUfunction function;
-    checkCudaErrors_lo(cuModuleGetFunction(&function, mod, func_name.c_str()));
+    checkCudaErrors_lo(cuModuleGetFunction(&function, _mod, func_name.c_str()));
     _func = function;
 
     _args_total_size = 0;
