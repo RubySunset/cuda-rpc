@@ -31,8 +31,11 @@ protected:
 private:
     void module_unload();  
 
+    // TODO: weak_ptr
     std::shared_ptr<gpu_Module> _self;
+    // TODO: atomic_flag
     bool _destroyed;
+    // TODO: delete
     std::string _name;
     uint64_t _id;
     CUcontext _ctx;
@@ -45,7 +48,7 @@ public:
     fractos::core::cap::request _req_get_func;
     fractos::core::cap::request _req_destroy;
 
-    std::shared_ptr<test::gpu_Function> _func; 
+    std::shared_ptr<impl::Function> _func; 
 
     gpu_Module(std::string& name, CUcontext& ctx);
     gpu_Module(uint64_t module_id, CUcontext& ctx,  std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx);

@@ -1,54 +1,47 @@
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <queue>
 #include <chrono>
+#include <cuda.h>
 #include <fractos/service/compute/cuda.hpp>
-// #include <./srv_stream.hpp>
-// #include <fractos/service/compute/cuda_msg.hpp>
-using namespace fractos;
+#include <queue>
+#include <stdlib.h>
+#include <sys/stat.h>
 
 
 namespace test {
-class gpu_Context;
-class gpu_Stream;
-class gpu_Function {
-public:
-    static std::shared_ptr<gpu_Function> factory(std::string func_name, CUcontext& ctx, CUmodule& mod
-        , std::weak_ptr<test::gpu_Context> vctx);
+    class gpu_Context;
+    class gpu_Stream;
+}
 
-    fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
+namespace impl {
 
-protected:
-    void handle_generic(auto ch, auto args);
-    void handle_launch(auto ch, auto args);
-    void handle_destroy(auto ch, auto args);
+    class Function {
+    public:
+        Function(std::weak_ptr<test::gpu_Context> ctx_ptr, CUfunction func,
+                 std::vector<size_t> args_size, size_t args_total_size);
+        ~Function();
 
-private:
-    // void free(char* base);  
-    std::string _name;
-    std::shared_ptr<gpu_Function> _self;
-    bool _destroyed;
-    CUcontext _ctx;
-    CUmodule _mod;
-    CUfunction _func;
-    size_t _args_total_size;
-public:
-    std::vector<size_t> _args_size;
-private:
+        fractos::core::future<void>
+        register_methods(std::shared_ptr<fractos::core::channel> ch);
 
-    std::weak_ptr<test::gpu_Context> _vctx; 
-    std::weak_ptr<test::gpu_Stream> _vstream;
+        const CUfunction func;
+        const size_t args_total_size;
+        const std::vector<size_t> args_size;
+        std::weak_ptr<test::gpu_Context> ctx_ptr;
 
-public:
-    fractos::core::cap::request _req_generic;
+        // TODO: this is a memory leak, turn to weak_ptr and keep track in module
+        std::shared_ptr<Function> self;
+        // TODO: atomic_flag
+        bool destroyed;
+        fractos::core::cap::request req_generic;
 
-    gpu_Function(std::string func_name, CUcontext& ctx, CUmodule& mod, std::weak_ptr<test::gpu_Context> vctx);
+    protected:
+        void handle_generic(auto ch, auto args);
+        void handle_launch(auto ch, auto args);
+        void handle_destroy(auto ch, auto args);
+    };
 
-    ~gpu_Function();
+    std::pair<CUresult, std::shared_ptr<Function>>
+    make_function(std::shared_ptr<test::gpu_Context> ctx_ptr, CUmodule mod, const std::string name);
 
-    //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
-};
-
-    std::string to_string(const gpu_Function& obj);
+    std::string to_string(const Function& obj);
 
 }

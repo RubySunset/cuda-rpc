@@ -3,6 +3,7 @@
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
 #include <glog/logging.h>
+#include <numeric>
 #include <pthread.h>
 
 #include "common.hpp"
@@ -12,7 +13,6 @@
 
 using namespace fractos;
 namespace srv = fractos::service::compute::cuda;
-using namespace ::test;
 
 #define checkCudaErrors_lo(err)  handleError(err, __FILE__, __LINE__)
 
@@ -26,51 +26,60 @@ void handleError(CUresult err, const std::string& file, int line) {
 }
 
 
+std::pair<CUresult, std::shared_ptr<impl::Function>>
+impl::make_function(std::shared_ptr<test::gpu_Context> ctx_ptr, CUmodule mod, const std::string name)
+{
+    std::shared_ptr<Function> res;
 
-gpu_Function::gpu_Function(std::string func_name, CUcontext& ctx, CUmodule& mod, std::weak_ptr<test::gpu_Context> vctx) {
+    auto error = cuCtxSetCurrent(ctx_ptr->_ctx);
+    if (error != CUDA_SUCCESS) {
+        return std::make_pair(error, res);
+    }
 
-    _name = func_name;
-    _destroyed = false;
-    _ctx = ctx;
-    _mod = mod;
-    _vctx = vctx;
+    CUfunction func;
+    error = cuModuleGetFunction(&func, mod, name.c_str());
+    if (error != CUDA_SUCCESS) {
+        return std::make_pair(error, res);
+    }
 
-    checkCudaErrors_lo(cuCtxSetCurrent(_ctx));
-
-    CUfunction function;
-    checkCudaErrors_lo(cuModuleGetFunction(&function, _mod, func_name.c_str()));
-    _func = function;
-
-    _args_total_size = 0;
+    size_t args_total_size = 0;
+    std::vector<size_t> args_size;
     for (size_t i = 0; true; i++) {
         size_t offset, size;
-        auto res = cuFuncGetParamInfo(_func, i, &offset, &size);
-        if (res == CUDA_SUCCESS) {
-            _args_total_size += size;
-            _args_size.push_back(size);
-        } else if (res == CUDA_ERROR_INVALID_VALUE) {
+        error = cuFuncGetParamInfo(func, i, &offset, &size);
+        if (error == CUDA_SUCCESS) {
+            args_total_size += size;
+            args_size.push_back(size);
+        } else if (error == CUDA_ERROR_INVALID_VALUE) {
             break;
         } else {
-            LOG(FATAL) << "unexpected error: " << res;
+            return std::make_pair(error, res);
         }
     }
+
+    res = std::make_shared<Function>(ctx_ptr, func, std::move(args_size), args_total_size);
+    res->self = res;
+    return std::make_pair(error, res);
 }
 
-std::shared_ptr<gpu_Function> gpu_Function::factory(std::string func_name, CUcontext& ctx, CUmodule& mod
-                                                ,std::weak_ptr<test::gpu_Context> vctx){
-    auto res = std::shared_ptr<gpu_Function>(new gpu_Function(func_name, ctx, mod, vctx));
-    res->_self = res;
-    return res;
+impl::Function::Function(std::weak_ptr<test::gpu_Context> ctx_ptr, CUfunction func,
+                         std::vector<size_t> args_size, size_t args_total_size)
+    :func(func)
+    ,args_total_size(args_total_size)
+    ,args_size(std::move(args_size))
+    ,ctx_ptr(ctx_ptr)
+    ,destroyed(false)
+{
 }
 
-gpu_Function::~gpu_Function() {
-    // checkCudaErrors(cuCtxDestroy(context));
+impl::Function::~Function()
+{
 }
 
 core::future<void>
-gpu_Function::register_methods(std::shared_ptr<core::channel> ch)
+impl::Function::register_methods(std::shared_ptr<core::channel> ch)
 {
-    auto self = _self;
+    auto self = this->self;
 
     return ch->make_request_builder<srv::wire::Function::generic::request>(
         ch->get_default_endpoint(),
@@ -80,13 +89,13 @@ gpu_Function::register_methods(std::shared_ptr<core::channel> ch)
         .on_channel()
         .make_request()
         .then([self, ch](auto& fut) {
-            self->_req_generic = fut.get();
+            self->req_generic = fut.get();
         });
 
 }
 
 void
-gpu_Function::handle_generic(auto ch, auto args)
+impl::Function::handle_generic(auto ch, auto args)
 {
     METHOD(Function, generic);
 
@@ -131,7 +140,7 @@ gpu_Function::handle_generic(auto ch, auto args)
 }
 
 void
-gpu_Function::handle_launch(auto ch, auto args)
+impl::Function::handle_launch(auto ch, auto args)
 {
     METHOD(Function, launch);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -139,12 +148,12 @@ gpu_Function::handle_launch(auto ch, auto args)
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_CAPS_EXACT();
     CHECK_IMMS_ALL();
-    CHECK_ARGS_COND(args->imms_size() == (sizeof(msg::request::imms) + _args_total_size));
+    CHECK_ARGS_COND(args->imms_size() == (sizeof(msg::request::imms) + args_total_size));
 
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
 
-    auto ctx_ptr = _vctx.lock();
+    auto ctx_ptr = this->ctx_ptr.lock();
     CHECK(ctx_ptr);
     cuerror = cuCtxSetCurrent(ctx_ptr->_ctx);
     if (cuerror != CUDA_SUCCESS) {
@@ -157,22 +166,22 @@ gpu_Function::handle_launch(auto ch, auto args)
 
         std::vector<const void*> kernel_args;
         const char* args_ptr = args->imms.kernel_args;
-        for (size_t i = 0; i < _args_size.size(); i++) {
+        for (size_t i = 0; i < args_size.size(); i++) {
             kernel_args.push_back(args_ptr);
-            args_ptr += _args_size[i];
+            args_ptr += args_size[i];
         }
 
         int stream_id = args->imms.stream_id;
         if (stream_id) {
             LOG_FIRST_N(WARNING, 1) << "TODO: add a proper API to query/get stream_ids";
             LOG_FIRST_N(WARNING, 1) << "TODO: return error when stream_id is incorrect";
-            auto _vstream = ctx_ptr->getVStreamMap().at(stream_id);
-            cuerror = cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z,
+            auto stream_ptr = ctx_ptr->getVStreamMap().at(stream_id);
+            cuerror = cuLaunchKernel(func, dimGrid.x, dimGrid.y, dimGrid.z,
                                      dimBlock.x, dimBlock.y, dimBlock.z,
-                                     0, _vstream->getCUStream(),
+                                     0, stream_ptr->getCUStream(),
                                      (void**)kernel_args.data(), 0);
         } else {
-            cuerror = cuLaunchKernel(_func, dimGrid.x, dimGrid.y, dimGrid.z,
+            cuerror = cuLaunchKernel(func, dimGrid.x, dimGrid.y, dimGrid.z,
                                      dimBlock.x, dimBlock.y, dimBlock.z,
                                      0, 0,
                                      (void**)kernel_args.data(), 0);
@@ -193,7 +202,7 @@ out:
 }
 
 void
-gpu_Function::handle_destroy(auto ch, auto args)
+impl::Function::handle_destroy(auto ch, auto args)
 {
     METHOD(Function, destroy);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -201,11 +210,11 @@ gpu_Function::handle_destroy(auto ch, auto args)
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT();
 
-    auto self = _self;
+    auto self = this->self;
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
 
-    if (_destroyed) {
+    if (destroyed) {
         error = wire::ERR_OTHER;
         LOG_RES(method)
             << " error=" << wire::to_string(error)
@@ -219,7 +228,7 @@ gpu_Function::handle_destroy(auto ch, auto args)
         return;
     }
 
-    ch->revoke(_req_generic)
+    ch->revoke(req_generic)
         .then([ch, this, self, args=std::move(args)](auto& fut) {
             auto error = wire::ERR_SUCCESS;
             auto cuerror = CUDA_SUCCESS;
@@ -227,7 +236,7 @@ gpu_Function::handle_destroy(auto ch, auto args)
                 << " error=" << wire::to_string(error)
                 << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
             fut.get();
-            this->_destroyed = true;
+            this->destroyed = true;
             ch->template make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, error)
                 .set_imm(&msg::response::imms::cuerror, cuerror)
@@ -240,7 +249,7 @@ gpu_Function::handle_destroy(auto ch, auto args)
 }
 
 std::string
-test::to_string(const gpu_Function& obj)
+impl::to_string(const impl::Function& obj)
 {
     std::stringstream ss;
     ss << "Function(" << &obj << ")";

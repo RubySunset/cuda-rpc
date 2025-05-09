@@ -314,8 +314,8 @@ void gpu_Module::handle_get_function(auto args) {
 
     // std::shared_ptr<test::gpu_Context> _vctx = _vctx.lock();
 
-    auto func = std::shared_ptr<gpu_Function>(gpu_Function::factory(func_name, _ctx, _module, _vctx));
-
+    auto [err, func] = impl::make_function(_vctx.lock(), _module, func_name);
+    CHECK(err == CUDA_SUCCESS) << "TODO: return error";
 
     func->register_methods(ch)
         .then([this, ch, self, func, args=std::move(args) ](auto& fut) { //, args=std::move(args),  mr_=std::move(mr_)
@@ -324,15 +324,15 @@ void gpu_Module::handle_get_function(auto args) {
 
             auto args_size_offset = offsetof(msg::response::imms, arg_size);
             std::vector<wire::endian::uint64_t> args_size;
-            for (auto arg: func->_args_size) {
+            for (auto arg: func->args_size) {
                 args_size.push_back(arg);
             }
 
             ch->make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
-                .set_imm(&msg::response::imms::nargs, func->_args_size.size())
-                .set_imm(args_size_offset, args_size.data(), sizeof(uint64_t) * func->_args_size.size())
-                .set_cap(&msg::response::caps::generic, func->_req_generic)
+                .set_imm(&msg::response::imms::nargs, func->args_size.size())
+                .set_imm(args_size_offset, args_size.data(), sizeof(uint64_t) * func->args_size.size())
+                .set_cap(&msg::response::caps::generic, func->req_generic)
                 .on_channel()
                 .invoke()
                 .as_callback();
