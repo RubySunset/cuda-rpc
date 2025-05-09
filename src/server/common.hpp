@@ -1,6 +1,8 @@
 #pragma once
 
+#include <atomic>
 #include <fractos/logging.hpp>
+#include <type_traits>
 
 
 #define LOG_OP(func)                            \
@@ -70,3 +72,16 @@ struct receive_args_base_type
 
 #define CHECK_CAPS_ALL()                                                \
     CHECK_ARGS_COND(args->has_all_caps())
+
+namespace impl {
+
+    class Base {
+    public:
+        bool is_destroyed() const;
+        bool destroy_maybe();
+
+    private:
+        std::atomic_flag _destroyed;
+    };
+
+}

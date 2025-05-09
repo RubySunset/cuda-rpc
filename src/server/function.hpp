@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#include "common.hpp"
+
 
 namespace test {
     class gpu_Context;
@@ -13,7 +15,7 @@ namespace test {
 
 namespace impl {
 
-    class Function {
+    class Function : public Base {
     public:
         Function(std::weak_ptr<test::gpu_Context> ctx_ptr, CUfunction func,
                  std::vector<size_t> args_size, size_t args_total_size);
@@ -27,16 +29,16 @@ namespace impl {
         const std::vector<size_t> args_size;
         std::weak_ptr<test::gpu_Context> ctx_ptr;
 
-        // TODO: this is a memory leak, turn to weak_ptr and keep track in module
+        // TODO: this is a memory leak; use weak_ptr and track functions in module
         std::shared_ptr<Function> self;
-        // TODO: atomic_flag
-        bool destroyed;
         fractos::core::cap::request req_generic;
 
     protected:
         void handle_generic(auto ch, auto args);
         void handle_launch(auto ch, auto args);
         void handle_destroy(auto ch, auto args);
+
+        void do_destroy();
     };
 
     std::pair<CUresult, std::shared_ptr<Function>>

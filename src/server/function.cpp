@@ -68,7 +68,6 @@ impl::Function::Function(std::weak_ptr<test::gpu_Context> ctx_ptr, CUfunction fu
     ,args_total_size(args_total_size)
     ,args_size(std::move(args_size))
     ,ctx_ptr(ctx_ptr)
-    ,destroyed(false)
 {
 }
 
@@ -214,7 +213,7 @@ impl::Function::handle_destroy(auto ch, auto args)
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
 
-    if (destroyed) {
+    if (not destroy_maybe()) {
         error = wire::ERR_OTHER;
         LOG_RES(method)
             << " error=" << wire::to_string(error)
@@ -236,7 +235,6 @@ impl::Function::handle_destroy(auto ch, auto args)
                 << " error=" << wire::to_string(error)
                 << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
             fut.get();
-            this->destroyed = true;
             ch->template make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, error)
                 .set_imm(&msg::response::imms::cuerror, cuerror)
