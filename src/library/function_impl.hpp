@@ -26,6 +26,11 @@ namespace impl {
         fractos::core::future<void> do_destroy();
     };
 
+    std::shared_ptr<srv::Function>
+    make_function(std::shared_ptr<fractos::core::channel> ch,
+                  size_t args_total_size, std::vector<size_t> args_size,
+                  fractos::core::cap::request req_generic);
+
     std::string to_string(const Function& obj);
 
 }

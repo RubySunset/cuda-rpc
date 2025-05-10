@@ -35,7 +35,7 @@ impl::Function::Function(std::shared_ptr<fractos::core::channel> ch,
                          fractos::core::cap::request req_generic)
     :ch(ch)
     ,args_total_size(args_total_size)
-    ,args_size(args_size)
+    ,args_size(std::move(args_size))
     ,req_generic(std::move(req_generic))
 {
 }
@@ -43,6 +43,19 @@ impl::Function::Function(std::shared_ptr<fractos::core::channel> ch,
 srv::Function::Function(std::shared_ptr<void> pimpl)
     :_pimpl(pimpl)
 {
+}
+
+std::shared_ptr<srv::Function>
+impl::make_function(std::shared_ptr<fractos::core::channel> ch,
+                    size_t args_total_size, std::vector<size_t> args_size,
+                    fractos::core::cap::request req_generic)
+{
+    auto pimpl_ = std::make_shared<impl::Function>(
+        ch, args_total_size, std::move(args_size), std::move(req_generic));
+    pimpl_->self = pimpl_;
+    auto pimpl = static_pointer_cast<void>(pimpl_);
+    auto res = std::make_shared<srv::Function>(pimpl);
+    return res;
 }
 
 srv::Function::~Function()

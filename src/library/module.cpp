@@ -136,15 +136,10 @@ srv::Module::get_function(const std::string& func_name)
                     args_size.push_back(elem);
                 }
 
-                //get Function object
-                auto pimpl_ = std::make_shared<impl::Function>(
+                return impl::make_function(
                     ch,
                     args_total_size, args_size,
                     std::move(args->caps.generic));
-                pimpl_->self = pimpl_;
-                auto pimpl = static_pointer_cast<void>(pimpl_);
-                auto res = std::make_shared<Function>(pimpl);
-                return res;
             });
     }
 
