@@ -26,23 +26,35 @@ std::string
 impl::to_string(const impl::Service& obj)
 {
     std::stringstream ss;
-    ss << "cuda::Service(" << &obj << ")";
+    ss << "cuda::Service(" << &obj << ","  << obj.state.get() << ")";
     return ss.str();
 }
 
 
-impl::Service::Service(std::shared_ptr<fractos::core::channel> ch,
-                       fractos::core::cap::request req_connect,
-                       fractos::core::cap::request req_generic)
-    :ch(ch)
-    ,req_connect(std::move(req_connect))
-    ,req_generic(std::move(req_generic))
-{
-}
-
 srv::Service::Service(std::shared_ptr<void> pimpl)
     : _pimpl(pimpl)
 {
+}
+
+std::shared_ptr<impl::Service>
+impl::make_service(std::shared_ptr<core::channel> ch,
+                   core::cap::request req_connect,
+                   core::cap::request req_generic)
+{
+    auto state = std::make_shared<impl::ServiceState>(
+        std::move(req_connect), std::move(req_generic));
+    return impl::make_service(ch, state);
+}
+
+std::shared_ptr<impl::Service>
+impl::make_service(std::shared_ptr<core::channel> ch,
+                   std::shared_ptr<impl::ServiceState> state)
+{
+    auto res = std::make_shared<impl::Service>();
+    res->self = res;
+    res->ch = ch;
+    res->state = state;
+    return res;
 }
 
 core::future<void>
@@ -72,6 +84,14 @@ srv::Service::set_default_channel(std::shared_ptr<core::channel> ch)
 {
     auto& pimpl = impl::Service::get(*this);
     pimpl.ch = ch;
+}
+
+std::unique_ptr<srv::Service>
+srv::Service::with_default_channel(std::shared_ptr<core::channel> ch)
+{
+    auto& pimpl = impl::Service::get(*this);
+    auto new_pimpl = impl::make_service(ch, pimpl.state);
+    return std::make_unique<srv::Service>(new_pimpl);
 }
 
 
@@ -127,15 +147,11 @@ srv::make_service(std::shared_ptr<core::channel> ch,
             }
             fractos::wire::error_raise_exception_maybe(args->imms.error);
 
-            auto pimpl_ = std::make_shared<impl::Service>(
+            auto pimpl = impl::make_service(
                 ch,
                 std::move(args->caps.connect),
                 std::move(args->caps.generic));
-            auto pimpl = std::static_pointer_cast<void>(pimpl_);
-            auto res = std::make_unique<Service>(pimpl);
-            pimpl_->self = pimpl_;
-
-            return res;
+            return std::make_unique<Service>(pimpl);
         });
 }
 
@@ -143,7 +159,7 @@ const core::cap::request&
 srv::Service::get_connect() const
 {
     auto& pimpl = impl::Service::get(*this);
-    return pimpl.req_connect;
+    return pimpl.state->req_connect;
 }
 
 core::future<int>
@@ -156,7 +172,7 @@ srv::Service::get_driver_version()
     auto& pimpl = impl::Service::get(*this);
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
         .set_imm(&msg::request::imms::opcode, srv::wire::Service::OP_GET_DRIVER_VERSION)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
@@ -184,7 +200,7 @@ srv::Service::init(unsigned int flags)
     auto& pimpl = impl::Service::get(*this);
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
         .set_imm(&msg::request::imms::opcode, srv::wire::Service::OP_INIT)
         .set_imm(&msg::request::imms::flags, flags)
         .set_cap(&msg::request::caps::continuation, resp)
@@ -211,7 +227,7 @@ srv::Service::device_get(int ordinal)
     auto& pimpl = impl::Service::get(*this);
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
         .set_imm(&msg::request::imms::opcode, srv::wire::Service::OP_DEVICE_GET)
         .set_imm(&msg::request::imms::ordinal, ordinal)
         .set_cap(&msg::request::caps::continuation, resp)
@@ -253,7 +269,7 @@ srv::Service::device_get_count()
     auto& pimpl = impl::Service::get(*this);
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
         .set_imm(&msg::request::imms::opcode, srv::wire::Service::OP_DEVICE_GET_COUNT)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
@@ -282,7 +298,7 @@ srv::Service::module_get_loading_mode()
     auto& pimpl = impl::Service::get(*this);
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
         .set_imm(&msg::request::imms::opcode, srv::wire::Service::OP_MODULE_GET_LOADING_MODE)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
