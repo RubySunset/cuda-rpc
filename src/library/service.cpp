@@ -45,6 +45,19 @@ srv::Service::Service(std::shared_ptr<void> pimpl)
 {
 }
 
+core::future<void>
+srv::Service::destroy()
+{
+    auto& pimpl = impl::Service::get(*this);
+    return pimpl.destroy();
+}
+
+core::future<void>
+impl::Service::do_destroy()
+{
+    LOG(FATAL) << "not implemented";
+    return core::make_ready_future();
+}
 
 
 std::shared_ptr<core::channel>
@@ -285,18 +298,4 @@ srv::Service::module_get_loading_mode()
 
             return static_cast<CUmoduleLoadingMode>(args->imms.mode.get());
         });
-}
-
-core::future<void>
-srv::Service::destroy()
-{
-    auto& pimpl = impl::Service::get(*this);
-    return pimpl.destroy();
-}
-
-core::future<void>
-impl::Service::do_destroy()
-{
-    LOG(FATAL) << "not implemented";
-    return core::make_ready_future();
 }
