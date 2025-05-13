@@ -46,12 +46,6 @@ srv::Service::Service(std::shared_ptr<void> pimpl)
 }
 
 
-std::shared_ptr<core::channel>
-srv::Service::get_default_channel()
-{
-    auto& pimpl = impl::Service::get(*this);
-    return pimpl.ch;
-}
 
 std::shared_ptr<core::channel>
 srv::Service::get_default_channel() const

@@ -77,14 +77,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class Service {
         public:
-            std::shared_ptr<fractos::core::channel>
-            get_default_channel();
-        
-            std::shared_ptr<fractos::core::channel>
-            get_default_channel() const;
-            
-            void set_default_channel(std::shared_ptr<fractos::core::channel>
-            ch);
+            std::shared_ptr<core::channel> get_default_channel() const;
+            void set_default_channel(std::shared_ptr<core::channel> ch);
 
             /**
              * @brief Return a capability that can be used with make_service()
