@@ -335,6 +335,12 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+    }
+
+    std::string to_string(const core::receive_args<Device::make_context::request>& req);
+    std::string to_string(const core::receive_args<Device::make_context::response>& resp);
+
+    namespace Device {
         struct destroy {
             struct request {
                 struct imms {
@@ -352,6 +358,9 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
     }
+
+    std::string to_string(const core::receive_args<Device::destroy::request>& req);
+    std::string to_string(const core::receive_args<Device::destroy::response>& resp);
 
 
     namespace Context {
@@ -446,7 +455,6 @@ namespace fractos::service::compute::cuda::wire {
     std::string to_string(const core::receive_args<Context::mem_alloc::response>& resp);
 
     namespace Context {
-
         struct make_stream {
             struct request {
                 struct imms {
@@ -467,7 +475,12 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+    }
 
+    std::string to_string(const core::receive_args<Context::make_stream::request>& req);
+    std::string to_string(const core::receive_args<Context::make_stream::response>& resp);
+
+    namespace Context {
         struct make_event {
             struct request {
                 struct imms {
@@ -488,7 +501,12 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+    }
 
+    std::string to_string(const core::receive_args<Context::make_event::request>& req);
+    std::string to_string(const core::receive_args<Context::make_event::response>& resp);
+
+    namespace Context {
         struct make_module_file {
             struct request {
                 struct imms {
@@ -513,7 +531,9 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+    }
 
+    namespace Context {
         struct make_module_data {
             struct request {
                 struct imms {
@@ -538,7 +558,12 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
-        
+    }
+
+    std::string to_string(const core::receive_args<Context::make_module_data::request>& req);
+    std::string to_string(const core::receive_args<Context::make_module_data::response>& resp);
+
+    namespace Context {
         struct synchronize {
             struct request {
                 struct imms {
@@ -555,7 +580,12 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+    }
 
+    std::string to_string(const core::receive_args<Context::synchronize::request>& req);
+    std::string to_string(const core::receive_args<Context::synchronize::response>& resp);
+
+    namespace Context {
         struct destroy {
             struct request {
                 struct imms {
@@ -573,6 +603,9 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
     }
+
+    std::string to_string(const core::receive_args<Context::destroy::request>& req);
+    std::string to_string(const core::receive_args<Context::destroy::response>& resp);
 
     namespace Stream {
 
@@ -611,7 +644,6 @@ namespace fractos::service::compute::cuda::wire {
         };
     }
 
-    
     namespace Event {
 
         // struct synchronize {
@@ -631,6 +663,9 @@ namespace fractos::service::compute::cuda::wire {
         //     };
         // };
 
+    }
+
+    namespace Event {
         struct destroy {
             struct request {
                 struct imms {
@@ -648,6 +683,9 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
     }
+
+    std::string to_string(const core::receive_args<Event::destroy::request>& req);
+    std::string to_string(const core::receive_args<Event::destroy::response>& resp);
 
 
     namespace Memory {

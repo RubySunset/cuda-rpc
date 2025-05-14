@@ -1,4 +1,5 @@
 #include <cuda_runtime.h>
+#include <fractos/common/service/wire_impl.hpp>
 #include <fractos/core/builder.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
@@ -7,66 +8,10 @@
 using namespace fractos;
 namespace srv = fractos::service::compute::cuda;
 
-
-#define print_imm(name, func)                                           \
-    if (obj.has_imm(&msg::imms_type:: name)) {                          \
-        ss << " imms." #name "=" << func(obj.imms. name);               \
-    } else {                                                            \
-        ss << " imms." #name "=<missing>";                              \
-    }
-
-#define print_imm_identity(name)                                        \
-    print_imm(name, [](auto& val){ return val; })
-
-#define print_imm_hex(name)                                             \
-    print_imm(name, [](auto& val){ std::stringstream ss; ss << "0x" << std::hex << val.get(); return ss.str(); })
-
-#define print_imm_error(name)                                           \
-    print_imm(name, [](auto& val){                                      \
-        return fractos::wire::to_string(static_cast<fractos::wire::error_type>(val.get())); })
-
 #define print_imm_cuerror(name)                                         \
     print_imm(name, [](auto& val){                                      \
         return cudaGetErrorName((cudaError)val.get()); })
 
-#define print_imm_string(name_str, name_len)                            \
-    if (obj.imms_size() >= offsetof(msg::imms_type, name_str) and       \
-        obj.has_imm(&msg::imms_type:: name_len)) {                      \
-        ss << " imms." #name_str "=\"" + std::string(obj.imms. name_str, obj.imms. name_len) + "\""; \
-    } else {                                                            \
-        ss << " imms." #name_str "=<missing>";                          \
-    }
-
-#define print_extra_imm_error()                                         \
-    if (obj.has_all_imms() and not obj.has_exactly_imms()) {            \
-        ss << " imms=<malformed: size=" << obj.imms_size() << ">";      \
-    }
-
-#define print_empty_imms()                                              \
-    if (obj.imms_size() == 0) {                                         \
-        ss << " imms=<empty>";                                           \
-    } else {                                                            \
-        ss << " imms=<malformed: size=" << obj.imms_size() << ">";       \
-    }
-
-#define print_cap(name)                                                 \
-    if (obj.has_cap(&msg::caps_type:: name)) {                          \
-        ss << " caps." #name "=" << core::to_string(obj.caps. name);    \
-    } else {                                                            \
-        ss << " caps." #name "=<missing>";                              \
-    }
-
-#define print_extra_cap_error()                                         \
-    if (obj.has_all_caps() and not obj.has_exactly_caps()) {            \
-        ss << " caps=<malformed: count=" << obj.caps_count() << ">";    \
-    }
-
-#define print_empty_caps()                                              \
-    if (obj.caps_count() == 0) {                                        \
-        ss << " caps=<empty>";                                           \
-    } else {                                                            \
-        ss << " caps=<malformed: count=" << obj.caps_count() << ">";     \
-    }
 
 std::string
 srv::wire::to_string(const core::receive_args<srv::wire::Service::connect::request>& obj)
@@ -500,6 +445,167 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::mem_alloc::res
 }
 
 std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::synchronize::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_empty_imms();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::synchronize::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_extra_imm_error();
+
+    print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::make_module_data::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(module_id);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_cap(cuda_file);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::make_module_data::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_extra_imm_error();
+
+    print_cap(generic);
+    print_cap(get_function);
+    print_cap(destroy);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::make_stream::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(flags);
+    print_imm_identity(stream_id);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::make_stream::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_extra_imm_error();
+
+    print_cap(synchronize);
+    print_cap(destroy);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::make_event::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(flags);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::make_event::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_extra_imm_error();
+
+    print_cap(destroy);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::destroy::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_empty_imms();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::destroy::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_extra_imm_error();
+
+    print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
 srv::wire::to_string(const core::receive_args<srv::wire::Module::get_global::request>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
@@ -528,6 +634,45 @@ srv::wire::to_string(const core::receive_args<srv::wire::Module::get_global::res
     print_extra_imm_error();
 
     print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Device::make_context::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(flags);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Device::make_context::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_extra_imm_error();
+
+    print_cap(generic);
+    print_cap(make_memory);
+    print_cap(make_memory_rpc_test);
+    print_cap(make_stream);
+    print_cap(make_event);
+    print_cap(make_module_data);
+    print_cap(synchronize);
+    print_cap(destroy);
+    print_extra_cap_error();
 
     return ss.str();
 }
@@ -594,6 +739,36 @@ srv::wire::to_string(const core::receive_args<srv::wire::Function::destroy::resp
 
     print_imm_error(error);
     print_imm_cuerror(cuerror);
+    print_extra_imm_error();
+
+    print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Event::destroy::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_empty_imms();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Event::destroy::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
     print_extra_imm_error();
 
     print_empty_caps();
