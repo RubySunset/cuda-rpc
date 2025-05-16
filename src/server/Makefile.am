@@ -15,6 +15,7 @@ bin_PROGRAMS += fractos-service-compute-cuda
 
 fractos_service_compute_cuda_SOURCES =
 fractos_service_compute_cuda_SOURCES += main.cpp
+fractos_service_compute_cuda_SOURCES += common.cpp
 fractos_service_compute_cuda_SOURCES += srv_service.cpp
 fractos_service_compute_cuda_SOURCES += srv_device.cpp
 fractos_service_compute_cuda_SOURCES += srv_context.cpp

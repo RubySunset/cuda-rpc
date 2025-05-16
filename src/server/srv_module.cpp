@@ -1,4 +1,3 @@
-#include "srv_module.hpp"
 #include <cuda.h>
 #include <fractos/common/service/srv_impl.hpp>
 #include <fractos/logging.hpp>
@@ -8,6 +7,9 @@
 #include <glog/logging.h>
 #include <iostream>
 #include <pthread.h>
+
+#include "common.hpp"
+#include "srv_module.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;

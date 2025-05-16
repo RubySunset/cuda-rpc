@@ -14,8 +14,6 @@
 
 
 
-#define checkCudaErrors(err)  fractos::service::compute::cuda::ErrorChecker(err, __FILE__, __LINE__)
-
 namespace fractos::service::compute { namespace [[gnu::visibility("default")]] cuda {
 
         class Service;
@@ -29,25 +27,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         class MemoryAllocation;
         class MemoryReservation;
         //graph
-
-        
-
-        struct no_Service_error : public std::runtime_error {
-            no_Service_error(const std::string& what);
-        };
-    
-    
-
-        struct ErrorChecker {
-            ErrorChecker(CUresult err);
-            // ErrorChecker(CUresult err,  const char *file, const int line);
-
-            ErrorChecker(CUresult err, const std::string& file, int line);
-
-        private:
-            void handleError(CUresult err, const std::string& file, int line);
-            const CUresult err;
-        };
 
         struct CudaError : public std::runtime_error {
             CudaError(CUresult cuerror);

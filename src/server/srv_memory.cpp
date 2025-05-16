@@ -1,9 +1,11 @@
-#include "srv_memory.hpp"
-#include <pthread.h>
-#include <glog/logging.h>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
+#include <glog/logging.h>
+#include <pthread.h>
+
+#include "common.hpp"
+#include "srv_memory.hpp"
 
 
 using namespace fractos;
