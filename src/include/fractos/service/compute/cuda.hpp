@@ -15,18 +15,19 @@
 
 
 namespace fractos::service::compute { namespace [[gnu::visibility("default")]] cuda {
+    class Service;
+    class Device;
+    class Context;
+    class Module;
+    class Function;
+    class Stream;
+    class Event;
+    class Memory;
+    class MemoryReservation;
+    class MemoryAllocation;
+} }
 
-        class Service;
-        class Device;
-        class Context;
-        class Module;
-        class Function;
-        class Stream;
-        class Event;
-        class Memory;
-        class MemoryAllocation;
-        class MemoryReservation;
-        //graph
+namespace fractos::service::compute { namespace [[gnu::visibility("default")]] cuda {
 
         struct CudaError : public std::runtime_error {
             CudaError(CUresult cuerror);
