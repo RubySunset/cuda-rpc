@@ -1,18 +1,20 @@
 #include "srv_context.hpp"
 #include <pthread.h>
 #include <glog/logging.h>
+#include <fractos/common/service/srv_impl.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
 #include <fstream>
 
-#include "./common.hpp"
-#include "common.hpp"
 
-
-using namespace fractos;
 namespace srv = fractos::service::compute::cuda;
+namespace srv_wire = fractos::service::compute::cuda::wire;
+namespace srv_wire_msg = srv_wire::Context;
+using namespace fractos;
 using namespace ::test;
+
+
 // using namespace impl;
 #define MAX_IO_SIZE    (1024 * 1024 * 16)   
 
@@ -157,17 +159,12 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
 void
 gpu_Context::handle_generic(auto ch, auto args)
 {
-    static const std::string method = "handle_generic";
-    using msg = srv::wire::Context::generic;
+    METHOD(generic);
+    CHECK_CAPS_CONT(msg::request::caps::continuation);
 
-    auto opcode = srv::wire::Context::OP_INVALID;
-
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        LOG_OP(method)
-            << " [error] request without continuation, ignoring";
-        return;
-    } else if (args->has_imm(&msg::request::imms::opcode)) {
-        opcode = static_cast<srv::wire::Context::generic_opcode>(args->imms.opcode.get());
+    auto opcode = srv_wire_msg::OP_INVALID;
+    if (args->has_imm(&msg::request::imms::opcode)) {
+        opcode = static_cast<srv_wire_msg::generic_opcode>(args->imms.opcode.get());
     }
 
     auto reinterpreted = []<class T>(auto args) {
@@ -176,7 +173,7 @@ gpu_Context::handle_generic(auto ch, auto args)
     };
 
 #define HANDLE(name) \
-    handle_ ## name(ch, reinterpreted.template operator()<srv::wire::Context:: name ::request>(std::move(args)))
+    handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args)))
 
     switch (opcode) {
     case srv::wire::Context::OP_GET_API_VERSION:
@@ -196,7 +193,7 @@ gpu_Context::handle_generic(auto ch, auto args)
             .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
             .on_channel()
             .invoke()
-            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+            .as_callback_log_ignore_continuation_error();
         break;
     }
 
@@ -206,11 +203,11 @@ gpu_Context::handle_generic(auto ch, auto args)
 void
 gpu_Context::handle_get_api_version(auto ch, auto args)
 {
-    METHOD(Context, get_api_version);
+    METHOD(get_api_version);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_ARGS_EXACT();
+    CHECK_ARGS_EXACT(reqb_cont);
 
     unsigned int version;
     auto res = cuCtxGetApiVersion(_ctx, &version);
@@ -229,17 +226,17 @@ gpu_Context::handle_get_api_version(auto ch, auto args)
         .set_imm(&msg::response::imms::version, version)
         .on_channel()
         .invoke()
-        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        .as_callback_log_ignore_continuation_error();
 }
 
 void
 gpu_Context::handle_get_limit(auto ch, auto args)
 {
-    METHOD(Context, get_limit);
+    METHOD(get_limit);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_ARGS_EXACT();
+    CHECK_ARGS_EXACT(reqb_cont);
 
     CUlimit limit = (CUlimit)args->imms.limit.get();
 
@@ -268,17 +265,17 @@ out:
         .set_imm(&msg::response::imms::value, value)
         .on_channel()
         .invoke()
-        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        .as_callback_log_ignore_continuation_error();
 }
 
 void
 gpu_Context::handle_mem_alloc(auto ch, auto args)
 {
-    METHOD(Context, mem_alloc);
+    METHOD(mem_alloc);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_ARGS_EXACT();
+    CHECK_ARGS_EXACT(reqb_cont);
 
     size_t size = args->imms.size.get();
 
@@ -325,7 +322,7 @@ gpu_Context::handle_mem_alloc(auto ch, auto args)
                             .set_cap(&msg::response::caps::destroy, dev_mem->_req_destroy)
                             .on_channel()
                             .invoke()
-                            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+                            .as_callback_log_ignore_continuation_error();
                     })
                     .as_callback();
             })
@@ -344,7 +341,7 @@ out_err:
         .set_imm(&msg::response::imms::cuerror, cuerror)
         .on_channel()
         .invoke()
-        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        .as_callback_log_ignore_continuation_error();
 }
 
 void gpu_Context::handle_stream(auto args) {

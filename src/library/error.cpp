@@ -6,16 +6,16 @@
 #include <fractos/logging.hpp>
 
 
+namespace clt = fractos::service::compute::cuda;
 using namespace fractos;
-namespace srv = fractos::service::compute::cuda;
 
 
-srv::ErrorChecker::ErrorChecker(CUresult err, const std::string& file, int line) 
+clt::ErrorChecker::ErrorChecker(CUresult err, const std::string& file, int line) 
     :err(err){
     handleError(err, file, line);
 }
 
-void srv::ErrorChecker::handleError(CUresult err, const std::string& file, int line) {
+void clt::ErrorChecker::handleError(CUresult err, const std::string& file, int line) {
     if (CUDA_SUCCESS != err) {
         DLOG(ERROR) << "CUDA Driver API error = " << err
                   << " from file <" << file << ">, line " << line << ".\n";
@@ -34,7 +34,7 @@ get_cuda_error(CUresult error)
     return msg;
 }
 
-srv::CudaError::CudaError(CUresult cuerror)
+clt::CudaError::CudaError(CUresult cuerror)
     :std::runtime_error(get_cuda_error(cuerror))
     ,cuerror(cuerror)
 {

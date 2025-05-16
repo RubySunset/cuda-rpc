@@ -7,64 +7,37 @@
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <memory_impl.hpp>
 
+
+namespace clt = fractos::service::compute::cuda;
+namespace srv_wire = fractos::service::compute::cuda::wire;
+namespace srv_wire_msg = srv_wire::Memory;
 using namespace fractos;
-namespace srv = fractos::service::compute::cuda;
 
 
-impl::Memory::Memory(std::shared_ptr<fractos::core::channel> ch,
-                     CUdeviceptr addr, size_t size,
-                     fractos::core::cap::request req_mem_destroy,
-                     fractos::core::cap::memory memory)
-    :ch(ch)
-    ,req_mem_destroy(std::move(req_mem_destroy))
-    ,addr(addr)
-    ,size(size)
-    ,memory(std::move(memory))
+#define IMPL_CLASS impl::Memory
+#include <fractos/common/service/clt_base.inc.hpp>
+#undef IMPL_CLASS
+template class fractos::common::service::CltBase<clt::Memory>;
+
+
+std::shared_ptr<clt::Memory>
+impl::make_memory(std::shared_ptr<fractos::core::channel> ch,
+                  CUdeviceptr addr,
+                  size_t size,
+                  core::cap::request req_mem_destroy,
+                  core::cap::memory memory)
 {
-}
+    auto state = std::make_shared<impl::MemoryState>();
+    state->req_mem_destroy = std::move(req_mem_destroy);
+    state->addr = addr;
+    state->size = size;
+    state->memory = std::move(memory);
 
-srv::Memory::Memory(std::shared_ptr<void> pimpl)
-    :_pimpl(pimpl)
-{
-}
-
-srv::Memory::~Memory()
-{
-    auto& pimpl = impl::Memory::get(*this);
-    pimpl.destroy_maybe()
-        // keep pimpl alive
-        .then([pimpl=this->_pimpl](auto& fut) {
-            (void)fut.get();
-        })
-        .as_callback();
-}
-
-char*
-srv::Memory::get_addr()
-{
-    auto& pimpl = impl::Memory::get(*this);
-
-    return (char*)pimpl.addr;
-}
-
-core::cap::memory&
-srv::Memory::get_cap_mem()
-{
-    auto& pimpl = impl::Memory::get(*this);
-
-    return pimpl.memory;
-}
-
-
-core::future<void>
-srv::Memory::destroy()
-{
-    auto& pimpl = impl::Memory::get(*this);
-    return pimpl.destroy();
+    return impl::Memory::make(ch, state);
 }
 
 core::future<void>
-impl::Memory::do_destroy()
+impl::MemoryState::do_destroy(std::shared_ptr<core::channel>& ch)
 {
     using msg = ::service::compute::cuda::wire::Memory::destroy;
 
@@ -89,4 +62,21 @@ impl::Memory::do_destroy()
                                     << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
             fractos::wire::error_raise_exception_maybe(args->imms.error);
         });
+}
+
+
+char*
+clt::Memory::get_addr()
+{
+    auto& pimpl = impl::Memory::get(*this);
+
+    return (char*)pimpl.state->addr;
+}
+
+core::cap::memory&
+clt::Memory::get_cap_mem()
+{
+    auto& pimpl = impl::Memory::get(*this);
+
+    return pimpl.state->memory;
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fractos/common/service/impl_base.hpp>
 #include <fractos/core/cap.hpp>
 #include <fractos/core/channel.hpp>
 #include <memory>
@@ -9,22 +10,29 @@
 
 namespace impl {
 
-    namespace srv = fractos::service::compute::cuda;
+    namespace clt = fractos::service::compute::cuda;
 
-    struct Stream : public impl::Base<srv::Stream, impl::Stream> {
-        Stream(std::shared_ptr<fractos::core::channel> ch,
-               fractos::wire::endian::uint32_t id,
-               fractos::core::cap::request req_stream_sync,
-               fractos::core::cap::request req_stream_destroy);
-
-        std::weak_ptr<Stream> self;
+    struct StreamState : public fractos::common::service::ImplState {
+        std::weak_ptr<clt::Stream> self;
         std::shared_ptr<fractos::core::channel> ch;
 
         fractos::core::cap::request req_stream_sync;
         fractos::core::cap::request req_stream_destroy;
         fractos::wire::endian::uint32_t id;
 
-        fractos::core::future<void> do_destroy();
+        fractos::core::future<void>
+        do_destroy(std::shared_ptr<fractos::core::channel>& ch);
     };
+
+    using Stream = fractos::common::service::ImplWrapper<clt::Stream, impl::StreamState>;
+
+    std::shared_ptr<clt::Stream>
+    make_stream(std::shared_ptr<fractos::core::channel> ch,
+                fractos::wire::endian::uint32_t id,
+                fractos::core::cap::request req_stream_sync,
+                fractos::core::cap::request req_stream_destroy);
+
+    std::string to_string(const Stream& obj);
+    std::string to_string(const StreamState& obj);
 
 }

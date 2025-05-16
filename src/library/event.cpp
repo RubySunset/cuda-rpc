@@ -1,40 +1,57 @@
-
-#include <utility>
-
-#include <fractos/wire/error.hpp>
+#include <event_impl.hpp>
+#include <fractos/common/service/clt_impl.hpp>
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
-#include <event_impl.hpp>
+#include <fractos/wire/error.hpp>
+#include <utility>
 
-// #include <fractos/service/compute/cuda_msg.hpp>
+
+namespace clt = fractos::service::compute::cuda;
+namespace srv_wire = fractos::service::compute::cuda::wire;
+namespace srv_wire_msg = srv_wire::Event;
 using namespace fractos;
-namespace srv = fractos::service::compute::cuda;
 
 
-impl::Event::Event(std::shared_ptr<fractos::core::channel> ch,
-                   fractos::core::cap::request req_event_destroy)
-    :ch(ch)
-    ,req_event_destroy(std::move(req_event_destroy))
+#define IMPL_CLASS impl::Event
+#include <fractos/common/service/clt_base.inc.hpp>
+#undef IMPL_CLASS
+template class fractos::common::service::CltBase<clt::Event>;
+
+
+std::shared_ptr<clt::Event>
+impl::make_event(std::shared_ptr<fractos::core::channel> ch,
+                 fractos::core::cap::request req_event_destroy)
 {
+    auto state = std::make_shared<impl::EventState>();
+    state->req_event_destroy = std::move(req_event_destroy);
+
+    return impl::Event::make(ch, state);
 }
 
-srv::Event::Event(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t flags)
-    :_pimpl(pimpl)
+core::future<void>
+impl::EventState::do_destroy(std::shared_ptr<core::channel>& ch)
 {
+    METHOD(destroy);
+    LOG_REQ(method)
+        << " {}";
+
+    auto self = this->self.lock();
+
+    auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
+    return ch->make_request_builder<msg::request>(req_event_destroy)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_response_ptr(self)
+        .then([self](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_ARGS_EXACT();
+        });
 }
 
-srv::Event::~Event()
-{
-    auto& pimpl = impl::Event::get(*this);
-    pimpl.destroy_maybe()
-        // keep pimpl alive
-        .then([pimpl=this->_pimpl](auto& fut) {
-            (void)fut.get();
-        })
-        .as_callback();
-}
 
 // core::future<void> Event::synchronize() {
 //     using msg = ::service::compute::cuda::wire::Event::synchronize;
@@ -64,39 +81,23 @@ srv::Event::~Event()
 // }
 
 
-
-core::future<void>
-srv::Event::destroy()
+std::string
+clt::to_string(const Event& obj)
 {
-    auto& pimpl = impl::Event::get(*this);
-    return pimpl.destroy();
+    auto& pimpl = impl::Event::get(obj);
+    return impl::to_string(pimpl);
 }
 
-core::future<void>
-impl::Event::do_destroy()
+std::string
+impl::to_string(const Event& obj)
 {
-    using msg = ::service::compute::cuda::wire::Event::destroy;
-
-    DVLOG(logging::SERVICE) << "Event::destroy <-";
-
-    auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
-    return ch->make_request_builder<msg::request>(req_event_destroy)
-        .set_cap(&msg::request::caps::continuation, resp)
-        .on_channel()
-        .invoke(resp) // wait for handle_destroy
-        .unwrap()
-        .then([](auto& fut) {
-            auto [ch, args] = fut.get();
-
-            if (not args->has_exactly_args()) {
-                // throw core::other_error("invalid response format for Event::destroy");
-                DVLOG(logging::SERVICE) << "Event::destroy ->"
-                                << " error=OTHER args";
-            }
-
-            DVLOG(logging::SERVICE) << "Event::destroy ->"
-                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
-            fractos::wire::error_raise_exception_maybe(args->imms.error);
-        });
+    return impl::to_string(*obj.state);
 }
 
+std::string
+impl::to_string(const EventState& obj)
+{
+    std::stringstream ss;
+    ss << "cuda::event(" << &obj << ")";
+    return ss.str();
+}

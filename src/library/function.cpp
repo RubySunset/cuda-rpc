@@ -1,3 +1,4 @@
+#include <fractos/common/service/clt_impl.hpp>
 #include <fractos/core/error.hpp>
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
@@ -11,85 +12,77 @@
 #include <stream_impl.hpp>
 
 
+namespace clt = fractos::service::compute::cuda;
+namespace srv_wire = fractos::service::compute::cuda::wire;
+namespace srv_wire_msg = srv_wire::Function;
 using namespace fractos;
-namespace srv = fractos::service::compute::cuda;
 
 
-std::string
-srv::to_string(const srv::Function& obj)
-{
-    auto& pimpl = impl::Function::get(obj);
-    return impl::to_string(pimpl);
-}
+#define IMPL_CLASS impl::Function
+#include <fractos/common/service/clt_base.inc.hpp>
+#undef IMPL_CLASS
+template class fractos::common::service::CltBase<clt::Function>;
 
-std::string
-impl::to_string(const impl::Function& obj)
-{
-    std::stringstream ss;
-    ss << "cuda::Function(" << &obj << ")";
-    return ss.str();
-}
 
-impl::Function::Function(std::shared_ptr<fractos::core::channel> ch,
-                         size_t args_total_size, std::vector<size_t> args_size,
-                         fractos::core::cap::request req_generic)
-    :ch(ch)
-    ,args_total_size(args_total_size)
-    ,args_size(std::move(args_size))
-    ,req_generic(std::move(req_generic))
-{
-}
-
-srv::Function::Function(std::shared_ptr<void> pimpl)
-    :_pimpl(pimpl)
-{
-}
-
-std::shared_ptr<srv::Function>
+std::shared_ptr<clt::Function>
 impl::make_function(std::shared_ptr<fractos::core::channel> ch,
-                    size_t args_total_size, std::vector<size_t> args_size,
+                    size_t args_total_size,
+                    std::vector<size_t> args_size,
                     fractos::core::cap::request req_generic)
 {
-    auto pimpl_ = std::make_shared<impl::Function>(
-        ch, args_total_size, std::move(args_size), std::move(req_generic));
-    pimpl_->self = pimpl_;
-    auto pimpl = static_pointer_cast<void>(pimpl_);
-    auto res = std::make_shared<srv::Function>(pimpl);
-    return res;
-}
+    auto state = std::make_shared<impl::FunctionState>();
+    state->args_total_size = args_total_size;
+    state->args_size = std::move(args_size);
+    state->req_generic = std::move(req_generic);
 
-srv::Function::~Function()
-{
-    auto& pimpl = impl::Function::get(*this);
-    pimpl.destroy_maybe()
-        // keep pimpl alive
-        .then([pimpl=this->_pimpl](auto& fut) {
-            (void)fut.get();
-        })
-        .as_callback();
+    return impl::Function::make(ch, state);
 }
 
 core::future<void>
-srv::Function::launch(const void** args, dim3 gridDim, dim3 blockDim,
+impl::FunctionState::do_destroy(std::shared_ptr<core::channel>& ch)
+{
+    METHOD(destroy);
+    LOG_REQ(method)
+        << " {}";
+
+    auto self = this->self.lock();
+
+    auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
+    return ch->make_request_builder<msg::request>(req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_DESTROY)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_cuda_response_ptr(self)
+        .then([self](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_ARGS_EXACT();
+        });
+}
+
+
+core::future<void>
+clt::Function::launch(const void** args, dim3 gridDim, dim3 blockDim,
                       size_t sharedMemBytes,
                       std::optional<std::reference_wrapper<Stream>> stream)
 {
-    METHOD(Function, launch);
+    METHOD(launch);
     LOG_REQ(method)
         << " {}";
 
     auto& pimpl = impl::Function::get(*this);
-    auto self = pimpl.self.lock();
+    auto self = pimpl.state->self.lock();
 
     uint32_t stream_id = 0;
     if (stream) {
         auto& stream_pimpl = impl::Stream::get(stream->get());
-        stream_id = stream_pimpl.id;
+        stream_id = stream_pimpl.state->id;
     }
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    auto req = pimpl.ch->make_request_builder<msg::request>(pimpl.req_generic)
-        .set_imm(&msg::request::imms::opcode, srv_wire::OP_LAUNCH)
+    auto req = pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_LAUNCH)
         .set_imm(&msg::request::imms::grid_x, (uint64_t)gridDim.x)
         .set_imm(&msg::request::imms::grid_y, (uint64_t)gridDim.y)
         .set_imm(&msg::request::imms::grid_z, (uint64_t)gridDim.z)
@@ -100,8 +93,8 @@ srv::Function::launch(const void** args, dim3 gridDim, dim3 blockDim,
         .set_cap(&msg::request::caps::continuation, resp);
 
     size_t offset = offsetof(msg::request::imms, kernel_args);
-    for (size_t i = 0; i < pimpl.args_size.size(); i++) {
-        auto size = pimpl.args_size[i];
+    for (size_t i = 0; i < pimpl.state->args_size.size(); i++) {
+        auto size = pimpl.state->args_size[i];
         req.set_imm(offset, args[i], size);
         offset += size;
     }
@@ -110,22 +103,22 @@ srv::Function::launch(const void** args, dim3 gridDim, dim3 blockDim,
         .on_channel()
         .invoke(resp)
         .unwrap()
-        .then_cuda_response()
-        .then([this, self=pimpl.self.lock()](auto& fut) {
+        .then_check_cuda_response()
+        .then([self](auto& fut) {
             auto [ch, args] = fut.get();
             CHECK_ARGS_EXACT();
         });
 }
 
 void
-srv::Function::_launch_check_args(const std::vector<size_t>& args_size)
+clt::Function::_launch_check_args(const std::vector<size_t>& args_size)
 {
     auto& pimpl = impl::Function::get(*this);
-    if (pimpl.args_size.size() != args_size.size()) {
+    if (pimpl.state->args_size.size() != args_size.size()) {
         throw std::runtime_error("invalid number of arguments");
     }
     for (size_t i = 0; i < args_size.size(); i++) {
-        if (pimpl.args_size[i] != args_size[i]) {
+        if (pimpl.state->args_size[i] != args_size[i]) {
             std::stringstream ss;
             ss << "invalid size for argument " << i;
             throw std::runtime_error(ss.str());
@@ -133,38 +126,24 @@ srv::Function::_launch_check_args(const std::vector<size_t>& args_size)
     }
 }
 
-core::future<void>
-srv::Function::destroy()
+
+std::string
+clt::to_string(const clt::Function& obj)
 {
-    auto& pimpl = impl::Function::get(*this);
-    auto self = pimpl.self.lock();
-    return pimpl.destroy()
-        // keep self alive
-        .then([self](auto& fut) {
-            return fut.get();
-        });
+    auto& pimpl = impl::Function::get(obj);
+    return impl::to_string(pimpl);
 }
 
-core::future<void>
-impl::Function::do_destroy()
+std::string
+impl::to_string(const impl::Function& obj)
 {
-    METHOD(Function, destroy);
-    LOG_REQ(method)
-        << " {}";
+    return impl::to_string(*obj.state);
+}
 
-    // NOTE: kept alive by Function::destroy() and ~Function()
-    auto self = this;
-
-    auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
-    return ch->make_request_builder<msg::request>(req_generic)
-        .set_imm(&msg::request::imms::opcode, srv_wire::OP_DESTROY)
-        .set_cap(&msg::request::caps::continuation, resp)
-        .on_channel()
-        .invoke(resp)
-        .unwrap()
-        .then_cuda_response()
-        .then([](auto& fut) {
-            auto [ch, args] = fut.get();
-            CHECK_ARGS_EXACT();
-        });
+std::string
+impl::to_string(const impl::FunctionState& obj)
+{
+    std::stringstream ss;
+    ss << "cuda::Function(" << &obj << ")";
+    return ss.str();
 }

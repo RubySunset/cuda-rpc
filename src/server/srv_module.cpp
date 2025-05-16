@@ -1,5 +1,6 @@
 #include "srv_module.hpp"
 #include <cuda.h>
+#include <fractos/common/service/srv_impl.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
@@ -8,11 +9,11 @@
 #include <iostream>
 #include <pthread.h>
 
-#include <./common.hpp>
 
-
-using namespace fractos;
 namespace srv = fractos::service::compute::cuda;
+namespace srv_wire = fractos::service::compute::cuda::wire;
+namespace srv_wire_msg = srv_wire::Module;
+using namespace fractos;
 using namespace ::test;
 
 
@@ -186,18 +187,12 @@ core::future<void> gpu_Module::register_methods(std::shared_ptr<core::channel> c
 void
 gpu_Module::handle_generic(auto ch, auto args)
 {
-    static const std::string method = "handle_generic";
-    namespace srv_wire = srv::wire::Module;
-    using msg = srv_wire::generic;
+    METHOD(generic);
+    CHECK_CAPS_CONT(msg::request::caps::continuation);
 
-    auto opcode = srv_wire::OP_INVALID;
-
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        LOG_OP(method)
-            << " [error] request without continuation, ignoring";
-        return;
-    } else if (args->has_imm(&msg::request::imms::opcode)) {
-        opcode = static_cast<srv::wire::Module::generic_opcode>(args->imms.opcode.get());
+    auto opcode = srv_wire_msg::OP_INVALID;
+    if (args->has_imm(&msg::request::imms::opcode)) {
+        opcode = static_cast<srv_wire_msg::generic_opcode>(args->imms.opcode.get());
     }
 
     auto reinterpreted = []<class T>(auto args) {
@@ -206,7 +201,7 @@ gpu_Module::handle_generic(auto ch, auto args)
     };
 
 #define HANDLE(name) \
-    handle_ ## name(ch, reinterpreted.template operator()<srv::wire::Module:: name ::request>(std::move(args)))
+    handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args)))
 
     switch (opcode) {
     case srv::wire::Module::OP_GET_GLOBAL:
@@ -220,7 +215,7 @@ gpu_Module::handle_generic(auto ch, auto args)
             .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
             .on_channel()
             .invoke()
-            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+            .as_callback_log_ignore_continuation_error();
         break;
     }
 
@@ -230,13 +225,14 @@ gpu_Module::handle_generic(auto ch, auto args)
 void
 gpu_Module::handle_get_global(auto ch, auto args)
 {
-    METHOD(Module, get_global);
+    METHOD(get_global);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_CAPS_EXACT();
-    CHECK_IMMS_ALL();
-    CHECK_ARGS_COND(args->imms_size() == (sizeof(msg::request::imms) + args->imms.name_size));
+    CHECK_CAPS_EXACT(reqb_cont);
+    CHECK_IMMS_ALL(reqb_cont);
+    CHECK_ARGS_COND(reqb_cont,
+                    args->imms_size() == (sizeof(msg::request::imms) + args->imms.name_size));
 
     std::string name(args->imms.name, args->imms.name_size);
 
@@ -265,7 +261,7 @@ out:
         .set_imm(&msg::response::imms::dptr, dptr)
         .on_channel()
         .invoke()
-        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        .as_callback_log_ignore_continuation_error();
 }
 
 void gpu_Module::handle_get_function(auto args) {

@@ -1,17 +1,17 @@
-// #include "device_service.hpp"
 #include <glog/logging.h>
 #include <srv_service.hpp>
-// #include <srv_device.hpp>
+#include <fractos/common/service/srv_impl.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
 #include <string>
 
-#include "./common.hpp"
 
-using namespace fractos;
-using namespace ::test;
 namespace srv = fractos::service::compute::cuda;
+namespace srv_wire = fractos::service::compute::cuda::wire;
+namespace srv_wire_msg = srv_wire::Service;
+using namespace ::test;
+using namespace fractos;
 
 
 gpu_device_service::gpu_device_service() {
@@ -149,7 +149,7 @@ gpu_device_service::handle_connect(auto ch, auto args)
             .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
             .on_channel()
             .invoke()
-            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+            .as_callback_log_ignore_continuation_error();
 
         return;
     }
@@ -168,23 +168,18 @@ gpu_device_service::handle_connect(auto ch, auto args)
         .set_cap(&msg::response::caps::generic, req_generic)
         .on_channel()
         .invoke()
-        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        .as_callback_log_ignore_continuation_error();
 }
 
 void
 gpu_device_service::handle_generic(auto ch, auto args)
 {
-    static const std::string method = "handle_generic";
-    using msg = ::service::compute::cuda::wire::Service::generic;
+    METHOD(generic);
+    CHECK_CAPS_CONT(msg::request::caps::continuation);
 
-    auto opcode = srv::wire::Service::OP_INVALID;
-
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        LOG_OP(method)
-            << " [error] request without continuation, ignoring";
-        return;
-    } else if (args->has_imm(&msg::request::imms::opcode)) {
-        opcode = static_cast<srv::wire::Service::generic_opcode>(args->imms.opcode.get());
+    auto opcode = srv_wire_msg::OP_INVALID;
+    if (args->has_imm(&msg::request::imms::opcode)) {
+        opcode = static_cast<srv_wire_msg::generic_opcode>(args->imms.opcode.get());
     }
 
     auto reinterpreted = []<class T>(auto args) {
@@ -193,7 +188,7 @@ gpu_device_service::handle_generic(auto ch, auto args)
     };
 
 #define HANDLE(name) \
-    handle_ ## name(ch, reinterpreted.template operator()<srv::wire::Service:: name ::request>(std::move(args)))
+    handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args)))
 
     switch (opcode) {
     case srv::wire::Service::OP_GET_DRIVER_VERSION:
@@ -222,7 +217,7 @@ gpu_device_service::handle_generic(auto ch, auto args)
             .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
             .on_channel()
             .invoke()
-            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+            .as_callback_log_ignore_continuation_error();
         break;
     }
 
@@ -232,11 +227,11 @@ gpu_device_service::handle_generic(auto ch, auto args)
 void
 gpu_device_service::handle_get_driver_version(auto ch, auto args)
 {
-    METHOD(Service, get_driver_version);
+    METHOD(get_driver_version);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_ARGS_EXACT();
+    CHECK_ARGS_EXACT(reqb_cont);
 
     int version;
     auto res = cuDriverGetVersion(&version);
@@ -255,17 +250,17 @@ gpu_device_service::handle_get_driver_version(auto ch, auto args)
         .set_imm(&msg::response::imms::value, version)
         .on_channel()
         .invoke()
-        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        .as_callback_log_ignore_continuation_error();
 }
 
 void
 gpu_device_service::handle_init(auto ch, auto args)
 {
-    METHOD(Service, init);
+    METHOD(init);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_ARGS_EXACT();
+    CHECK_ARGS_EXACT(reqb_cont);
 
     auto res = cuInit(args->imms.flags);
 
@@ -281,18 +276,18 @@ gpu_device_service::handle_init(auto ch, auto args)
         .set_imm(&msg::response::imms::error, error)
         .on_channel()
         .invoke()
-        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        .as_callback_log_ignore_continuation_error();
 }
 
 
 void
 gpu_device_service::handle_device_get(auto ch, auto args)
 {
-    METHOD(Service, device_get);
+    METHOD(device_get);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_ARGS_EXACT();
+    CHECK_ARGS_EXACT(reqb_cont);
 
     get_or_make_device_ordinal(ch, args->imms.ordinal)
         .then([this, self=_self.lock(), ch, args=std::move(args)](auto& fut) {
@@ -331,7 +326,7 @@ gpu_device_service::handle_device_get(auto ch, auto args)
                 .set_imm(&msg::response::imms::device, device)
                 .on_channel()
                 .invoke()
-                .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+                .as_callback_log_ignore_continuation_error();
         })
         .as_callback();
 }
@@ -339,11 +334,11 @@ gpu_device_service::handle_device_get(auto ch, auto args)
 void
 gpu_device_service::handle_device_get_count(auto ch, auto args)
 {
-    METHOD(Service, device_get_count);
+    METHOD(device_get_count);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_ARGS_EXACT();
+    CHECK_ARGS_EXACT(reqb_cont);
 
     int count;
     auto res = cuDeviceGetCount(&count);
@@ -362,18 +357,18 @@ gpu_device_service::handle_device_get_count(auto ch, auto args)
         .set_imm(&msg::response::imms::count, count)
         .on_channel()
         .invoke()
-        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        .as_callback_log_ignore_continuation_error();
 }
 
 
 void
 gpu_device_service::handle_module_get_loading_mode(auto ch, auto args)
 {
-    METHOD(Service, module_get_loading_mode);
+    METHOD(module_get_loading_mode);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_ARGS_EXACT();
+    CHECK_ARGS_EXACT(reqb_cont);
 
     CUmoduleLoadingMode mode;
     auto res = cuModuleGetLoadingMode(&mode);
@@ -392,7 +387,7 @@ gpu_device_service::handle_module_get_loading_mode(auto ch, auto args)
         .set_imm(&msg::response::imms::mode, mode)
         .on_channel()
         .invoke()
-        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        .as_callback_log_ignore_continuation_error();
 }
 
 

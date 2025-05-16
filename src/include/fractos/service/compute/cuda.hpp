@@ -3,6 +3,7 @@
 #include <any>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <fractos/common/service/clt_base.hpp>
 #include <fractos/core/future.hpp>
 #include <fractos/core/channel.hpp>
 #include <fractos/core/gns.hpp>
@@ -60,7 +61,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         /**
          * @brief Connect to the CUDA Service
          */
-        [[nodiscard]] core::future<std::unique_ptr<Service>>
+        [[nodiscard]] core::future<std::shared_ptr<Service>>
         make_service(std::shared_ptr<core::channel> ch,
                      core::gns::service& gns, const std::string& name,
                      const std::chrono::microseconds& wait_time = std::chrono::seconds{60});
@@ -68,19 +69,15 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         /**
          * @brief Connect to the CUDA Service
          */
-        [[nodiscard]] core::future<std::unique_ptr<Service>>
+        [[nodiscard]] core::future<std::shared_ptr<Service>>
         make_service(std::shared_ptr<core::channel> ch,
                      const core::cap::request& connect);
 
         /**
          * The Service implicitly calls cuInit() when started.
          */
-        class Service {
+        class Service : public common::service::CltBase<Service> {
         public:
-            std::shared_ptr<core::channel> get_default_channel() const;
-            void set_default_channel(std::shared_ptr<core::channel> ch);
-            std::unique_ptr<Service> with_default_channel(std::shared_ptr<core::channel> ch);
-
             /**
              * @brief Return a capability that can be used with make_service()
              */
@@ -109,18 +106,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             // cuModuleGetLoadingMode
             [[nodiscard]] fractos::core::future<CUmoduleLoadingMode>
             module_get_loading_mode();
-
-
-            /**
-             * @brief Destroy Service connection, and all created objects
-             */
-            [[nodiscard]] core::future<void>
-            destroy();
-
-        public:
-            // NOTE: not for public use
-            Service(std::shared_ptr<void> pimpl);
-            std::shared_ptr<void> _pimpl;
         };
 
         std::string to_string(const Service& obj);
@@ -128,7 +113,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         /**
          * @brief Wrapper for CUdevice operations
          */
-        class Device {
+        class Device : public common::service::CltBase<Device> {
         public:
 
             CUdevice get_device() const;
@@ -158,18 +143,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              */
             [[nodiscard]] core::future<std::shared_ptr<Context>>
             make_context(unsigned int flags);
-
-            /**
-             * @brief Destroy device and all its contents
-             */
-            [[nodiscard]] core::future<void>
-            destroy();
-
-        public:
-            // NOTE: not for public use
-            Device(std::shared_ptr<void> pimpl);
-            ~Device();
-            std::shared_ptr<void> _pimpl;
         };
 
         std::string to_string(const Device& obj);
@@ -177,10 +150,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         /**
          * @brief Wrapper for CUcontext operations
          */
-        class Context {
+        class Context : public common::service::CltBase<Context> {
         public:
-            void set_default_channel(std::shared_ptr<fractos::core::channel> ch);
-
             CUcontext get_context() const;
 
             // cuCtxGetApiVersion
@@ -264,19 +235,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[deprecated]]
             [[nodiscard]] core::future<std::shared_ptr<Memory>>
             make_memory(MemoryReservation& reservation, MemoryAllocation& allocation, unsigned long long flags);
-
-            /**
-             * @brief Destroy context and all its contents
-             */
-            [[nodiscard]] core::future<void>
-            destroy();
-
-
-        public:
-            ~Context();
-            // NOTE: not for public use
-            Context(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t value);
-            std::shared_ptr<void> _pimpl;
         };
 
         std::string to_string(const Context& obj);
@@ -287,7 +245,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         /** 
          *  @brief :Wrapper for CUmodule operations
          */
-        class Module {
+        class Module : public common::service::CltBase<Module> {
         public:
 
             // cuModuleGetGlobal
@@ -300,26 +258,14 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              */
             [[nodiscard]] core::future<std::shared_ptr<Function>>
             get_function(const std::string& file_name); // The paramsArray is an array of CUexecAffinityParam and the numParams describes the size of the array
-            
-            /**
-             * @brief Destroy module with cuModuleUnload 
-             */
-            [[nodiscard]] core::future<void> 
-            destroy();
-
-        public:
-            Module(std::shared_ptr<void> pimpl, uint64_t module_id);
-            Module(std::shared_ptr<void> pimpl, core::cap::memory contents, std::string name);
-            ~Module();
-            // NOTE: not for public use
-            std::shared_ptr<void> _pimpl;
         };
-        // std::string to_string(const Module& obj);
+
+        std::string to_string(const Module& obj);
 
         /**
          * @brief Wrapper for CUfunction operations
          */
-        class Function {
+        class Function : public common::service::CltBase<Function> {
         public:
             // cuLaunchKernel
             [[nodiscard]] core::future<void>
@@ -344,21 +290,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<void>
             launch(Stream& stream, size_t sharedMem, dim3 gridDim, dim3 blockDim, Args&&... args);
 
-            /**
-             * @brief Destroy function
-             *
-             * Called implicitly during object destruction, if it was not
-             * already called.
-             */
-            [[nodiscard]] core::future<void>
-            destroy();
-
         public:
-            // NOTE: not for public use
-            Function(std::shared_ptr<void> pimpl);
-            ~Function();
             void _launch_check_args(const std::vector<size_t>& args_size);
-            std::shared_ptr<void> _pimpl;
         };
 
         std::string to_string(const Function& obj);
@@ -366,7 +299,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         /**
          * @brief Wrapper for CUstream operations
          */
-        class Stream{
+        class Stream : public common::service::CltBase<Stream> {
         public:
             /**
              * @brief Wrapper for cuStreamSynchronize()
@@ -374,28 +307,14 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] fractos::core::future<void>
             synchronize();
 
-            /**
-             * @brief Destroy stream
-             *
-             * @todo what about pending operations?
-             */
-            [[nodiscard]] core::future<void>
-            destroy();
-
-        public:
-            Stream(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t flags, fractos::wire::endian::uint32_t id);
-            ~Stream();
+            // TODO: use cuda types
             fractos::wire::endian::uint32_t get_stream_id();
-            // NOTE: not for public use
-            std::shared_ptr<void> _pimpl;
-        private:
-            fractos::wire::endian::uint32_t _id;
         };
 
         /**
          * @brief Wrapper for CUevent operations
          */
-        class Event{
+        class Event : public common::service::CltBase<Event> {
         public:
             /**
              * @brief Wrapper for cuEventElapsedTime()
@@ -416,83 +335,30 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              */
             [[nodiscard]] fractos::core::future<void>
             synchronize();
-
-            /**
-             * @brief Wrapper for cuEventDestroy()
-             *
-             * @todo what about pending operations?
-             */
-            [[nodiscard]] core::future<void>
-            destroy();
-
-        public:
-            Event(std::shared_ptr<void> pimpl, fractos::wire::endian::uint32_t flags);
-            ~Event();
-            // NOTE: not for public use
-            std::shared_ptr<void> _pimpl;
-        private:
-            fractos::wire::endian::uint32_t _id;
         };
 
+        std::string to_string(const Event& obj);
 
-        /** 
+
+        /**
          *  @brief :Wrapper for CUdeviceptr reservations
          */
-        class Memory {
+        class Memory : public common::service::CltBase<Memory> {
         public:
-            /**
-             * @brief Destroy memory 
-             */
-            [[nodiscard]] core::future<void>
-            destroy();
-
-
-        public:
-            Memory(std::shared_ptr<void> pimpl);
-            ~Memory();
-
             char* get_addr();
             fractos::core::cap::memory& get_cap_mem();
-            // NOTE: not for public use
-            std::shared_ptr<void> _pimpl;
         };
 
         std::string to_string(const Module& obj);
 
-        class MemoryAllocation : public Memory {
-        public:
-            /**
-             * @brief Destroy memory 
-             */
-            [[nodiscard]] core::future<void>
-            destroy();
-
-
-        public:
-            MemoryAllocation(std::shared_ptr<void> pimpl, fractos::wire::endian::uint64_t size);
-            ~MemoryAllocation();
-
-            // NOTE: not for public use
-            std::shared_ptr<void> _pimpl;
+        class MemoryAllocation : public common::service::CltBase<MemoryAllocation> {
         };
 
 
         /**
          * @brief Wrapper for CUmemGenericAllocationHandle operations
          */
-        class MemoryReservation {
-        public:
-
-            /**
-             * @brief Destroy device and all its contents
-             */
-            [[nodiscard]] core::future<void>
-            destroy();
-
-        public:
-            ~MemoryReservation();
-            // NOTE: not for public use
-            std::shared_ptr<void> _pimpl;
+        class MemoryReservation : public common::service::CltBase<MemoryReservation> {
         };
 
     } // namespace cuda

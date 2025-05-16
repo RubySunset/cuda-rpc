@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fractos/common/service/impl_base.hpp>
 #include <fractos/core/cap.hpp>
 #include <fractos/core/channel.hpp>
 #include <memory>
@@ -9,28 +10,27 @@
 
 namespace impl {
 
-    namespace srv = fractos::service::compute::cuda;
+    namespace clt = fractos::service::compute::cuda;
 
-    struct Function : public impl::Base<srv::Function, impl::Function> {
-        Function(std::shared_ptr<fractos::core::channel> ch,
-                 size_t args_total_size, std::vector<size_t> args_size,
-                 fractos::core::cap::request req_generic);
-
-        std::weak_ptr<Function> self;
-        std::shared_ptr<fractos::core::channel> ch;
+    struct FunctionState : public fractos::common::service::ImplState {
+        std::weak_ptr<clt::Function> self;
         size_t args_total_size;
         std::vector<size_t> args_size;
 
         fractos::core::cap::request req_generic;
 
-        fractos::core::future<void> do_destroy();
+        fractos::core::future<void>
+        do_destroy(std::shared_ptr<fractos::core::channel>& ch);
     };
 
-    std::shared_ptr<srv::Function>
+    using Function = fractos::common::service::ImplWrapper<clt::Function, impl::FunctionState>;
+
+    std::shared_ptr<clt::Function>
     make_function(std::shared_ptr<fractos::core::channel> ch,
                   size_t args_total_size, std::vector<size_t> args_size,
                   fractos::core::cap::request req_generic);
 
     std::string to_string(const Function& obj);
+    std::string to_string(const FunctionState& obj);
 
 }

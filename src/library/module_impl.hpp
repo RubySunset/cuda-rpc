@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fractos/common/service/impl_base.hpp>
 #include <fractos/core/cap.hpp>
 #include <fractos/core/channel.hpp>
 #include <memory>
@@ -9,23 +10,26 @@
 
 namespace impl {
 
-    namespace srv = fractos::service::compute::cuda;
+    namespace clt = fractos::service::compute::cuda;
 
-    struct Module : public impl::Base<srv::Module, impl::Module> {
-        Module(std::shared_ptr<fractos::core::channel> ch,
-               fractos::core::cap::request req_generic,
-               fractos::core::cap::request req_get_func,
-               fractos::core::cap::request req_module_unload);
-
-        std::weak_ptr<Module> self;
-        std::shared_ptr<fractos::core::channel> ch;
-
+    struct ModuleState : public fractos::common::service::ImplState {
+        std::weak_ptr<clt::Module> self;
         fractos::core::cap::request req_generic;
         fractos::core::cap::request req_get_func;
         fractos::core::cap::request req_module_unload;
 
-        fractos::core::future<void> do_destroy();
+        fractos::core::future<void>
+        do_destroy(std::shared_ptr<fractos::core::channel>& ch);
     };
 
+    using Module = fractos::common::service::ImplWrapper<clt::Module, impl::ModuleState>;
+
+    std::shared_ptr<clt::Module>
+    make_module(std::shared_ptr<fractos::core::channel> ch,
+                fractos::core::cap::request req_generic,
+                fractos::core::cap::request req_get_func,
+                fractos::core::cap::request req_module_unload);
+
     std::string to_string(const Module& obj);
+    std::string to_string(const ModuleState& obj);
 }

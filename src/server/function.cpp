@@ -1,4 +1,5 @@
 #include <cuda_runtime.h>
+#include <fractos/common/service/srv_impl.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
@@ -6,13 +7,15 @@
 #include <numeric>
 #include <pthread.h>
 
-#include "common.hpp"
 #include "srv_context.hpp"
 // #include "srv_function.hpp"
 
 
-using namespace fractos;
 namespace srv = fractos::service::compute::cuda;
+namespace srv_wire = fractos::service::compute::cuda::wire;
+namespace srv_wire_msg = srv_wire::Function;
+using namespace fractos;
+
 
 #define checkCudaErrors_lo(err)  handleError(err, __FILE__, __LINE__)
 
@@ -81,7 +84,7 @@ impl::Function::register_methods(std::shared_ptr<core::channel> ch)
 {
     auto self = this->self;
 
-    return ch->make_request_builder<srv::wire::Function::generic::request>(
+    return ch->make_request_builder<srv_wire_msg::generic::request>(
         ch->get_default_endpoint(),
         [self](auto ch, auto args) {
             self->handle_generic(ch, std::move(args));
@@ -97,16 +100,12 @@ impl::Function::register_methods(std::shared_ptr<core::channel> ch)
 void
 impl::Function::handle_generic(auto ch, auto args)
 {
-    METHOD(Function, generic);
+    METHOD(generic);
+    CHECK_CAPS_CONT(msg::request::caps::continuation);
 
-    auto opcode = srv_wire::OP_INVALID;
-
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        LOG_OP(method)
-            << " [error] request without continuation, ignoring";
-        return;
-    } else if (args->has_imm(&msg::request::imms::opcode)) {
-        opcode = static_cast<srv_wire::generic_opcode>(args->imms.opcode.get());
+    auto opcode = srv_wire_msg::OP_INVALID;
+    if (args->has_imm(&msg::request::imms::opcode)) {
+        opcode = static_cast<srv_wire_msg::generic_opcode>(args->imms.opcode.get());
     }
 
     auto reinterpreted = []<class T>(auto args) {
@@ -115,24 +114,24 @@ impl::Function::handle_generic(auto ch, auto args)
     };
 
 #define HANDLE(name) \
-    handle_ ## name(ch, reinterpreted.template operator()<srv_wire:: name ::request>(std::move(args)))
+    handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args)))
 
     switch (opcode) {
-    case srv_wire::OP_LAUNCH:
+    case srv_wire_msg::OP_LAUNCH:
         HANDLE(launch);
         break;
-    case srv_wire::OP_DESTROY:
+    case srv_wire_msg::OP_DESTROY:
         HANDLE(destroy);
         break;
 
     default:
-        LOG_OP(method)
+        LOG_RES(method)
             << " [error] invalid opcode";
         ch->template make_request_builder<msg::response>(args->caps.continuation)
             .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
             .on_channel()
             .invoke()
-            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+            .as_callback_log_ignore_continuation_error();
         break;
     }
 
@@ -142,13 +141,13 @@ impl::Function::handle_generic(auto ch, auto args)
 void
 impl::Function::handle_launch(auto ch, auto args)
 {
-    METHOD(Function, launch);
+    METHOD(launch);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_CAPS_EXACT();
-    CHECK_IMMS_ALL();
-    CHECK_ARGS_COND(args->imms_size() == (sizeof(msg::request::imms) + args_total_size));
+    CHECK_CAPS_EXACT(reqb_cont);
+    CHECK_IMMS_ALL(reqb_cont);
+    CHECK_ARGS_COND(reqb_cont, args->imms_size() == (sizeof(msg::request::imms) + args_total_size));
 
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
@@ -198,17 +197,17 @@ out:
         .set_imm(&msg::response::imms::cuerror, cuerror)
         .on_channel()
         .invoke()
-        .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+        .as_callback_log_ignore_continuation_error();
 }
 
 void
 impl::Function::handle_destroy(auto ch, auto args)
 {
-    METHOD(Function, destroy);
+    METHOD(destroy);
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_ARGS_EXACT();
+    CHECK_ARGS_EXACT(reqb_cont);
 
     auto self = this->self;
     auto error = wire::ERR_SUCCESS;
@@ -224,7 +223,7 @@ impl::Function::handle_destroy(auto ch, auto args)
             .set_imm(&msg::response::imms::cuerror, cuerror)
             .on_channel()
             .invoke()
-            .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+            .as_callback_log_ignore_continuation_error();
         return;
     }
 
@@ -241,7 +240,7 @@ impl::Function::handle_destroy(auto ch, auto args)
                 .set_imm(&msg::response::imms::cuerror, cuerror)
                 .on_channel()
                 .invoke()
-                .as_callback_log_ignore_error("[error] failed to invoke continuation, ignoring");
+                .as_callback_log_ignore_continuation_error();
         })
         .as_callback();
 

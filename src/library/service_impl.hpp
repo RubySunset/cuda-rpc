@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fractos/common/service/impl_base.hpp>
 #include <fractos/core/cap.hpp>
 #include <fractos/core/channel.hpp>
 #include <fractos/core/future.hpp>
@@ -11,31 +12,26 @@
 
 namespace impl {
 
-    namespace srv = fractos::service::compute::cuda;
+    namespace clt = fractos::service::compute::cuda;
 
-    struct ServiceState {
+    struct ServiceState : public fractos::common::service::ImplState {
+        std::weak_ptr<clt::Service> self;
         // NOTE: keep connection as a separate request
         fractos::core::cap::request req_connect;
         fractos::core::cap::request req_generic;
+
+        fractos::core::future<void>
+        do_destroy(std::shared_ptr<fractos::core::channel>& ch);
     };
 
-    struct Service : public impl::Base<srv::Service, impl::Service> {
-        std::weak_ptr<Service> self;
-        std::shared_ptr<fractos::core::channel> ch;
-        std::shared_ptr<ServiceState> state;
+    using Service = fractos::common::service::ImplWrapper<clt::Service, impl::ServiceState>;
 
-        fractos::core::future<void> do_destroy();
-    };
-
-    std::shared_ptr<Service> make_service(
-        std::shared_ptr<fractos::core::channel> ch,
-        fractos::core::cap::request req_connect,
-        fractos::core::cap::request req_generic);
-
-    std::shared_ptr<Service> make_service(
-        std::shared_ptr<fractos::core::channel> ch,
-        std::shared_ptr<ServiceState> state);
+    std::shared_ptr<clt::Service>
+    make_service(std::shared_ptr<fractos::core::channel> ch,
+                 fractos::core::cap::request req_connect,
+                 fractos::core::cap::request req_generic);
 
     std::string to_string(const Service& obj);
+    std::string to_string(const ServiceState& obj);
 
 }

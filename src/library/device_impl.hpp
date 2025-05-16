@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fractos/common/service/impl_base.hpp>
 #include <fractos/core/cap.hpp>
 #include <fractos/core/channel.hpp>
 #include <memory>
@@ -9,27 +10,30 @@
 
 namespace impl {
 
-    namespace srv = fractos::service::compute::cuda;
+    namespace clt = fractos::service::compute::cuda;
 
-    struct Device : public impl::Base<srv::Device, impl::Device> {
-        Device(std::shared_ptr<fractos::core::channel> channel,
-               CUdevice device,
-               fractos::core::cap::request req_generic,
-               fractos::core::cap::request req_make_context,
-               fractos::core::cap::request req_destroy);
-
-        std::weak_ptr<srv::Device> self;
-        std::shared_ptr<fractos::core::channel> ch;
-
-        const CUdevice device;
+    struct DeviceState : public fractos::common::service::ImplState {
+        std::weak_ptr<clt::Device> self;
+        CUdevice device;
         fractos::core::cap::request req_generic;
         fractos::core::cap::request req_make_context; // new
         // fractos::core::cap::request req_test;
         fractos::core::cap::request req_destroy;
 
-        fractos::core::future<void> do_destroy();
+        fractos::core::future<void>
+        do_destroy(std::shared_ptr<fractos::core::channel>& ch);
     };
 
+    using Device = fractos::common::service::ImplWrapper<clt::Device, impl::DeviceState>;
+
+    std::shared_ptr<clt::Device>
+    make_device(std::shared_ptr<fractos::core::channel> channel,
+                CUdevice device,
+                fractos::core::cap::request req_generic,
+                fractos::core::cap::request req_make_context,
+                fractos::core::cap::request req_destroy);
+
     std::string to_string(const Device& obj);
+    std::string to_string(const DeviceState& obj);
 
 }

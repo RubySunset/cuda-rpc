@@ -1,11 +1,10 @@
 #include <chrono>
 #include <cuda.h>
+#include <fractos/common/service/srv_base.hpp>
 #include <fractos/service/compute/cuda.hpp>
 #include <queue>
 #include <stdlib.h>
 #include <sys/stat.h>
-
-#include "common.hpp"
 
 
 namespace test {
@@ -15,7 +14,7 @@ namespace test {
 
 namespace impl {
 
-    class Function : public Base {
+    class Function : public fractos::common::service::SrvBase {
     public:
         Function(std::weak_ptr<test::gpu_Context> ctx_ptr, CUfunction func,
                  std::vector<size_t> args_size, size_t args_total_size);
@@ -37,8 +36,6 @@ namespace impl {
         void handle_generic(auto ch, auto args);
         void handle_launch(auto ch, auto args);
         void handle_destroy(auto ch, auto args);
-
-        void do_destroy();
     };
 
     std::pair<CUresult, std::shared_ptr<Function>>
