@@ -17,18 +17,6 @@ namespace srv_wire_msg = srv_wire::Function;
 using namespace fractos;
 
 
-#define checkCudaErrors_lo(err)  handleError(err, __FILE__, __LINE__)
-
-void handleError(CUresult err, const std::string& file, int line) {
-    if (CUDA_SUCCESS != err) {
-        LOG(INFO) << "CUDA Driver API error = " << err
-                    << " from file <" << file << ">, line " << line << ".\n";
-        // exit(-1);
-    }
-    LOG(INFO) << "CUDA Driver API SUCCESS from file <" << file << ">, line " << line << ".\n";
-}
-
-
 std::pair<CUresult, std::shared_ptr<impl::Function>>
 impl::make_function(std::shared_ptr<test::gpu_Context> ctx_ptr, CUmodule mod, const std::string name)
 {
