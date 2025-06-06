@@ -1,0 +1,48 @@
+{{#include}}
+env-cluster-{{cluster}}.inc.yaml
+{{/include}}
+
+
+node: &node !node
+  selector: node["resources"]["gpu"]
+  index: -1
+
+
+experiment-info:
+  logs-dir: logs/{{ID}}
+  # auto-managed files to identify how the experiment went
+  fail-file: {{FAIL}}
+  done-file: {{DONE}}
+
+experiment:
+  - name: manager
+    node: *node
+    run-program: *run-program-fractos-manager
+  - name: ctl
+    node: *node
+    run-program: *run-program-fractos-controller
+    patch-append:
+      - run-program.command: "  --manager-cpus -0 --channel-threads -0:policy=rr --controller-threads none"
+      - run-program.command: " --manager-address "
+      - run-program.command: !ref node.address
+      - run-program.command: ":3000"
+  - name: gns
+    node: *node
+    run-program: *run-program-fractos-gns
+    patch-append:
+      - run-program.command: " --controller "
+      - run-program.command: !ref node.address
+      - run-program.command: ":3103"
+  - name: service
+    node: *node
+    run-program:
+      type: uplane
+      command: fractos-service-compute-cuda
+      background: True
+  - name: test
+    node: *node
+    run-program:
+      type: uplane
+      command: ${DIST}/bin/{{test}}
+      timeout: 300
+      {{env}}
