@@ -1,0 +1,65 @@
+{{#include}}
+env-cluster-{{cluster}}.inc.yaml
+{{/include}}
+
+
+node-gpu: &node-gpu !node
+  selector: node["resources"]["gpu"]
+  index: 0
+node-cpu: &node-cpu !node
+  selector: node["resources"]["gpu"]
+  index: 1
+node-ctl: &node-ctl !node
+  selector: not node["resources"]["gpu"]
+  index: 0
+
+
+experiment-info:
+  logs-dir: logs/{{ID}}
+  # auto-managed files to identify how the experiment went
+  fail-file: {{FAIL}}
+  done-copy:
+    source-node: *node-{{node}}
+    source: ${DIST}/data/results.csv
+    destination: {{DONE}}
+
+experiment:
+  - name: manager
+    node: *node-ctl
+    run-program: *run-program-fractos-manager
+  - name: ctl0
+    node: *node-gpu
+    run-program: *run-program-fractos-controller
+    patch-append:
+      - run-program.command: "  --manager-cpus -0 --channel-threads +all:policy=rr --controller-threads none"
+      - run-program.command: " --manager-address "
+      - run-program.command: !ref node-ctl.address
+      - run-program.command: ":3000"
+  - name: ctl1
+    node: *node-cpu
+    run-program: *run-program-fractos-controller
+    patch-append:
+      - run-program.command: "  --manager-cpus -0 --channel-threads +all:policy=rr --controller-threads none"
+      - run-program.command: " --manager-address "
+      - run-program.command: !ref node-ctl.address
+      - run-program.command: ":3000"
+  - name: gns
+    node: *node-ctl
+    run-program: *run-program-fractos-gns
+    patch-append:
+      - run-program.command: " --controller "
+      - run-program.command: !ref node-gpu.address
+      - run-program.command: ":3103"
+  - name: service
+    node: *node-gpu
+    run-program:
+      type: uplane
+      command: fractos-service-compute-cuda
+      background: True
+  - name: benchmark
+    node: *node-{{node}}
+    run-program:
+      type: uplane
+      command: ${DIST}/bin/{{binary}} --output ${DIST}/data/results.csv {{workload_cmd}}
+      timeout: 300
+      {{env}}
