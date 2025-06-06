@@ -43,6 +43,7 @@ AC_CONFIG_FILES([src/library/Makefile])
 AC_CONFIG_FILES([src/include/Makefile])
 AC_CONFIG_FILES([src/wrapper/Makefile])
 AC_CONFIG_FILES([test/Makefile])
+AC_CONFIG_FILES([mubench/Makefile])
 
 
 # Put configuration results in this file for us to #include in our program.

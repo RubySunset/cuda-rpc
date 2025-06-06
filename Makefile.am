@@ -6,6 +6,7 @@ SUBDIRS += src/library
 SUBDIRS += src/server
 SUBDIRS += src/wrapper
 SUBDIRS += test
+SUBDIRS += mubench
 
 
 pkgconfig_DATA =
