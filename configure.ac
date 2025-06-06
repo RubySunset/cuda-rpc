@@ -42,6 +42,7 @@ AC_CONFIG_FILES([src/server/Makefile])
 AC_CONFIG_FILES([src/library/Makefile])
 AC_CONFIG_FILES([src/include/Makefile])
 AC_CONFIG_FILES([src/wrapper/Makefile])
+AC_CONFIG_FILES([test/Makefile])
 
 
 # Put configuration results in this file for us to #include in our program.
