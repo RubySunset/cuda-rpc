@@ -43,7 +43,7 @@ impl::make_device(std::shared_ptr<core::channel> ch,
 core::future<void>
 impl::DeviceState::do_destroy(std::shared_ptr<core::channel>& ch)
 {
-    METHOD(make_context);
+    METHOD(destroy);
     LOG_REQ(method)
         << " {}";
 
