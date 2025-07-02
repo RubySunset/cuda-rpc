@@ -76,7 +76,7 @@ Service::register_service(std::shared_ptr<core::channel> ch)
         });
 }
 
-core::future<std::shared_ptr<test::gpu_Device>>
+core::future<std::shared_ptr<Device>>
 Service::get_or_make_device_ordinal(auto ch, int ordinal)
 {
     {
@@ -93,7 +93,7 @@ Service::get_or_make_device_ordinal(auto ch, int ordinal)
         return core::make_ready_future(nullptr);
     }
 
-    auto dev = test::gpu_Device::factory(ordinal);
+    auto dev = Device::factory(ordinal);
     return dev->register_methods(ch)
         .then([this, self=_self.lock(), dev, ordinal](auto& fut) {
             fut.get();
@@ -114,7 +114,7 @@ Service::get_or_make_device_ordinal(auto ch, int ordinal)
         });
 }
 
-std::shared_ptr<test::gpu_Device>
+std::shared_ptr<Device>
 Service::get_device(CUdevice device)
 {
     auto devices_lock = std::shared_lock(_devices_mutex);

@@ -4,8 +4,8 @@
 #include <unordered_map>
 
 
-namespace test {
-    class gpu_Device;
+namespace impl {
+    class Device;
 }
 
 namespace impl {
@@ -23,8 +23,8 @@ namespace impl {
         bool exit_requested() const;
         bool query_event_completion(std::shared_ptr<fractos::core::channel> ch, fractos::wire::endian::uint8_t id);
 
-        fractos::core::future<std::shared_ptr<test::gpu_Device>> get_or_make_device_ordinal(auto ch, int ordinal);
-        std::shared_ptr<test::gpu_Device> get_device(CUdevice device);
+        fractos::core::future<std::shared_ptr<Device>> get_or_make_device_ordinal(auto ch, int ordinal);
+        std::shared_ptr<Device> get_device(CUdevice device);
 
         ~Service();
 
@@ -44,8 +44,8 @@ namespace impl {
         Service();
 
         std::shared_mutex _devices_mutex;
-        std::unordered_map<int, std::shared_ptr<test::gpu_Device>> _ordinal_devices;
-        std::unordered_map<CUdevice, std::shared_ptr<test::gpu_Device>> _devices;
+        std::unordered_map<int, std::shared_ptr<Device>> _ordinal_devices;
+        std::unordered_map<CUdevice, std::shared_ptr<Device>> _devices;
 
         std::shared_ptr<fractos::core::channel> ch;
         std::weak_ptr<Service> _self;

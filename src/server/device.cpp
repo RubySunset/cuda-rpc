@@ -12,23 +12,23 @@ namespace srv = fractos::service::compute::cuda;
 namespace srv_wire = fractos::service::compute::cuda::wire;
 namespace srv_wire_msg = srv_wire::Device;
 using namespace fractos;
-using namespace ::test;
+using namespace impl;
 
 
-gpu_Device::gpu_Device(CUdevice device)
+Device::Device(CUdevice device)
     :device(device)
 {
     //fork();
     _destroyed = false;
 }
 
-std::shared_ptr<gpu_Device> gpu_Device::factory(wire::endian::uint8_t value){
-    auto res = std::shared_ptr<gpu_Device>(new gpu_Device(value));
+std::shared_ptr<Device> Device::factory(wire::endian::uint8_t value){
+    auto res = std::shared_ptr<Device>(new Device(value));
     res->_self = res;
     return res;
 }
 
-gpu_Device::~gpu_Device() {
+Device::~Device() {
 
 }
 
@@ -36,7 +36,7 @@ gpu_Device::~gpu_Device() {
  *  Make handlers for a Device's caps
  */
 core::future<void>
-gpu_Device::register_methods(std::shared_ptr<core::channel> ch)
+Device::register_methods(std::shared_ptr<core::channel> ch)
 {
     namespace msg_base = ::service::compute::cuda::wire::Device;
 
@@ -82,7 +82,7 @@ gpu_Device::register_methods(std::shared_ptr<core::channel> ch)
 }
 
 void
-gpu_Device::handle_generic(auto ch, auto args)
+Device::handle_generic(auto ch, auto args)
 {
     METHOD(generic);
     CHECK_CAPS_CONT(msg::request::caps::continuation);
@@ -137,7 +137,7 @@ offset_of_member(T U::* member)
 
 
 void
-gpu_Device::handle_get_attribute(auto ch, auto args)
+Device::handle_get_attribute(auto ch, auto args)
 {
     METHOD(get_attribute);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -167,7 +167,7 @@ gpu_Device::handle_get_attribute(auto ch, auto args)
 }
 
 void
-gpu_Device::handle_get_name(auto ch, auto args)
+Device::handle_get_name(auto ch, auto args)
 {
     METHOD(get_name);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -200,7 +200,7 @@ gpu_Device::handle_get_name(auto ch, auto args)
 }
 
 void
-gpu_Device::handle_get_uuid(auto ch, auto args)
+Device::handle_get_uuid(auto ch, auto args)
 {
     METHOD(get_uuid);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -230,7 +230,7 @@ gpu_Device::handle_get_uuid(auto ch, auto args)
 }
 
 void
-gpu_Device::handle_total_mem(auto ch, auto args)
+Device::handle_total_mem(auto ch, auto args)
 {
     METHOD(total_mem);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -261,7 +261,7 @@ gpu_Device::handle_total_mem(auto ch, auto args)
 /*
  *  Destroy a Device, revoke all of its caps
  */
-void gpu_Device::handle_make_context(auto args) {
+void Device::handle_make_context(auto args) {
     DVLOG(logging::SERVICE) << "CALL handle make_context";
     using msg = ::service::compute::cuda::wire::Device::make_context;
     
@@ -287,7 +287,7 @@ void gpu_Device::handle_make_context(auto args) {
 
     VLOG(fractos::logging::SERVICE) << "vctx value is: " << (uint64_t)value;
 
-    auto vctx = std::shared_ptr<gpu_Context>(gpu_Context::factory(value, device));
+    auto vctx = std::shared_ptr<test::gpu_Context>(test::gpu_Context::factory(value, device));
 
     vctx->register_methods(ch)
         .then([this, ch, self, vctx, args=std::move(args), value](auto& fut) {
@@ -313,7 +313,7 @@ void gpu_Device::handle_make_context(auto args) {
 /*
  *  Destroy a Device, revoke all of its caps
  */
-void gpu_Device::handle_destroy(auto args) {
+void Device::handle_destroy(auto args) {
     VLOG(fractos::logging::SERVICE) << "CALL handle destroy";
     using msg = ::service::compute::cuda::wire::Device::destroy;
 
@@ -355,7 +355,7 @@ void gpu_Device::handle_destroy(auto args) {
 }
 
 std::string
-test::to_string(const gpu_Device& obj)
+impl::to_string(const Device& obj)
 {
     std::stringstream ss;
     ss << "Device(" << &obj << ")";

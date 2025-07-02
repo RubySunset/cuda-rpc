@@ -8,42 +8,42 @@
 using namespace fractos;
 
 
-namespace test {
+namespace impl {
 
-class gpu_Device {
-public:
-    static std::shared_ptr<gpu_Device> factory(fractos::wire::endian::uint8_t id);
+    class Device {
+    public:
+        static std::shared_ptr<Device> factory(fractos::wire::endian::uint8_t id);
 
-    fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
+        fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
-protected:
-    void handle_generic(auto ch, auto args);
-    void handle_get_attribute(auto ch, auto args);
-    void handle_get_name(auto ch, auto args);
-    void handle_get_uuid(auto ch, auto args);
-    void handle_total_mem(auto ch, auto args);
-    void handle_make_context(auto args);
-    void handle_destroy(auto args);
+    protected:
+        void handle_generic(auto ch, auto args);
+        void handle_get_attribute(auto ch, auto args);
+        void handle_get_name(auto ch, auto args);
+        void handle_get_uuid(auto ch, auto args);
+        void handle_total_mem(auto ch, auto args);
+        void handle_make_context(auto args);
+        void handle_destroy(auto args);
 
 
-private:
-    std::shared_ptr<gpu_Device> _self;
-    bool _destroyed;
+    private:
+        std::shared_ptr<Device> _self;
+        bool _destroyed;
 
-public:
-    const CUdevice device;
-    fractos::core::cap::request req_generic;
-    fractos::core::cap::request req_make_context;
-    fractos::core::cap::request req_destroy;
+    public:
+        const CUdevice device;
+        fractos::core::cap::request req_generic;
+        fractos::core::cap::request req_make_context;
+        fractos::core::cap::request req_destroy;
 
-    gpu_Device(CUdevice ordinal);
-    std::shared_ptr<test::gpu_Context> _vctx;
+        Device(CUdevice ordinal);
+        std::shared_ptr<test::gpu_Context> _vctx;
 
-    ~gpu_Device();
+        ~Device();
 
-    //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
-};
+        //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
+    };
 
-    std::string to_string(const gpu_Device& obj);
+    std::string to_string(const Device& obj);
 
 }
