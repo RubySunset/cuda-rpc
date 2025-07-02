@@ -3,7 +3,7 @@
 $(call define_buildable,service-compute-cuda,"CUDA compute service")
 
 BUILD_service-compute-cuda_production =
-BUILD_service-compute-cuda_debug = --enable-debug-b
+BUILD_service-compute-cuda_debug = --enable-debug
 BUILD_service-compute-cuda_gprof = --enable-gprof
 BUILD_service-compute-cuda_sanitizer = --enable-sanitizer
 BUILD_service-compute-cuda_valgrind = --enable-sanitizer
