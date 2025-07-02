@@ -5,9 +5,6 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-#include "./memory.hpp"
-#include "./module.hpp"
-
 
 using namespace fractos;
 
@@ -15,6 +12,8 @@ using namespace fractos;
 namespace impl {
     class Stream;
     class Event;
+    class Module;
+    class Memory;
 }
 
 namespace impl {
@@ -61,7 +60,7 @@ namespace impl {
         Context(fractos::wire::endian::uint32_t value, CUdevice device);
         std::shared_ptr<Stream> _stream; 
         std::shared_ptr<Event> _event; 
-        std::shared_ptr<test::gpu_Module> _mod; 
+        std::shared_ptr<Module> _mod; 
 
         ~Context();
 

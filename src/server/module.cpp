@@ -10,14 +10,13 @@
 
 #include "common.hpp"
 #include "./module.hpp"
+#include "./function.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
 namespace srv_wire = fractos::service::compute::cuda::wire;
 namespace srv_wire_msg = srv_wire::Module;
 using namespace fractos;
-using namespace ::test;
-using namespace impl;
 
 
 #define checkCudaErrors_lo(err)  handleError_lo(err, __FILE__, __LINE__)
@@ -72,7 +71,7 @@ void check_memory()
 }
 
 
-gpu_Module::gpu_Module(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<Context> vctx) {
+impl::Module::Module(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<Context> vctx) {
     //fork();
     // 
 
@@ -96,7 +95,7 @@ gpu_Module::gpu_Module(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[
 }
 
 
-gpu_Module::gpu_Module(std::string& name, CUcontext& ctx) {
+impl::Module::Module(std::string& name, CUcontext& ctx) {
     //fork();
     // 
     _name = name;  // std::string 
@@ -113,27 +112,27 @@ gpu_Module::gpu_Module(std::string& name, CUcontext& ctx) {
    
 }
 
-std::shared_ptr<gpu_Module> gpu_Module::factory(std::string& name, CUcontext& ctx){
-    auto res = std::shared_ptr<gpu_Module>(new gpu_Module(name, ctx));
+std::shared_ptr<impl::Module> impl::Module::factory(std::string& name, CUcontext& ctx){
+    auto res = std::shared_ptr<Module>(new Module(name, ctx));
     res->_self = res;
     return res;
 }
 
-std::shared_ptr<gpu_Module> gpu_Module::factory(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<Context> vctx){
-    auto res = std::shared_ptr<gpu_Module>(new gpu_Module(module_id, ctx, buffer, size, vctx));
+std::shared_ptr<impl::Module> impl::Module::factory(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<Context> vctx){
+    auto res = std::shared_ptr<Module>(new Module(module_id, ctx, buffer, size, vctx));
     res->_self = res;
     return res;
 }
 
 
 
-gpu_Module::~gpu_Module() {
+impl::Module::~Module() {
     // checkCudaErrors(cuCtxDestroy(context));
     
 }
 
 
-void gpu_Module::module_unload() // current
+void impl::Module::module_unload() // current
 {
     checkCudaErrors(cuCtxSetCurrent(_ctx));
     VLOG(fractos::logging::SERVICE) << "Unload module :  name = " << _name;
@@ -143,7 +142,7 @@ void gpu_Module::module_unload() // current
 /*
  *  Make handlers for a Module's caps
  */
-core::future<void> gpu_Module::register_methods(std::shared_ptr<core::channel> ch)
+core::future<void> impl::Module::register_methods(std::shared_ptr<core::channel> ch)
 {
     namespace msg_base = ::service::compute::cuda::wire::Module;
 
@@ -188,7 +187,7 @@ core::future<void> gpu_Module::register_methods(std::shared_ptr<core::channel> c
 }
 
 void
-gpu_Module::handle_generic(auto ch, auto args)
+impl::Module::handle_generic(auto ch, auto args)
 {
     METHOD(generic);
     CHECK_CAPS_CONT(msg::request::caps::continuation);
@@ -226,7 +225,7 @@ gpu_Module::handle_generic(auto ch, auto args)
 }
 
 void
-gpu_Module::handle_get_global(auto ch, auto args)
+impl::Module::handle_get_global(auto ch, auto args)
 {
     METHOD(get_global);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -267,7 +266,7 @@ out:
         .as_callback_log_ignore_continuation_error();
 }
 
-void gpu_Module::handle_get_function(auto args) {
+void impl::Module::handle_get_function(auto args) {
     auto t_start = std::chrono::high_resolution_clock::now();
     VLOG(fractos::logging::SERVICE) << "CALL handle_get_function";
 
@@ -313,7 +312,7 @@ void gpu_Module::handle_get_function(auto args) {
 
     // std::shared_ptr<Context> _vctx = _vctx.lock();
 
-    auto [err, func] = impl::make_function(_vctx.lock(), _module, func_name);
+    auto [err, func] = make_function(_vctx.lock(), _module, func_name);
     CHECK(err == CUDA_SUCCESS) << "TODO: return error";
 
     func->register_methods(ch)
@@ -352,7 +351,7 @@ void gpu_Module::handle_get_function(auto args) {
 /*
  *  Destroy a Module, revoke all of its caps
  */
-void gpu_Module::handle_destroy(auto args) {
+void impl::Module::handle_destroy(auto args) {
     DVLOG(logging::SERVICE) << "CALL handle destroy";
     using msg = ::service::compute::cuda::wire::Module::destroy;
 
@@ -396,7 +395,7 @@ void gpu_Module::handle_destroy(auto args) {
 }
 
 std::string
-test::to_string(const gpu_Module& obj)
+impl::to_string(const Module& obj)
 {
     std::stringstream ss;
     ss << "Module(" << &obj << ")";

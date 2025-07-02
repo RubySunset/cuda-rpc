@@ -10,6 +10,8 @@
 #include "./context.hpp"
 #include "./stream.hpp"
 #include "./event.hpp"
+#include "./module.hpp"
+#include "./memory.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
@@ -483,7 +485,7 @@ void impl::Context::handle_event(auto args) {
 //     VLOG(fractos::logging::SERVICE) << "module name is: " << file_name;
 
 
-//     auto mod = std::shared_ptr<test::gpu_Module>(gpu_Module::factory(file_name, _ctx));
+//     auto mod = std::shared_ptr<Module>(Module::factory(file_name, _ctx));
 
 
 //     mod->register_methods(ch)
@@ -565,9 +567,9 @@ void impl::Context::handle_module_data(auto args) {
         LOG(FATAL) << "ptx buffer is not valid for load";
     }
 
-    auto mod = std::shared_ptr<test::gpu_Module>(test::gpu_Module::factory(module_id, _ctx, buffer, size, self));
+    auto mod = std::shared_ptr<Module>(Module::factory(module_id, _ctx, buffer, size, self));
 
-    // auto mod = std::shared_ptr<test::gpu_Module>(gpu_Module::factory(file_name, _ctx));
+    // auto mod = std::shared_ptr<Module>(Module::factory(file_name, _ctx));
 
 
     mod->register_methods(ch)

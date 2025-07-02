@@ -9,6 +9,7 @@
 
 #include "./context.hpp"
 #include "./stream.hpp"
+#include "./function.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;

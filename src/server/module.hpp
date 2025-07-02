@@ -3,63 +3,60 @@
 #include <queue>
 #include <chrono>
 #include <fractos/service/compute/cuda.hpp>
-// #include <fractos/service/compute/cuda_msg.hpp>
-#include "./function.hpp"
-// #include "./srv_context.hpp"
-
-
-using namespace fractos;
 
 
 namespace impl {
     class Context;
+    class Function;
 }
 
-namespace test {
-class gpu_Module {
-public:
-    static std::shared_ptr<gpu_Module> factory(std::string& name, CUcontext& ctx);
-    static std::shared_ptr<gpu_Module> factory(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size
-                                , std::weak_ptr<impl::Context> vctx);
+namespace impl {
 
-    fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
+    class Module {
+    public:
+        static std::shared_ptr<Module> factory(std::string& name, CUcontext& ctx);
+        static std::shared_ptr<Module> factory(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size
+                                                   , std::weak_ptr<Context> vctx);
 
-protected:
-    void handle_generic(auto ch, auto args);
-    void handle_get_global(auto ch, auto args);
+        fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
-    void handle_get_function(auto args);
-    void handle_destroy(auto args);
+    protected:
+        void handle_generic(auto ch, auto args);
+        void handle_get_global(auto ch, auto args);
+
+        void handle_get_function(auto args);
+        void handle_destroy(auto args);
     
-private:
-    void module_unload();  
+    private:
+        void module_unload();  
 
-    // TODO: weak_ptr
-    std::shared_ptr<gpu_Module> _self;
-    // TODO: atomic_flag
-    bool _destroyed;
-    // TODO: delete
-    std::string _name;
-    uint64_t _id;
-    CUcontext _ctx;
-    CUmodule _module;
-    std::weak_ptr<impl::Context> _vctx;
-    std::shared_ptr<const char[]> _data;
+        // TODO: weak_ptr
+        std::shared_ptr<Module> _self;
+        // TODO: atomic_flag
+        bool _destroyed;
+        // TODO: delete
+        std::string _name;
+        uint64_t _id;
+        CUcontext _ctx;
+        CUmodule _module;
+        std::weak_ptr<Context> _vctx;
+        std::shared_ptr<const char[]> _data;
 
-public:
-    fractos::core::cap::request _req_generic;
-    fractos::core::cap::request _req_get_func;
-    fractos::core::cap::request _req_destroy;
+    public:
+        fractos::core::cap::request _req_generic;
+        fractos::core::cap::request _req_get_func;
+        fractos::core::cap::request _req_destroy;
 
-    std::shared_ptr<impl::Function> _func; 
+        std::shared_ptr<Function> _func; 
 
-    gpu_Module(std::string& name, CUcontext& ctx);
-    gpu_Module(uint64_t module_id, CUcontext& ctx,  std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<impl::Context> vctx);
+        Module(std::string& name, CUcontext& ctx);
+        Module(uint64_t module_id, CUcontext& ctx,  std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<Context> vctx);
 
-    ~gpu_Module();
+        ~Module();
 
-    //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
-};
+        //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
+    };
 
-    std::string to_string(const gpu_Module& obj);
+    std::string to_string(const Module& obj);
+
 }
