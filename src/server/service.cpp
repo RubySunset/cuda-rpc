@@ -12,31 +12,30 @@
 namespace srv = fractos::service::compute::cuda;
 namespace srv_wire = fractos::service::compute::cuda::wire;
 namespace srv_wire_msg = srv_wire::Service;
-using namespace impl;
 using namespace fractos;
 
 
-Service::Service() {
+impl::Service::Service() {
 
     // checkCudaErrors(cuInit(0));
 }
 
-void Service::request_exit() {
+void impl::Service::request_exit() {
    _requested_exit.store(true); 
 }
 
-bool Service::exit_requested() const
+bool impl::Service::exit_requested() const
 {
     return _requested_exit.load();
 }
 
-std::shared_ptr<Service> Service::factory() {
+std::shared_ptr<impl::Service> impl::Service::factory() {
     auto res = std::shared_ptr<Service>(new Service());
     res->_self = res;
     return res;
 }
 
-Service::~Service() {
+impl::Service::~Service() {
 
 
 }
@@ -45,7 +44,7 @@ Service::~Service() {
  *  Registers all methods that a Device has
  */
 core::future<void>
-Service::register_service(std::shared_ptr<core::channel> ch)
+impl::Service::register_service(std::shared_ptr<core::channel> ch)
 {
     // namespace msg_base = ::service::compute::detail::device_service;
     namespace msg_base = ::service::compute::cuda::wire::Service;
@@ -76,8 +75,8 @@ Service::register_service(std::shared_ptr<core::channel> ch)
         });
 }
 
-core::future<std::shared_ptr<Device>>
-Service::get_or_make_device_ordinal(auto ch, int ordinal)
+core::future<std::shared_ptr<impl::Device>>
+impl::Service::get_or_make_device_ordinal(auto ch, int ordinal)
 {
     {
         auto devices_lock = std::shared_lock(_devices_mutex);
@@ -114,8 +113,8 @@ Service::get_or_make_device_ordinal(auto ch, int ordinal)
         });
 }
 
-std::shared_ptr<Device>
-Service::get_device(CUdevice device)
+std::shared_ptr<impl::Device>
+impl::Service::get_device(CUdevice device)
 {
     auto devices_lock = std::shared_lock(_devices_mutex);
     auto it = _devices.find(device);
@@ -127,7 +126,7 @@ Service::get_device(CUdevice device)
 }
 
 void
-Service::handle_connect(auto ch, auto args)
+impl::Service::handle_connect(auto ch, auto args)
 {
     static const std::string method = "handle_connect";
     using msg = ::service::compute::cuda::wire::Service::connect;
@@ -174,7 +173,7 @@ Service::handle_connect(auto ch, auto args)
 }
 
 void
-Service::handle_generic(auto ch, auto args)
+impl::Service::handle_generic(auto ch, auto args)
 {
     METHOD(generic);
     CHECK_CAPS_CONT(msg::request::caps::continuation);
@@ -227,7 +226,7 @@ Service::handle_generic(auto ch, auto args)
 }
 
 void
-Service::handle_get_driver_version(auto ch, auto args)
+impl::Service::handle_get_driver_version(auto ch, auto args)
 {
     METHOD(get_driver_version);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -256,7 +255,7 @@ Service::handle_get_driver_version(auto ch, auto args)
 }
 
 void
-Service::handle_init(auto ch, auto args)
+impl::Service::handle_init(auto ch, auto args)
 {
     METHOD(init);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -283,7 +282,7 @@ Service::handle_init(auto ch, auto args)
 
 
 void
-Service::handle_device_get(auto ch, auto args)
+impl::Service::handle_device_get(auto ch, auto args)
 {
     METHOD(device_get);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -334,7 +333,7 @@ Service::handle_device_get(auto ch, auto args)
 }
 
 void
-Service::handle_device_get_count(auto ch, auto args)
+impl::Service::handle_device_get_count(auto ch, auto args)
 {
     METHOD(device_get_count);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -364,7 +363,7 @@ Service::handle_device_get_count(auto ch, auto args)
 
 
 void
-Service::handle_module_get_loading_mode(auto ch, auto args)
+impl::Service::handle_module_get_loading_mode(auto ch, auto args)
 {
     METHOD(module_get_loading_mode);
     LOG_REQ(method) << srv::wire::to_string(*args);
