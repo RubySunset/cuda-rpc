@@ -12,23 +12,22 @@ namespace srv = fractos::service::compute::cuda;
 namespace srv_wire = fractos::service::compute::cuda::wire;
 namespace srv_wire_msg = srv_wire::Device;
 using namespace fractos;
-using namespace impl;
 
 
-Device::Device(CUdevice device)
+impl::Device::Device(CUdevice device)
     :device(device)
 {
     //fork();
     _destroyed = false;
 }
 
-std::shared_ptr<Device> Device::factory(wire::endian::uint8_t value){
+std::shared_ptr<impl::Device> impl::Device::factory(wire::endian::uint8_t value){
     auto res = std::shared_ptr<Device>(new Device(value));
     res->_self = res;
     return res;
 }
 
-Device::~Device() {
+impl::Device::~Device() {
 
 }
 
@@ -36,7 +35,7 @@ Device::~Device() {
  *  Make handlers for a Device's caps
  */
 core::future<void>
-Device::register_methods(std::shared_ptr<core::channel> ch)
+impl::Device::register_methods(std::shared_ptr<core::channel> ch)
 {
     namespace msg_base = ::service::compute::cuda::wire::Device;
 
@@ -82,7 +81,7 @@ Device::register_methods(std::shared_ptr<core::channel> ch)
 }
 
 void
-Device::handle_generic(auto ch, auto args)
+impl::Device::handle_generic(auto ch, auto args)
 {
     METHOD(generic);
     CHECK_CAPS_CONT(msg::request::caps::continuation);
@@ -137,7 +136,7 @@ offset_of_member(T U::* member)
 
 
 void
-Device::handle_get_attribute(auto ch, auto args)
+impl::Device::handle_get_attribute(auto ch, auto args)
 {
     METHOD(get_attribute);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -167,7 +166,7 @@ Device::handle_get_attribute(auto ch, auto args)
 }
 
 void
-Device::handle_get_name(auto ch, auto args)
+impl::Device::handle_get_name(auto ch, auto args)
 {
     METHOD(get_name);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -200,7 +199,7 @@ Device::handle_get_name(auto ch, auto args)
 }
 
 void
-Device::handle_get_uuid(auto ch, auto args)
+impl::Device::handle_get_uuid(auto ch, auto args)
 {
     METHOD(get_uuid);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -230,7 +229,7 @@ Device::handle_get_uuid(auto ch, auto args)
 }
 
 void
-Device::handle_total_mem(auto ch, auto args)
+impl::Device::handle_total_mem(auto ch, auto args)
 {
     METHOD(total_mem);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -261,7 +260,7 @@ Device::handle_total_mem(auto ch, auto args)
 /*
  *  Destroy a Device, revoke all of its caps
  */
-void Device::handle_make_context(auto args) {
+void impl::Device::handle_make_context(auto args) {
     DVLOG(logging::SERVICE) << "CALL handle make_context";
     using msg = ::service::compute::cuda::wire::Device::make_context;
     
@@ -313,7 +312,7 @@ void Device::handle_make_context(auto args) {
 /*
  *  Destroy a Device, revoke all of its caps
  */
-void Device::handle_destroy(auto args) {
+void impl::Device::handle_destroy(auto args) {
     VLOG(fractos::logging::SERVICE) << "CALL handle destroy";
     using msg = ::service::compute::cuda::wire::Device::destroy;
 
