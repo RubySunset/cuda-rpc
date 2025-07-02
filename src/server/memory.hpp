@@ -6,37 +6,38 @@
 using namespace fractos;
 
 
-namespace test {
+namespace impl {
 
-class gpu_Memory {
-public:
-    static std::shared_ptr<gpu_Memory> factory(fractos::wire::endian::uint32_t size, CUcontext& ctx);
+    class Memory {
+    public:
+        static std::shared_ptr<Memory> factory(fractos::wire::endian::uint32_t size, CUcontext& ctx);
 
-    fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
+        fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
-protected:
-    void handle_destroy(auto args);
+    protected:
+        void handle_destroy(auto args);
     
-private:
-    void memory_free(char* base);  
-    fractos::wire::endian::uint32_t _size;
+    private:
+        void memory_free(char* base);  
+        fractos::wire::endian::uint32_t _size;
 
-    std::shared_ptr<gpu_Memory> _self;
-    bool _destroyed;
-    CUcontext _ctx;
+        std::shared_ptr<Memory> _self;
+        bool _destroyed;
+        CUcontext _ctx;
 
-public:
-    fractos::core::cap::request _req_destroy;
+    public:
+        fractos::core::cap::request _req_destroy;
 
-    fractos::core::cap::memory _memory;
-    std::shared_ptr<fractos::core::memory_region> _mr;
+        fractos::core::cap::memory _memory;
+        std::shared_ptr<fractos::core::memory_region> _mr;
     
-    CUdeviceptr base;
+        CUdeviceptr base;
 
-    gpu_Memory(fractos::wire::endian::uint32_t size, CUcontext& ctx);
+        Memory(fractos::wire::endian::uint32_t size, CUcontext& ctx);
 
-    ~gpu_Memory();
+        ~Memory();
 
-    //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
-};
+        //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
+    };
+
 }

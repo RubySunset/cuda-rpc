@@ -304,7 +304,7 @@ impl::Context::handle_mem_alloc(auto ch, auto args)
             .then([this, self=_self, ch, error, cuerror, base, size, cont](auto& fut) {
                 auto mem = fut.get();
 
-                auto dev_mem = std::shared_ptr<test::gpu_Memory>(test::gpu_Memory::factory(size, _ctx));
+                auto dev_mem = std::shared_ptr<Memory>(Memory::factory(size, _ctx));
                 dev_mem->_memory = std::move(mem);
                 dev_mem->base = base;
 

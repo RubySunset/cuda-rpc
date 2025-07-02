@@ -9,10 +9,9 @@
 
 
 using namespace fractos;
-using namespace ::test;
-// using namespace impl;
 
-gpu_Memory::gpu_Memory(fractos::wire::endian::uint32_t size, CUcontext& ctx) {
+
+impl::Memory::Memory(fractos::wire::endian::uint32_t size, CUcontext& ctx) {
     //fork();
     _size = size;
     _destroyed = false;
@@ -20,18 +19,18 @@ gpu_Memory::gpu_Memory(fractos::wire::endian::uint32_t size, CUcontext& ctx) {
    
 }
 
-std::shared_ptr<gpu_Memory> gpu_Memory::factory(fractos::wire::endian::uint32_t size, CUcontext& ctx){
-    auto res = std::shared_ptr<gpu_Memory>(new gpu_Memory(size, ctx));
+std::shared_ptr<impl::Memory> impl::Memory::factory(fractos::wire::endian::uint32_t size, CUcontext& ctx){
+    auto res = std::shared_ptr<Memory>(new Memory(size, ctx));
     res->_self = res;
     return res;
 }
 
-gpu_Memory::~gpu_Memory() {
+impl::Memory::~Memory() {
     // checkCudaErrors(cuCtxDestroy(context));
 }
 
 
-void gpu_Memory::memory_free(char* base)
+void impl::Memory::memory_free(char* base)
 {
     checkCudaErrors(cuCtxSetCurrent(_ctx));
     CUdeviceptr d_B = reinterpret_cast<CUdeviceptr>(base);
@@ -43,7 +42,7 @@ void gpu_Memory::memory_free(char* base)
 /*
  *  Make handlers for a Memory's caps
  */
-core::future<void> gpu_Memory::register_methods(std::shared_ptr<core::channel> ch)
+core::future<void> impl::Memory::register_methods(std::shared_ptr<core::channel> ch)
 {
     namespace msg_base = ::service::compute::cuda::wire::Memory;
 
@@ -65,7 +64,7 @@ core::future<void> gpu_Memory::register_methods(std::shared_ptr<core::channel> c
 /*
  *  Destroy a Memory, revoke all of its caps
  */
-void gpu_Memory::handle_destroy(auto args) {
+void impl::Memory::handle_destroy(auto args) {
     DVLOG(logging::SERVICE) << "CALL handle destroy";
     using msg = ::service::compute::cuda::wire::Memory::destroy;
 
