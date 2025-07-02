@@ -9,12 +9,9 @@
 
 
 using namespace fractos;
-using namespace ::test;
-// using namespace impl;
 
 
-
-gpu_Event::gpu_Event(fractos::wire::endian::uint32_t flags, CUcontext& ctx) {
+impl::Event::Event(fractos::wire::endian::uint32_t flags, CUcontext& ctx) {
     //fork();
     _flags = flags;
     _destroyed = false;
@@ -28,28 +25,28 @@ gpu_Event::gpu_Event(fractos::wire::endian::uint32_t flags, CUcontext& ctx) {
     _event = event;
 }
 
-std::shared_ptr<gpu_Event> gpu_Event::factory(fractos::wire::endian::uint32_t flags, 
+std::shared_ptr<impl::Event> impl::Event::factory(fractos::wire::endian::uint32_t flags, 
                                        CUcontext& ctx){
-    auto res = std::shared_ptr<gpu_Event>(new gpu_Event(flags,  ctx));
+    auto res = std::shared_ptr<Event>(new Event(flags,  ctx));
     res->_self = res;
     return res;
 }
 
-gpu_Event::~gpu_Event() {
+impl::Event::~Event() {
     // checkCudaErrors(cuCtxDestroy(context));
 }
 
-// const CUevent& gpu_Event::getCUEvent() const
+// const CUevent& impl::Event::getCUEvent() const
 // {
 //     return _event;
 // }
 
-// void gpu_Event::event_synchronize() {
+// void impl::Event::event_synchronize() {
 //     checkCudaErrors(cuEventSynchronize(_event));
 // }
 
 
-void gpu_Event::event_destroy()
+void impl::Event::event_destroy()
 {
     checkCudaErrors(cuCtxSetCurrent(_ctx));
 
@@ -61,7 +58,7 @@ void gpu_Event::event_destroy()
 /*
  *  Make handlers for a Event's caps
  */
-core::future<void> gpu_Event::register_methods(std::shared_ptr<core::channel> ch)
+core::future<void> impl::Event::register_methods(std::shared_ptr<core::channel> ch)
 {
     namespace msg_base = ::service::compute::cuda::wire::Event;
 
@@ -106,7 +103,7 @@ core::future<void> gpu_Event::register_methods(std::shared_ptr<core::channel> ch
 }
 
 
-// void gpu_Event::handle_synchronize(auto args) {
+// void impl::Event::handle_synchronize(auto args) {
 //     VLOG(fractos::logging::SERVICE) << "CALL handle synchronize";
 //     using msg = ::service::compute::cuda::wire::Event::synchronize;
 
@@ -131,7 +128,7 @@ core::future<void> gpu_Event::register_methods(std::shared_ptr<core::channel> ch
 /*
  *  Destroy a Event, revoke all of its caps
  */
-void gpu_Event::handle_destroy(auto args) {
+void impl::Event::handle_destroy(auto args) {
     DVLOG(logging::SERVICE) << "CALL handle destroy";
     using msg = ::service::compute::cuda::wire::Event::destroy;
 

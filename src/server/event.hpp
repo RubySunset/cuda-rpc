@@ -3,41 +3,41 @@
 #include <queue>
 #include <chrono>
 #include <fractos/service/compute/cuda.hpp>
-using namespace fractos;
 
 
-namespace test {
+namespace impl {
 
-class gpu_Event {
-public:
-    static std::shared_ptr<gpu_Event> factory(fractos::wire::endian::uint32_t flags,
-                     CUcontext& ctx);
+    class Event {
+    public:
+        static std::shared_ptr<Event> factory(fractos::wire::endian::uint32_t flags,
+                                                  CUcontext& ctx);
 
-    fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
+        fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
 
-protected:
-    // void handle_synchronize(auto args);
-    void handle_destroy(auto args);
+    protected:
+        // void handle_synchronize(auto args);
+        void handle_destroy(auto args);
     
-private:
-    // void stream_synchronize();  
-    void event_destroy();  
-    fractos::wire::endian::uint32_t _flags;
-    // fractos::wire::endian::uint32_t _id;
+    private:
+        // void stream_synchronize();  
+        void event_destroy();  
+        fractos::wire::endian::uint32_t _flags;
+        // fractos::wire::endian::uint32_t _id;
 
-    std::shared_ptr<gpu_Event> _self;
-    bool _destroyed;
-    CUcontext _ctx;
-    CUevent _event;
+        std::shared_ptr<Event> _self;
+        bool _destroyed;
+        CUcontext _ctx;
+        CUevent _event;
 
-public:
-    // fractos::core::cap::request _req_sync;
-    fractos::core::cap::request _req_destroy;
-    gpu_Event(fractos::wire::endian::uint32_t flags, CUcontext& ctx);
+    public:
+        // fractos::core::cap::request _req_sync;
+        fractos::core::cap::request _req_destroy;
+        Event(fractos::wire::endian::uint32_t flags, CUcontext& ctx);
 
-    ~gpu_Event();
-    // const CUstream& getCUEvent() const;
+        ~Event();
+        // const CUstream& getCUEvent() const;
 
-    //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
-};
+        //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
+    };
+
 }

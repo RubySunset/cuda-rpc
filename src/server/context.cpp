@@ -9,16 +9,15 @@
 #include "common.hpp"
 #include "./context.hpp"
 #include "./stream.hpp"
+#include "./event.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
 namespace srv_wire = fractos::service::compute::cuda::wire;
 namespace srv_wire_msg = srv_wire::Context;
 using namespace fractos;
-using namespace ::test;
 
 
-// using namespace impl;
 #define MAX_IO_SIZE    (1024 * 1024 * 16)   
 
 #define checkCudaErrors_lo(err)  handleError_llo(err, __FILE__, __LINE__)
@@ -303,7 +302,7 @@ impl::Context::handle_mem_alloc(auto ch, auto args)
             .then([this, self=_self, ch, error, cuerror, base, size, cont](auto& fut) {
                 auto mem = fut.get();
 
-                auto dev_mem = std::shared_ptr<gpu_Memory>(gpu_Memory::factory(size, _ctx));
+                auto dev_mem = std::shared_ptr<test::gpu_Memory>(test::gpu_Memory::factory(size, _ctx));
                 dev_mem->_memory = std::move(mem);
                 dev_mem->base = base;
 
@@ -421,7 +420,7 @@ void impl::Context::handle_event(auto args) {
 
     VLOG(fractos::logging::SERVICE) << "event flag is: " << (uint32_t)flag;
 
-    auto event = std::shared_ptr<gpu_Event>(gpu_Event::factory(flag, _ctx));
+    auto event = std::shared_ptr<Event>(Event::factory(flag, _ctx));
 
     event->register_methods(ch)
         .then([this, ch, self, event, args=std::move(args), flag](auto& fut) {
@@ -484,7 +483,7 @@ void impl::Context::handle_event(auto args) {
 //     VLOG(fractos::logging::SERVICE) << "module name is: " << file_name;
 
 
-//     auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(file_name, _ctx));
+//     auto mod = std::shared_ptr<test::gpu_Module>(gpu_Module::factory(file_name, _ctx));
 
 
 //     mod->register_methods(ch)
@@ -566,9 +565,9 @@ void impl::Context::handle_module_data(auto args) {
         LOG(FATAL) << "ptx buffer is not valid for load";
     }
 
-    auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(module_id, _ctx, buffer, size, self));
+    auto mod = std::shared_ptr<test::gpu_Module>(test::gpu_Module::factory(module_id, _ctx, buffer, size, self));
 
-    // auto mod = std::shared_ptr<gpu_Module>(gpu_Module::factory(file_name, _ctx));
+    // auto mod = std::shared_ptr<test::gpu_Module>(gpu_Module::factory(file_name, _ctx));
 
 
     mod->register_methods(ch)
