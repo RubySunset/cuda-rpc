@@ -9,7 +9,7 @@
 
 #include <fractos/service/compute/cuda.hpp>
 // #include <fractos/service/compute/cuda_msg.hpp>
-#include "./srv_device.hpp"
+#include "./device.hpp"
 using namespace fractos;
 
 // using namespace ::service::compute::cuda;

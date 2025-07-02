@@ -5,10 +5,10 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-#include "./srv_memory.hpp"
-#include "./srv_module.hpp"
-#include "./srv_stream.hpp"
-#include "./srv_event.hpp"
+#include "./memory.hpp"
+#include "./module.hpp"
+#include "./stream.hpp"
+#include "./event.hpp"
 
 
 using namespace fractos;

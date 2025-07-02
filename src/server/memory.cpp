@@ -5,7 +5,7 @@
 #include <pthread.h>
 
 #include "common.hpp"
-#include "srv_memory.hpp"
+#include "./memory.hpp"
 
 
 using namespace fractos;

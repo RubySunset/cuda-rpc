@@ -7,7 +7,7 @@
 #include <pthread.h>
 
 #include "common.hpp"
-#include "srv_context.hpp"
+#include "./context.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;

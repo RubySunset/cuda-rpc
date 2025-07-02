@@ -5,7 +5,7 @@
 #include <pthread.h>
 
 #include "common.hpp"
-#include "srv_event.hpp"
+#include "./event.hpp"
 
 
 using namespace fractos;

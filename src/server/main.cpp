@@ -8,7 +8,7 @@
 #include <fractos/service/compute/cuda.hpp>
 
 
-#include "srv_service.hpp"
+#include "./service.hpp"
 
 using namespace fractos;
 using namespace fractos::service::compute::cuda;

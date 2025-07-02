@@ -1,10 +1,11 @@
 #include <glog/logging.h>
-#include <srv_service.hpp>
 #include <fractos/common/service/srv_impl.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
 #include <string>
+
+#include "./service.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;

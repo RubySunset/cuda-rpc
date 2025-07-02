@@ -4,7 +4,7 @@
 #include <chrono>
 #include <fractos/service/compute/cuda.hpp>
 // #include <fractos/service/compute/cuda_msg.hpp>
-#include "./srv_context.hpp"
+#include "./context.hpp"
 using namespace fractos;
 
 

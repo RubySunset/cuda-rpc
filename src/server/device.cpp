@@ -1,10 +1,11 @@
-#include "srv_device.hpp"
 #include <pthread.h>
 #include <glog/logging.h>
 #include <fractos/common/service/srv_impl.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
+
+#include "./device.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;

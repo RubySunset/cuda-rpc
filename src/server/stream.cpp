@@ -5,7 +5,7 @@
 #include <pthread.h>
 
 #include "common.hpp"
-#include "srv_stream.hpp"
+#include "./stream.hpp"
 
 
 using namespace fractos;
