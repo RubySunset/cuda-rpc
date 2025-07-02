@@ -18,7 +18,7 @@ using namespace fractos;
 
 
 std::pair<CUresult, std::shared_ptr<impl::Function>>
-impl::make_function(std::shared_ptr<test::gpu_Context> ctx_ptr, CUmodule mod, const std::string name)
+impl::make_function(std::shared_ptr<impl::Context> ctx_ptr, CUmodule mod, const std::string name)
 {
     std::shared_ptr<Function> res;
 
@@ -54,7 +54,7 @@ impl::make_function(std::shared_ptr<test::gpu_Context> ctx_ptr, CUmodule mod, co
     return std::make_pair(error, res);
 }
 
-impl::Function::Function(std::weak_ptr<test::gpu_Context> ctx_ptr, CUfunction func,
+impl::Function::Function(std::weak_ptr<impl::Context> ctx_ptr, CUfunction func,
                          std::vector<size_t> args_size, size_t args_total_size)
     :func(func)
     ,args_total_size(args_total_size)

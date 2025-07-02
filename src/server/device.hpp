@@ -4,9 +4,12 @@
 #include <chrono>
 #include <fractos/service/compute/cuda.hpp>
 // #include <fractos/service/compute/cuda_msg.hpp>
-#include "./context.hpp"
 using namespace fractos;
 
+
+namespace impl {
+    class Context;
+}
 
 namespace impl {
 
@@ -37,7 +40,7 @@ namespace impl {
         fractos::core::cap::request req_destroy;
 
         Device(CUdevice ordinal);
-        std::shared_ptr<test::gpu_Context> _vctx;
+        std::shared_ptr<Context> _vctx;
 
         ~Device();
 

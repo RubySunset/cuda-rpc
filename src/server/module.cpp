@@ -17,6 +17,7 @@ namespace srv_wire = fractos::service::compute::cuda::wire;
 namespace srv_wire_msg = srv_wire::Module;
 using namespace fractos;
 using namespace ::test;
+using namespace impl;
 
 
 #define checkCudaErrors_lo(err)  handleError_lo(err, __FILE__, __LINE__)
@@ -71,7 +72,7 @@ void check_memory()
 }
 
 
-gpu_Module::gpu_Module(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx) {
+gpu_Module::gpu_Module(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<Context> vctx) {
     //fork();
     // 
 
@@ -118,7 +119,7 @@ std::shared_ptr<gpu_Module> gpu_Module::factory(std::string& name, CUcontext& ct
     return res;
 }
 
-std::shared_ptr<gpu_Module> gpu_Module::factory(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<test::gpu_Context> vctx){
+std::shared_ptr<gpu_Module> gpu_Module::factory(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<Context> vctx){
     auto res = std::shared_ptr<gpu_Module>(new gpu_Module(module_id, ctx, buffer, size, vctx));
     res->_self = res;
     return res;
@@ -310,7 +311,7 @@ void gpu_Module::handle_get_function(auto args) {
     VLOG(fractos::logging::SERVICE) << "function name is: " << func_name;
 
 
-    // std::shared_ptr<test::gpu_Context> _vctx = _vctx.lock();
+    // std::shared_ptr<Context> _vctx = _vctx.lock();
 
     auto [err, func] = impl::make_function(_vctx.lock(), _module, func_name);
     CHECK(err == CUDA_SUCCESS) << "TODO: return error";

@@ -33,7 +33,7 @@ void handleError_llo(CUresult err, const std::string& file, int line) {
 
 
 
-gpu_Context::gpu_Context(fractos::wire::endian::uint32_t value, CUdevice device) {
+impl::Context::Context(fractos::wire::endian::uint32_t value, CUdevice device) {
     //fork();
     _id = value;
     _destroyed = false;   
@@ -43,29 +43,29 @@ gpu_Context::gpu_Context(fractos::wire::endian::uint32_t value, CUdevice device)
     _ctx = ctx;
 }
 
-std::shared_ptr<gpu_Context> gpu_Context::factory(fractos::wire::endian::uint32_t value, CUdevice device){
+std::shared_ptr<impl::Context> impl::Context::factory(fractos::wire::endian::uint32_t value, CUdevice device){
 
-    auto res = std::shared_ptr<gpu_Context>(new gpu_Context(value, device));
+    auto res = std::shared_ptr<Context>(new Context(value, device));
     res->_self = res;
     return res;
 }
 
-gpu_Context::~gpu_Context() {
+impl::Context::~Context() {
     checkCudaErrors(cuCtxDestroy(_ctx));
 }
 
-const std::unordered_map<int, std::shared_ptr<gpu_Stream>>& gpu_Context::getVStreamMap() const {
+const std::unordered_map<int, std::shared_ptr<gpu_Stream>>& impl::Context::getVStreamMap() const {
     return _vstream_map;
 }
 
 
 
-void gpu_Context::context_synchronize() {
+void impl::Context::context_synchronize() {
     checkCudaErrors(cuCtxSetCurrent(_ctx));
     checkCudaErrors(cuCtxSynchronize());
 }
 
-void gpu_Context::context_destroy(CUcontext& context) {
+void impl::Context::context_destroy(CUcontext& context) {
     checkCudaErrors(cuCtxDestroy(context));
 }
 
@@ -74,7 +74,7 @@ void gpu_Context::context_destroy(CUcontext& context) {
 /*
  *  Make handlers for a Context's caps
  */
-core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> ch)
+core::future<void> impl::Context::register_methods(std::shared_ptr<core::channel> ch)
 {
     namespace msg_base = ::service::compute::cuda::wire::Context;
 
@@ -159,7 +159,7 @@ core::future<void> gpu_Context::register_methods(std::shared_ptr<core::channel> 
 }
 
 void
-gpu_Context::handle_generic(auto ch, auto args)
+impl::Context::handle_generic(auto ch, auto args)
 {
     METHOD(generic);
     CHECK_CAPS_CONT(msg::request::caps::continuation);
@@ -203,7 +203,7 @@ gpu_Context::handle_generic(auto ch, auto args)
 }
 
 void
-gpu_Context::handle_get_api_version(auto ch, auto args)
+impl::Context::handle_get_api_version(auto ch, auto args)
 {
     METHOD(get_api_version);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -232,7 +232,7 @@ gpu_Context::handle_get_api_version(auto ch, auto args)
 }
 
 void
-gpu_Context::handle_get_limit(auto ch, auto args)
+impl::Context::handle_get_limit(auto ch, auto args)
 {
     METHOD(get_limit);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -271,7 +271,7 @@ out:
 }
 
 void
-gpu_Context::handle_mem_alloc(auto ch, auto args)
+impl::Context::handle_mem_alloc(auto ch, auto args)
 {
     METHOD(mem_alloc);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -346,7 +346,7 @@ out_err:
         .as_callback_log_ignore_continuation_error();
 }
 
-void gpu_Context::handle_stream(auto args) {
+void impl::Context::handle_stream(auto args) {
     DVLOG(logging::SERVICE) << "CALL handle_stream";
     using msg = ::service::compute::cuda::wire::Context::make_stream;
     
@@ -394,7 +394,7 @@ void gpu_Context::handle_stream(auto args) {
 }
 
 
-void gpu_Context::handle_event(auto args) {
+void impl::Context::handle_event(auto args) {
     DVLOG(logging::SERVICE) << "CALL handle_event";
     using msg = ::service::compute::cuda::wire::Context::make_event;
     
@@ -440,7 +440,7 @@ void gpu_Context::handle_event(auto args) {
 
 
 // // not in use.
-// void gpu_Context::handle_module_file(auto args) {
+// void Context::handle_module_file(auto args) {
 //     VLOG(fractos::logging::SERVICE) << "CALL handle_module_file";
 
 //     using msg = ::service::compute::cuda::wire::Context::make_module_file;
@@ -506,7 +506,7 @@ void gpu_Context::handle_event(auto args) {
 // }
 
 
-void gpu_Context::handle_module_data(auto args) {
+void impl::Context::handle_module_data(auto args) {
     auto t_start = std::chrono::high_resolution_clock::now();
 
     VLOG(fractos::logging::SERVICE) << "CALL handle_module_data";
@@ -594,7 +594,7 @@ void gpu_Context::handle_module_data(auto args) {
 }
 
 
-void gpu_Context::handle_synchronize(auto args) {
+void impl::Context::handle_synchronize(auto args) {
     VLOG(fractos::logging::SERVICE) << "CALL handle synchronize";
     using msg = ::service::compute::cuda::wire::Context::synchronize;
 
@@ -619,7 +619,7 @@ void gpu_Context::handle_synchronize(auto args) {
 /*
  *  Destroy a Context, revoke all of its caps
  */
-void gpu_Context::handle_destroy(auto args) {
+void impl::Context::handle_destroy(auto args) {
     VLOG(fractos::logging::SERVICE) << "CALL handle destroy";
     using msg = ::service::compute::cuda::wire::Context::destroy;
 
@@ -686,7 +686,7 @@ void gpu_Context::handle_destroy(auto args) {
 }
 
 std::string
-test::to_string(const gpu_Context& obj)
+impl::to_string(const Context& obj)
 {
     std::stringstream ss;
     ss << "Context(" << &obj << ")";

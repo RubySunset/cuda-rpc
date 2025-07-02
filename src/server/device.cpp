@@ -6,6 +6,7 @@
 #include <fractos/wire/error.hpp>
 
 #include "./device.hpp"
+#include "./context.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
@@ -286,7 +287,7 @@ void impl::Device::handle_make_context(auto args) {
 
     VLOG(fractos::logging::SERVICE) << "vctx value is: " << (uint64_t)value;
 
-    auto vctx = std::shared_ptr<test::gpu_Context>(test::gpu_Context::factory(value, device));
+    auto vctx = std::shared_ptr<impl::Context>(impl::Context::factory(value, device));
 
     vctx->register_methods(ch)
         .then([this, ch, self, vctx, args=std::move(args), value](auto& fut) {
