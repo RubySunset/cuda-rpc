@@ -7,10 +7,6 @@
 #include <sys/stat.h>
 
 
-namespace test {
-    class gpu_Stream;
-}
-
 namespace impl {
     class Context;
 }

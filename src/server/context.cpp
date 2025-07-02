@@ -8,6 +8,7 @@
 
 #include "common.hpp"
 #include "./context.hpp"
+#include "./stream.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
@@ -54,7 +55,7 @@ impl::Context::~Context() {
     checkCudaErrors(cuCtxDestroy(_ctx));
 }
 
-const std::unordered_map<int, std::shared_ptr<gpu_Stream>>& impl::Context::getVStreamMap() const {
+const std::unordered_map<int, std::shared_ptr<impl::Stream>>& impl::Context::getVStreamMap() const {
     return _vstream_map;
 }
 
@@ -374,7 +375,7 @@ void impl::Context::handle_stream(auto args) {
     VLOG(fractos::logging::SERVICE) << "vstream flag is: " << (uint32_t)flag;
     LOG(INFO) << "vstream id is: " << id;
 
-    auto stream = std::shared_ptr<gpu_Stream>(gpu_Stream::factory(flag, id, _ctx));
+    auto stream = std::shared_ptr<impl::Stream>(impl::Stream::factory(flag, id, _ctx));
 
     stream->register_methods(ch)
         .then([this, ch, self, stream, args=std::move(args), flag, id](auto& fut) {

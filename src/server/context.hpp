@@ -7,12 +7,15 @@
 
 #include "./memory.hpp"
 #include "./module.hpp"
-#include "./stream.hpp"
 #include "./event.hpp"
 
 
 using namespace fractos;
 
+
+namespace impl {
+    class Stream;
+}
 
 namespace impl {
 
@@ -56,16 +59,16 @@ namespace impl {
         fractos::core::cap::request _req_destroy;
 
         Context(fractos::wire::endian::uint32_t value, CUdevice device);
-        std::shared_ptr<test::gpu_Stream> _stream; 
+        std::shared_ptr<Stream> _stream; 
         std::shared_ptr<test::gpu_Event> _event; 
         std::shared_ptr<test::gpu_Module> _mod; 
 
         ~Context();
 
-        const std::unordered_map<int, std::shared_ptr<test::gpu_Stream>>& getVStreamMap() const;
+        const std::unordered_map<int, std::shared_ptr<Stream>>& getVStreamMap() const;
 
     private:
-        std::unordered_map<int, std::shared_ptr<test::gpu_Stream>> _vstream_map;
+        std::unordered_map<int, std::shared_ptr<Stream>> _vstream_map;
 
         //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
     };
