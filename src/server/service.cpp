@@ -6,36 +6,37 @@
 #include <string>
 
 #include "./service.hpp"
+#include "./device.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
 namespace srv_wire = fractos::service::compute::cuda::wire;
 namespace srv_wire_msg = srv_wire::Service;
-using namespace ::test;
+using namespace impl;
 using namespace fractos;
 
 
-gpu_device_service::gpu_device_service() {
+Service::Service() {
 
     // checkCudaErrors(cuInit(0));
 }
 
-void gpu_device_service::request_exit() {
+void Service::request_exit() {
    _requested_exit.store(true); 
 }
 
-bool gpu_device_service::exit_requested() const
+bool Service::exit_requested() const
 {
     return _requested_exit.load();
 }
 
-std::shared_ptr<gpu_device_service> gpu_device_service::factory() {
-    auto res = std::shared_ptr<gpu_device_service>(new gpu_device_service());
+std::shared_ptr<Service> Service::factory() {
+    auto res = std::shared_ptr<Service>(new Service());
     res->_self = res;
     return res;
 }
 
-gpu_device_service::~gpu_device_service() {
+Service::~Service() {
 
 
 }
@@ -44,7 +45,7 @@ gpu_device_service::~gpu_device_service() {
  *  Registers all methods that a Device has
  */
 core::future<void>
-gpu_device_service::register_service(std::shared_ptr<core::channel> ch)
+Service::register_service(std::shared_ptr<core::channel> ch)
 {
     // namespace msg_base = ::service::compute::detail::device_service;
     namespace msg_base = ::service::compute::cuda::wire::Service;
@@ -75,8 +76,8 @@ gpu_device_service::register_service(std::shared_ptr<core::channel> ch)
         });
 }
 
-core::future<std::shared_ptr<gpu_Device>>
-gpu_device_service::get_or_make_device_ordinal(auto ch, int ordinal)
+core::future<std::shared_ptr<test::gpu_Device>>
+Service::get_or_make_device_ordinal(auto ch, int ordinal)
 {
     {
         auto devices_lock = std::shared_lock(_devices_mutex);
@@ -92,7 +93,7 @@ gpu_device_service::get_or_make_device_ordinal(auto ch, int ordinal)
         return core::make_ready_future(nullptr);
     }
 
-    auto dev = gpu_Device::factory(ordinal);
+    auto dev = test::gpu_Device::factory(ordinal);
     return dev->register_methods(ch)
         .then([this, self=_self.lock(), dev, ordinal](auto& fut) {
             fut.get();
@@ -113,8 +114,8 @@ gpu_device_service::get_or_make_device_ordinal(auto ch, int ordinal)
         });
 }
 
-std::shared_ptr<gpu_Device>
-gpu_device_service::get_device(CUdevice device)
+std::shared_ptr<test::gpu_Device>
+Service::get_device(CUdevice device)
 {
     auto devices_lock = std::shared_lock(_devices_mutex);
     auto it = _devices.find(device);
@@ -126,7 +127,7 @@ gpu_device_service::get_device(CUdevice device)
 }
 
 void
-gpu_device_service::handle_connect(auto ch, auto args)
+Service::handle_connect(auto ch, auto args)
 {
     static const std::string method = "handle_connect";
     using msg = ::service::compute::cuda::wire::Service::connect;
@@ -173,7 +174,7 @@ gpu_device_service::handle_connect(auto ch, auto args)
 }
 
 void
-gpu_device_service::handle_generic(auto ch, auto args)
+Service::handle_generic(auto ch, auto args)
 {
     METHOD(generic);
     CHECK_CAPS_CONT(msg::request::caps::continuation);
@@ -226,7 +227,7 @@ gpu_device_service::handle_generic(auto ch, auto args)
 }
 
 void
-gpu_device_service::handle_get_driver_version(auto ch, auto args)
+Service::handle_get_driver_version(auto ch, auto args)
 {
     METHOD(get_driver_version);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -255,7 +256,7 @@ gpu_device_service::handle_get_driver_version(auto ch, auto args)
 }
 
 void
-gpu_device_service::handle_init(auto ch, auto args)
+Service::handle_init(auto ch, auto args)
 {
     METHOD(init);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -282,7 +283,7 @@ gpu_device_service::handle_init(auto ch, auto args)
 
 
 void
-gpu_device_service::handle_device_get(auto ch, auto args)
+Service::handle_device_get(auto ch, auto args)
 {
     METHOD(device_get);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -333,7 +334,7 @@ gpu_device_service::handle_device_get(auto ch, auto args)
 }
 
 void
-gpu_device_service::handle_device_get_count(auto ch, auto args)
+Service::handle_device_get_count(auto ch, auto args)
 {
     METHOD(device_get_count);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -363,7 +364,7 @@ gpu_device_service::handle_device_get_count(auto ch, auto args)
 
 
 void
-gpu_device_service::handle_module_get_loading_mode(auto ch, auto args)
+Service::handle_module_get_loading_mode(auto ch, auto args)
 {
     METHOD(module_get_loading_mode);
     LOG_REQ(method) << srv::wire::to_string(*args);
@@ -393,7 +394,7 @@ gpu_device_service::handle_module_get_loading_mode(auto ch, auto args)
 
 
 std::string
-test::to_string(const gpu_device_service& obj)
+impl::to_string(const Service& obj)
 {
     std::stringstream ss;
     ss << "Service(" << &obj << ")";

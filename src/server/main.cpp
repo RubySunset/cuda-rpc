@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     // Log current process state
     ch->get_process()->log_state();
 
-    auto srv = test::gpu_device_service::factory();
+    auto srv = impl::Service::factory();
 
     LOG(INFO) << "Create cuda service";
     srv->register_service(ch).get();
