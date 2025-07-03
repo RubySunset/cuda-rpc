@@ -1,9 +1,13 @@
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <queue>
+#pragma once
+
 #include <chrono>
+#include <fractos/common/service/srv_base.hpp>
 #include <fractos/service/compute/cuda.hpp>
-// #include <fractos/service/compute/cuda_msg.hpp>
+#include <queue>
+#include <stdlib.h>
+#include <sys/stat.h>
+
+
 using namespace fractos;
 
 
@@ -13,11 +17,11 @@ namespace impl {
 
 namespace impl {
 
-    class Device {
+    class Device : public fractos::common::service::SrvBase {
     public:
-        static std::shared_ptr<Device> factory(fractos::wire::endian::uint8_t id);
-
-        fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
+        const CUdevice device;
+        std::weak_ptr<Context> ctx_ptr;
+        std::weak_ptr<Device> self;
 
     protected:
         void handle_generic(auto ch, auto args);
@@ -28,24 +32,19 @@ namespace impl {
         void handle_make_context(auto args);
         void handle_destroy(auto args);
 
-
-    private:
-        std::shared_ptr<Device> _self;
-        bool _destroyed;
-
     public:
-        const CUdevice device;
         fractos::core::cap::request req_generic;
         fractos::core::cap::request req_make_context;
         fractos::core::cap::request req_destroy;
 
-        Device(CUdevice ordinal);
-        std::shared_ptr<Context> _vctx;
-
+    public:
+        // NOTE: for internal use
+        Device(int ordinal);
         ~Device();
-
-        //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
+        fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
     };
+
+    std::pair<CUresult, std::shared_ptr<Device>> make_device(int ordinal);
 
     std::string to_string(const Device& obj);
 

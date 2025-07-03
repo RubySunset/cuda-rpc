@@ -86,13 +86,11 @@ impl::Service::get_or_make_device_ordinal(auto ch, int ordinal)
         }
     }
 
-    CUdevice device;
-    auto err = cuDeviceGet(&device, ordinal);
-    if (err != CUDA_SUCCESS) {
+    auto [cuerr, dev] = make_device(ordinal);
+    if (cuerr != CUDA_SUCCESS) {
         return core::make_ready_future(nullptr);
     }
 
-    auto dev = Device::factory(ordinal);
     return dev->register_methods(ch)
         .then([this, self=_self.lock(), dev, ordinal](auto& fut) {
             fut.get();

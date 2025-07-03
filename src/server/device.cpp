@@ -15,21 +15,29 @@ namespace srv_wire_msg = srv_wire::Device;
 using namespace fractos;
 
 
+std::pair<CUresult, std::shared_ptr<impl::Device>>
+impl::make_device(int ordinal)
+{
+    std::shared_ptr<Device> res;
+
+    CUdevice device;
+    auto cuerr = cuDeviceGet(&device, ordinal);
+    if (cuerr != CUDA_SUCCESS) {
+        return std::make_pair(cuerr, res);
+    }
+
+    res = std::make_shared<Device>(device);
+    res->self = res;
+    return std::make_pair(cuerr, res);
+}
+
 impl::Device::Device(CUdevice device)
     :device(device)
 {
-    //fork();
-    _destroyed = false;
 }
 
-std::shared_ptr<impl::Device> impl::Device::factory(wire::endian::uint8_t value){
-    auto res = std::shared_ptr<Device>(new Device(value));
-    res->_self = res;
-    return res;
-}
-
-impl::Device::~Device() {
-
+impl::Device::~Device()
+{
 }
 
 /*
@@ -41,7 +49,7 @@ impl::Device::register_methods(std::shared_ptr<core::channel> ch)
     namespace msg_base = ::service::compute::cuda::wire::Device;
 
 
-    auto self = _self;
+    auto self = this->self.lock();
 
     return ch->make_request_builder<msg_base::make_context::request>(
         ch->get_default_endpoint(),
@@ -283,7 +291,7 @@ void impl::Device::handle_make_context(auto args) {
 
     unsigned int value = args->imms.flags; // uint32_t
 
-    auto self = _self; // lock()
+    auto self = this->self.lock();
 
     VLOG(fractos::logging::SERVICE) << "vctx value is: " << (uint64_t)value;
 
@@ -292,7 +300,7 @@ void impl::Device::handle_make_context(auto args) {
     vctx->register_methods(ch)
         .then([this, ch, self, vctx, args=std::move(args), value](auto& fut) {
             fut.get();
-            _vctx = vctx;
+            ctx_ptr = vctx;
             // _vdev_map.insert({value, vdev});
             ch->make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
@@ -319,9 +327,9 @@ void impl::Device::handle_destroy(auto args) {
 
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
     
-    auto self = this->_self;
+    auto self = this->self.lock();
 
-    if (not args->has_exactly_args() or _destroyed) {
+    if (not args->has_exactly_args() or not destroy_maybe()) {
         ch->make_request_builder<msg::response>(args->caps.continuation)
             .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
             .on_channel()
@@ -343,7 +351,6 @@ void impl::Device::handle_destroy(auto args) {
         .then([this, ch, self, args=std::move(args)](auto& fut) {
             fut.get();
             VLOG(fractos::logging::SERVICE) << "Virtual device destroyed";
-            this->_destroyed = true;
             ch->make_request_builder<msg::response>(args->caps.continuation) // response
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
                 .on_channel()
