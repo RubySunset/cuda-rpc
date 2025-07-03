@@ -376,7 +376,8 @@ void impl::Context::handle_stream(auto args) {
     VLOG(fractos::logging::SERVICE) << "vstream flag is: " << (uint32_t)flag;
     LOG(INFO) << "vstream id is: " << id;
 
-    auto stream = std::shared_ptr<impl::Stream>(impl::Stream::factory(flag, id, _ctx));
+    auto [cuerr, stream] = impl::make_stream(*self, flag);
+    CHECK(cuerr == CUDA_SUCCESS);
 
     stream->register_methods(ch)
         .then([this, ch, self, stream, args=std::move(args), flag, id](auto& fut) {

@@ -166,7 +166,7 @@ impl::Function::handle_launch(auto ch, auto args)
             auto stream_ptr = ctx_ptr->getVStreamMap().at(stream_id);
             cuerror = cuLaunchKernel(func, dimGrid.x, dimGrid.y, dimGrid.z,
                                      dimBlock.x, dimBlock.y, dimBlock.z,
-                                     0, stream_ptr->getCUStream(),
+                                     0, stream_ptr->stream,
                                      (void**)kernel_args.data(), 0);
         } else {
             cuerror = cuLaunchKernel(func, dimGrid.x, dimGrid.y, dimGrid.z,

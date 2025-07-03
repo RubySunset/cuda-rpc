@@ -1,43 +1,38 @@
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <queue>
 #include <chrono>
+#include <cuda.h>
+#include <fractos/common/service/srv_base.hpp>
 #include <fractos/service/compute/cuda.hpp>
+#include <queue>
+#include <stdlib.h>
+#include <sys/stat.h>
 
 
 namespace impl {
+    class Context;
+}
 
-    class Stream {
+namespace impl {
+
+    class Stream : public fractos::common::service::SrvBase {
     public:
-        static std::shared_ptr<Stream> factory(fractos::wire::endian::uint32_t flags,
-                                               fractos::wire::endian::uint32_t id, CUcontext& ctx);
+        Stream(Context& ctx, CUstream stream);
+        ~Stream();
 
         fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
+
+        const CUstream stream;
+        std::weak_ptr<Context> ctx_ptr;
+        std::weak_ptr<Stream> self;
 
     protected:
         void handle_synchronize(auto args);
         void handle_destroy(auto args);
-    
-    private:
-        void stream_synchronize();  
-        void stream_destroy();  
-        fractos::wire::endian::uint32_t _flags;
-        fractos::wire::endian::uint32_t _id;
-
-        std::shared_ptr<Stream> _self;
-        bool _destroyed;
-        CUcontext _ctx;
-        CUstream _stream;
 
     public:
         fractos::core::cap::request _req_sync;
         fractos::core::cap::request _req_destroy;
-        Stream(fractos::wire::endian::uint32_t flags, fractos::wire::endian::uint32_t id, CUcontext& ctx);
-
-        ~Stream();
-        const CUstream& getCUStream() const;
-
-        //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
     };
+
+    std::pair<CUresult, std::shared_ptr<Stream>> make_stream(Context& ctx, unsigned int flags);
 
 }

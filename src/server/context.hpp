@@ -44,7 +44,9 @@ namespace impl {
 
         fractos::wire::endian::uint32_t _id;
 
+    public:
         std::shared_ptr<Context> _self;
+    private:
         bool _destroyed;
     public:
         CUcontext _ctx; 

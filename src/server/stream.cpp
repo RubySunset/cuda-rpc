@@ -5,6 +5,7 @@
 #include <pthread.h>
 
 #include "common.hpp"
+#include "./context.hpp"
 #include "./stream.hpp"
 
 
@@ -12,49 +13,35 @@ using namespace fractos;
 
 
 
-impl::Stream::Stream(fractos::wire::endian::uint32_t flags, fractos::wire::endian::uint32_t id, CUcontext& ctx) {
-    //fork();
-    _id = id;
-    _flags = flags;
-    _destroyed = false;
-    _ctx = ctx;
+std::pair<CUresult, std::shared_ptr<impl::Stream>>
+impl::make_stream(Context& ctx, unsigned int flags)
+{
+    std::shared_ptr<Stream> res;
 
-    checkCudaErrors(cuCtxSetCurrent(_ctx));
+    auto error = cuCtxSetCurrent(ctx._ctx);
+    if (error != CUDA_SUCCESS) {
+        return std::make_pair(error, res);
+    }
 
     CUstream stream;
-    checkCudaErrors(cuStreamCreate(&stream, flags));
+    error = cuStreamCreate(&stream, flags);
+    if (error != CUDA_SUCCESS) {
+        return std::make_pair(error, res);
+    }
 
-    _stream = stream;
+    res = std::make_shared<Stream>(ctx, stream);
+    res->self = res;
+    return std::make_pair(error, res);
 }
 
-std::shared_ptr<impl::Stream> impl::Stream::factory(fractos::wire::endian::uint32_t flags, 
-                                        fractos::wire::endian::uint32_t id, CUcontext& ctx){
-    auto res = std::shared_ptr<Stream>(new Stream(flags, id,  ctx));
-    res->_self = res;
-    return res;
-}
-
-impl::Stream::~Stream() {
-    // checkCudaErrors(cuCtxDestroy(context));
-}
-
-const CUstream& impl::Stream::getCUStream() const
+impl::Stream::Stream(Context& ctx, CUstream stream)
+    :stream(stream)
+    ,ctx_ptr(ctx._self)
 {
-    return _stream;
 }
 
-void impl::Stream::stream_synchronize() {
-    checkCudaErrors(cuStreamSynchronize(_stream));
-}
-
-
-void impl::Stream::stream_destroy()
+impl::Stream::~Stream()
 {
-    checkCudaErrors(cuCtxSetCurrent(_ctx));
-
-    // Clean up
-    checkCudaErrors(cuStreamDestroy(_stream));
-    // checkCudaErrors(cuCtxDestroy(context));
 }
 
 /*
@@ -64,8 +51,8 @@ core::future<void> impl::Stream::register_methods(std::shared_ptr<core::channel>
 {
     namespace msg_base = ::service::compute::cuda::wire::Stream;
 
-    auto self = _self;
-
+    auto self = this->self.lock();
+    CHECK(self);
 
     return ch->make_request_builder<msg_base::synchronize::request>(
         ch->get_default_endpoint(), 
@@ -105,7 +92,8 @@ void impl::Stream::handle_synchronize(auto args) {
 
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
 
-    stream_synchronize();
+    auto cuerror = cuStreamSynchronize(stream);
+    CHECK(cuerror == CUDA_SUCCESS);
 
     ch->make_request_builder<msg::response>(args->caps.continuation)
         .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
@@ -125,9 +113,10 @@ void impl::Stream::handle_destroy(auto args) {
 
     std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
     
-    auto self = this->_self;
+    auto self = this->self.lock();
+    CHECK(self);
 
-    if (not args->has_exactly_args() or _destroyed) {
+    if (not args->has_exactly_args() or not destroy_maybe()) {
         ch->make_request_builder<msg::response>(args->caps.continuation)
             .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
             .on_channel()
@@ -137,7 +126,8 @@ void impl::Stream::handle_destroy(auto args) {
         return;
     }
 
-    stream_destroy();
+    auto cuerr = cuStreamDestroy(stream);
+    CHECK(cuerr == CUDA_SUCCESS);
 
     DVLOG(logging::SERVICE) << "Revoke destroy";
 
@@ -159,7 +149,6 @@ void impl::Stream::handle_destroy(auto args) {
         .then([this, ch, self, args=std::move(args)](auto& fut) {
             fut.get();
             DVLOG(fractos::logging::SERVICE) << "cuda stream destroyed";
-            this->_destroyed = true;
             ch->make_request_builder<msg::response>(args->caps.continuation) // response
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
                 .on_channel()
