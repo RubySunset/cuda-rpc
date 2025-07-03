@@ -139,7 +139,6 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::device_get::re
     print_extra_imm_error();
 
     print_cap(generic);
-    print_cap(make_context);
     print_cap(destroy);
     print_extra_cap_error();
 
@@ -669,12 +668,13 @@ srv::wire::to_string(const core::receive_args<srv::wire::Module::get_global::res
 }
 
 std::string
-srv::wire::to_string(const core::receive_args<srv::wire::Device::make_context::request>& obj)
+srv::wire::to_string(const core::receive_args<srv::wire::Device::ctx_create::request>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
 
     std::stringstream ss;
 
+    print_imm_identity(opcode);
     print_imm_identity(flags);
     print_extra_imm_error();
 
@@ -685,13 +685,14 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::make_context::r
 }
 
 std::string
-srv::wire::to_string(const core::receive_args<srv::wire::Device::make_context::response>& obj)
+srv::wire::to_string(const core::receive_args<srv::wire::Device::ctx_create::response>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
 
     std::stringstream ss;
 
     print_imm_error(error);
+    print_imm_error(cuerror);
     print_extra_imm_error();
 
     print_cap(generic);

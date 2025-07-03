@@ -28,13 +28,11 @@ std::shared_ptr<clt::Device>
 impl::make_device(std::shared_ptr<core::channel> ch,
                   CUdevice device,
                   core::cap::request req_generic,
-                  core::cap::request req_make_context,
                   core::cap::request req_destroy)
 {
     auto state = std::make_shared<impl::DeviceState>();
     state->device = device;
     state->req_generic = std::move(req_generic);
-    state->req_make_context = std::move(req_make_context);
     state->req_destroy = std::move(req_destroy);
 
     return impl::Device::make(ch, state);
@@ -183,7 +181,7 @@ clt::Device::total_mem() const
 core::future<std::shared_ptr<clt::Context>>
 clt::Device::make_context(unsigned int flags)
 {
-    METHOD(make_context);
+    METHOD(ctx_create);
     LOG_REQ(method)
         << " flags=" << flags;
 
@@ -191,8 +189,9 @@ clt::Device::make_context(unsigned int flags)
     auto self = pimpl.state->self.lock();
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_make_context)
-        .set_imm(&msg::request::imms::flags, flags) // unsigned int vs uint32_t
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_CTX_CREATE)
+        .set_imm(&msg::request::imms::flags, flags)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp) // wait for srv_handle

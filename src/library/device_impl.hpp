@@ -16,8 +16,6 @@ namespace impl {
         std::weak_ptr<clt::Device> self;
         CUdevice device;
         fractos::core::cap::request req_generic;
-        fractos::core::cap::request req_make_context; // new
-        // fractos::core::cap::request req_test;
         fractos::core::cap::request req_destroy;
 
         fractos::core::future<void>
@@ -30,7 +28,6 @@ namespace impl {
     make_device(std::shared_ptr<fractos::core::channel> channel,
                 CUdevice device,
                 fractos::core::cap::request req_generic,
-                fractos::core::cap::request req_make_context,
                 fractos::core::cap::request req_destroy);
 
     std::string to_string(const Device& obj);

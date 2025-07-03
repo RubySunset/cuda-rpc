@@ -136,7 +136,6 @@ namespace fractos::service::compute::cuda::wire {
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::request generic;
-                    fractos::core::cap::request make_context;
                     fractos::core::cap::request destroy;
                 };
             };
@@ -204,6 +203,7 @@ namespace fractos::service::compute::cuda::wire {
             OP_GET_NAME,
             OP_GET_UUID,
             OP_TOTAL_MEM,
+            OP_CTX_CREATE,
 
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
@@ -310,18 +310,20 @@ namespace fractos::service::compute::cuda::wire {
     std::string to_string(const core::receive_args<Device::total_mem::response>& resp);
 
     namespace Device {
-        struct make_context {
+        struct ctx_create {
             struct request {
                 struct imms {
+                    fractos::wire::endian::uint64_t opcode;
                     fractos::wire::endian::uint32_t flags; // unsigned int
                 } __attribute__((packed));
                 struct caps {
-                    fractos::core::cap::request continuation; 
+                    fractos::core::cap::request continuation;
                 };
             };
             struct response {
                 struct imms {
                     fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::request generic;
@@ -337,8 +339,8 @@ namespace fractos::service::compute::cuda::wire {
         };
     }
 
-    std::string to_string(const core::receive_args<Device::make_context::request>& req);
-    std::string to_string(const core::receive_args<Device::make_context::response>& resp);
+    std::string to_string(const core::receive_args<Device::ctx_create::request>& req);
+    std::string to_string(const core::receive_args<Device::ctx_create::response>& resp);
 
     namespace Device {
         struct destroy {

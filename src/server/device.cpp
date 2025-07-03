@@ -40,9 +40,6 @@ impl::Device::~Device()
 {
 }
 
-/*
- *  Make handlers for a Device's caps
- */
 core::future<void>
 impl::Device::register_methods(std::shared_ptr<core::channel> ch)
 {
@@ -51,28 +48,14 @@ impl::Device::register_methods(std::shared_ptr<core::channel> ch)
 
     auto self = this->self.lock();
 
-    return ch->make_request_builder<msg_base::make_context::request>(
+    return ch->make_request_builder<msg_base::destroy::request>(
         ch->get_default_endpoint(),
         [self](auto ch, auto args) {
-            DVLOG(fractos::logging::SERVICE) << "In device register_methods handler";
-            self->handle_make_context(std::move(args));
+            self->handle_destroy(std::move(args));
         })
         .on_channel()
         .make_request()
         .then([ch, self](auto& fut) {
-            self->req_make_context = fut.get();
-            DVLOG(fractos::logging::SERVICE) << "SET req_make_context";
-            return ch->make_request_builder<msg_base::destroy::request>(
-                ch->get_default_endpoint(), 
-                [self](auto ch, auto args) {
-                    self->handle_destroy(std::move(args));
-                })
-                .on_channel()
-                .make_request();
-            })
-        .unwrap()
-        .then([ch, self, this](auto& fut) {
-            DVLOG(fractos::logging::SERVICE) << "SET req_destroy device";
             self->req_destroy = fut.get();
 
             return ch->make_request_builder<msg_base::generic::request>(
@@ -109,17 +92,20 @@ impl::Device::handle_generic(auto ch, auto args)
     handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args)))
 
     switch (opcode) {
-    case srv::wire::Device::OP_GET_ATTRIBUTE:
+    case srv_wire_msg::OP_GET_ATTRIBUTE:
         HANDLE(get_attribute);
         break;
-    case srv::wire::Device::OP_GET_NAME:
+    case srv_wire_msg::OP_GET_NAME:
         HANDLE(get_name);
         break;
-    case srv::wire::Device::OP_GET_UUID:
+    case srv_wire_msg::OP_GET_UUID:
         HANDLE(get_uuid);
         break;
-    case srv::wire::Device::OP_TOTAL_MEM:
+    case srv_wire_msg::OP_TOTAL_MEM:
         HANDLE(total_mem);
+        break;
+    case srv_wire_msg::OP_CTX_CREATE:
+        HANDLE(ctx_create);
         break;
 
     default:
@@ -148,7 +134,7 @@ void
 impl::Device::handle_get_attribute(auto ch, auto args)
 {
     METHOD(get_attribute);
-    LOG_REQ(method) << srv::wire::to_string(*args);
+    LOG_REQ(method) << srv_wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT(reqb_cont);
@@ -178,7 +164,7 @@ void
 impl::Device::handle_get_name(auto ch, auto args)
 {
     METHOD(get_name);
-    LOG_REQ(method) << srv::wire::to_string(*args);
+    LOG_REQ(method) << srv_wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT(reqb_cont);
@@ -211,7 +197,7 @@ void
 impl::Device::handle_get_uuid(auto ch, auto args)
 {
     METHOD(get_uuid);
-    LOG_REQ(method) << srv::wire::to_string(*args);
+    LOG_REQ(method) << srv_wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT(reqb_cont);
@@ -227,7 +213,7 @@ impl::Device::handle_get_uuid(auto ch, auto args)
 
     LOG_RES(method)
         << " error=" << wire::to_string(error)
-        << " uuid=" << srv::wire::to_string(uuid);
+        << " uuid=" << srv_wire::to_string(uuid);
 
     reqb_cont
         .set_imm(&msg::response::imms::error, error)
@@ -241,7 +227,7 @@ void
 impl::Device::handle_total_mem(auto ch, auto args)
 {
     METHOD(total_mem);
-    LOG_REQ(method) << srv::wire::to_string(*args);
+    LOG_REQ(method) << srv_wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT(reqb_cont);
@@ -266,50 +252,41 @@ impl::Device::handle_total_mem(auto ch, auto args)
         .as_callback_log_ignore_continuation_error();
 }
 
-/*
- *  Destroy a Device, revoke all of its caps
- */
-void impl::Device::handle_make_context(auto args) {
-    DVLOG(logging::SERVICE) << "CALL handle make_context";
-    using msg = ::service::compute::cuda::wire::Device::make_context;
-    
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        DLOG(ERROR) << "got request without continuation, ignoring";
-        return;
-    }
+void
+impl::Device::handle_ctx_create(auto ch, auto args)
+{
+    METHOD(ctx_create);
+    LOG_REQ(method) << srv_wire::to_string(*args);
 
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
-
-    if (not args->has_exactly_args()) {
-        ch->make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-            .on_channel()
-            .invoke()
-            .as_callback();
-        return;
-    }
-
-    unsigned int value = args->imms.flags; // uint32_t
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
 
     auto self = this->self.lock();
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
 
-    VLOG(fractos::logging::SERVICE) << "vctx value is: " << (uint64_t)value;
+    unsigned int flags = args->imms.flags;
 
-    auto vctx = std::shared_ptr<impl::Context>(impl::Context::factory(value, device));
+    auto ctx_ptr = impl::Context::factory(flags, device);
 
-    vctx->register_methods(ch)
-        .then([this, ch, self, vctx, args=std::move(args), value](auto& fut) {
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << cudaGetErrorString((cudaError)cuerror)
+        << " ctx_ptr=" << to_string(*ctx_ptr);
+
+    ctx_ptr->register_methods(ch)
+        .then([this, ch, args=std::move(args), self, ctx_ptr, error, cuerror](auto& fut) {
             fut.get();
-            ctx_ptr = vctx;
-            // _vdev_map.insert({value, vdev});
-            ch->make_request_builder<msg::response>(args->caps.continuation)
-                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
-                .set_cap(&msg::response::caps::generic, vctx->_req_generic)
-                .set_cap(&msg::response::caps::make_stream, vctx->_req_stream)
-                .set_cap(&msg::response::caps::make_event, vctx->_req_event)
-                .set_cap(&msg::response::caps::make_module_data, vctx->_req_module_data) // data
-                .set_cap(&msg::response::caps::synchronize, vctx->_req_synchronize)
-                .set_cap(&msg::response::caps::destroy, vctx->_req_destroy)
+            self->ctx_ptr = ctx_ptr;
+            ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::cuerror, cuerror)
+                .set_cap(&msg::response::caps::generic, ctx_ptr->_req_generic)
+                .set_cap(&msg::response::caps::make_stream, ctx_ptr->_req_stream)
+                .set_cap(&msg::response::caps::make_event, ctx_ptr->_req_event)
+                .set_cap(&msg::response::caps::make_module_data, ctx_ptr->_req_module_data) // data
+                .set_cap(&msg::response::caps::synchronize, ctx_ptr->_req_synchronize)
+                .set_cap(&msg::response::caps::destroy, ctx_ptr->_req_destroy)
                 .on_channel()
                 .invoke()
                 .as_callback();
@@ -341,7 +318,7 @@ void impl::Device::handle_destroy(auto args) {
 
     VLOG(fractos::logging::SERVICE) << "Revoke destroy";
 
-    ch->revoke(self->req_make_context)
+    ch->revoke(self->req_generic)
         .then([ch, self](auto& fut) {
                   fut.get();
                   VLOG(fractos::logging::SERVICE) << "Revoke _req_register_function";
