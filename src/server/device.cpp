@@ -48,25 +48,13 @@ impl::Device::register_methods(std::shared_ptr<core::channel> ch)
 
     auto self = this->self.lock();
 
-    return ch->make_request_builder<msg_base::destroy::request>(
+    return ch->make_request_builder<msg_base::generic::request>(
         ch->get_default_endpoint(),
         [self](auto ch, auto args) {
-            self->handle_destroy(std::move(args));
+            self->handle_generic(ch, std::move(args));
         })
         .on_channel()
         .make_request()
-        .then([ch, self](auto& fut) {
-            self->req_destroy = fut.get();
-
-            return ch->make_request_builder<msg_base::generic::request>(
-                ch->get_default_endpoint(),
-                [self](auto ch, auto args) {
-                    self->handle_generic(ch, std::move(args));
-                })
-                .on_channel()
-                .make_request();
-        })
-        .unwrap()
         .then([self](auto& fut) {
             self->req_generic = fut.get();
         });
@@ -106,6 +94,9 @@ impl::Device::handle_generic(auto ch, auto args)
         break;
     case srv_wire_msg::OP_CTX_CREATE:
         HANDLE(ctx_create);
+        break;
+    case srv_wire_msg::OP_DESTROY:
+        HANDLE(destroy);
         break;
 
     default:
@@ -294,48 +285,49 @@ impl::Device::handle_ctx_create(auto ch, auto args)
         .as_callback();
 }
 
+void
+impl::Device::handle_destroy(auto ch, auto args)
+{
+    METHOD(destroy);
+    LOG_REQ(method) << srv_wire::to_string(*args);
 
-/*
- *  Destroy a Device, revoke all of its caps
- */
-void impl::Device::handle_destroy(auto args) {
-    VLOG(fractos::logging::SERVICE) << "CALL handle destroy";
-    using msg = ::service::compute::cuda::wire::Device::destroy;
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
 
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
-    
     auto self = this->self.lock();
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
 
-    if (not args->has_exactly_args() or not destroy_maybe()) {
-        ch->make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+    if (not destroy_maybe()) {
+        error = wire::ERR_OTHER;
+        LOG_RES(method)
+            << " error=" << wire::to_string(error)
+            << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
+        reqb_cont
+            .set_imm(&msg::response::imms::error, error)
+            .set_imm(&msg::response::imms::cuerror, cuerror)
             .on_channel()
             .invoke()
-            .as_callback();
-
+            .as_callback_log_ignore_continuation_error();
         return;
     }
 
-    VLOG(fractos::logging::SERVICE) << "Revoke destroy";
-
     ch->revoke(self->req_generic)
-        .then([ch, self](auto& fut) {
-                  fut.get();
-                  VLOG(fractos::logging::SERVICE) << "Revoke _req_register_function";
-                  return ch->revoke(self->req_destroy);
-        })
-        .unwrap()
-        .then([this, ch, self, args=std::move(args)](auto& fut) {
+        .then([this, ch, args=std::move(args), self, error, cuerror](auto& fut) {
             fut.get();
-            VLOG(fractos::logging::SERVICE) << "Virtual device destroyed";
-            ch->make_request_builder<msg::response>(args->caps.continuation) // response
-                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+
+            LOG_RES(method)
+                << " error=" << wire::to_string(error)
+                << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
+
+            ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::cuerror, cuerror)
                 .on_channel()
                 .invoke()
                 .as_callback();
         })
     .as_callback();
-
 }
 
 std::string

@@ -302,11 +302,9 @@ impl::Service::handle_device_get(auto ch, auto args)
                 LOG_RES(method)
                     << " error=" << wire::to_string(error)
                     << " device=" << device
-                    << " generic=" << core::to_string(dev->req_generic)
-                    << " destroy=" << core::to_string(dev->req_destroy);
+                    << " generic=" << core::to_string(dev->req_generic);
                 req
-                    .set_cap(&msg::response::caps::generic, dev->req_generic)
-                    .set_cap(&msg::response::caps::destroy, dev->req_destroy);
+                    .set_cap(&msg::response::caps::generic, dev->req_generic);
             } else {
                 device = -1;
                 LOG_RES(method)
@@ -314,8 +312,7 @@ impl::Service::handle_device_get(auto ch, auto args)
                     << " device=" << device;
                 core::cap::request null(core::cap::null_cid);
                 req
-                    .set_cap(&msg::response::caps::generic, null)
-                    .set_cap(&msg::response::caps::destroy, null);
+                    .set_cap(&msg::response::caps::generic, null);
             }
 
             req

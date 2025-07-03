@@ -27,13 +27,11 @@ template class fractos::common::service::CltBase<clt::Device>;
 std::shared_ptr<clt::Device>
 impl::make_device(std::shared_ptr<core::channel> ch,
                   CUdevice device,
-                  core::cap::request req_generic,
-                  core::cap::request req_destroy)
+                  core::cap::request req_generic)
 {
     auto state = std::make_shared<impl::DeviceState>();
     state->device = device;
     state->req_generic = std::move(req_generic);
-    state->req_destroy = std::move(req_destroy);
 
     return impl::Device::make(ch, state);
 }
@@ -48,7 +46,8 @@ impl::DeviceState::do_destroy(std::shared_ptr<core::channel>& ch)
     auto self = this->self.lock();
 
     auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
-    return ch->make_request_builder<msg::request>(req_destroy)
+    return ch->make_request_builder<msg::request>(req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_DESTROY)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp)

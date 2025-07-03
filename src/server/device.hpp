@@ -30,11 +30,10 @@ namespace impl {
         void handle_get_uuid(auto ch, auto args);
         void handle_total_mem(auto ch, auto args);
         void handle_ctx_create(auto ch, auto args);
-        void handle_destroy(auto args);
+        void handle_destroy(auto ch, auto args);
 
     public:
         fractos::core::cap::request req_generic;
-        fractos::core::cap::request req_destroy;
 
     public:
         // NOTE: for internal use

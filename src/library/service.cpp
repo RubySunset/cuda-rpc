@@ -207,8 +207,7 @@ clt::Service::device_get(int ordinal)
             return impl::make_device(
                 ch,
                 args->imms.device,
-                std::move(args->caps.generic),
-                std::move(args->caps.destroy));
+                std::move(args->caps.generic));
         });
 }
 

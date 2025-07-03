@@ -139,7 +139,6 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::device_get::re
     print_extra_imm_error();
 
     print_cap(generic);
-    print_cap(destroy);
     print_extra_cap_error();
 
     return ss.str();
@@ -349,7 +348,8 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::destroy::reques
 
     std::stringstream ss;
 
-    print_empty_imms();
+    print_imm_identity(opcode);
+    print_extra_imm_error();
 
     print_cap(continuation);
     print_extra_cap_error();
@@ -365,6 +365,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::destroy::respon
     std::stringstream ss;
 
     print_imm_error(error);
+    print_imm_error(cuerror);
     print_extra_imm_error();
 
     print_empty_caps();
