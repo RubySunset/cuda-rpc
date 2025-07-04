@@ -19,4 +19,5 @@ GENERATE_test-service-compute-cuda += --copy $(BUILD_TARGET_service-compute-cuda
 
 
 run/test-service-compute-cuda: PREPARE_test-service-compute-cuda = "run/test-service-compute-cuda/env/exp-*.yaml"
+run/test-service-compute-cuda: STATE=
 run/test-service-compute-cuda: build-force/service-compute-cuda
