@@ -74,7 +74,7 @@ clt::Function::launch(const void** args, dim3 gridDim, dim3 blockDim,
     auto& pimpl = impl::Function::get(*this);
     auto self = pimpl.state->self.lock();
 
-    uint32_t stream_id = 0;
+    CUstream stream_id = 0;
     if (stream) {
         auto& stream_pimpl = impl::Stream::get(stream->get());
         stream_id = stream_pimpl.state->id;
