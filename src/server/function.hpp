@@ -15,26 +15,27 @@ namespace impl {
 
     class Function : public fractos::common::service::SrvBase {
     public:
-        Function(std::weak_ptr<Context> ctx_ptr, CUfunction func,
-                 std::vector<size_t> args_size, size_t args_total_size);
-        ~Function();
+        CUfunction get_remote_cufunc() const;
 
-        fractos::core::future<void>
-        register_methods(std::shared_ptr<fractos::core::channel> ch);
-
-        const CUfunction func;
+        const CUfunction cufunc;
         const size_t args_total_size;
         const std::vector<size_t> args_size;
         std::weak_ptr<Context> ctx_ptr;
-
-        // TODO: this is a memory leak; use weak_ptr and track functions in module
-        std::shared_ptr<Function> self;
-        fractos::core::cap::request req_generic;
+        std::weak_ptr<Function> self;
 
     protected:
         void handle_generic(auto ch, auto args);
         void handle_launch(auto ch, auto args);
         void handle_destroy(auto ch, auto args);
+
+        // NOTE: for internal use
+    public:
+        fractos::core::cap::request req_generic;
+
+        Function(std::weak_ptr<Context> ctx_ptr, CUfunction func,
+                 std::vector<size_t> args_size, size_t args_total_size);
+        ~Function();
+        fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
     };
 
     std::pair<CUresult, std::shared_ptr<Function>>

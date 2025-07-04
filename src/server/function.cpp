@@ -58,7 +58,7 @@ impl::make_function(std::shared_ptr<impl::Context> ctx_ptr, CUmodule mod, const 
 
 impl::Function::Function(std::weak_ptr<impl::Context> ctx_ptr, CUfunction func,
                          std::vector<size_t> args_size, size_t args_total_size)
-    :func(func)
+    :cufunc(func)
     ,args_total_size(args_total_size)
     ,args_size(std::move(args_size))
     ,ctx_ptr(ctx_ptr)
@@ -69,10 +69,19 @@ impl::Function::~Function()
 {
 }
 
+std::string
+impl::to_string(const impl::Function& obj)
+{
+    std::stringstream ss;
+    ss << "Function(" << (void*)obj.get_remote_cufunc() << ")";
+    return ss.str();
+}
+
 core::future<void>
 impl::Function::register_methods(std::shared_ptr<core::channel> ch)
 {
-    auto self = this->self;
+    auto self = this->self.lock();
+    CHECK(self);
 
     return ch->make_request_builder<srv_wire_msg::generic::request>(
         ch->get_default_endpoint(),
@@ -86,6 +95,14 @@ impl::Function::register_methods(std::shared_ptr<core::channel> ch)
         });
 
 }
+
+
+CUfunction
+impl::Function::get_remote_cufunc() const
+{
+    return (CUfunction)this;
+}
+
 
 void
 impl::Function::handle_generic(auto ch, auto args)
@@ -165,12 +182,12 @@ impl::Function::handle_launch(auto ch, auto args)
             LOG_FIRST_N(WARNING, 1) << "TODO: add a proper API to query/get stream_ids";
             LOG_FIRST_N(WARNING, 1) << "TODO: return error when stream_id is incorrect";
             auto stream_ptr = ctx_ptr->get_stream(custream);
-            cuerror = cuLaunchKernel(func, dimGrid.x, dimGrid.y, dimGrid.z,
+            cuerror = cuLaunchKernel(cufunc, dimGrid.x, dimGrid.y, dimGrid.z,
                                      dimBlock.x, dimBlock.y, dimBlock.z,
                                      0, stream_ptr->custream,
                                      (void**)kernel_args.data(), 0);
         } else {
-            cuerror = cuLaunchKernel(func, dimGrid.x, dimGrid.y, dimGrid.z,
+            cuerror = cuLaunchKernel(cufunc, dimGrid.x, dimGrid.y, dimGrid.z,
                                      dimBlock.x, dimBlock.y, dimBlock.z,
                                      0, 0,
                                      (void**)kernel_args.data(), 0);
@@ -234,12 +251,4 @@ impl::Function::handle_destroy(auto ch, auto args)
         })
         .as_callback();
 
-}
-
-std::string
-impl::to_string(const impl::Function& obj)
-{
-    std::stringstream ss;
-    ss << "Function(" << &obj << ")";
-    return ss.str();
 }
