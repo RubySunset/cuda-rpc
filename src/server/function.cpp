@@ -163,7 +163,7 @@ impl::Function::handle_launch(auto ch, auto args)
         if (custream) {
             LOG_FIRST_N(WARNING, 1) << "TODO: add a proper API to query/get stream_ids";
             LOG_FIRST_N(WARNING, 1) << "TODO: return error when stream_id is incorrect";
-            auto stream_ptr = ctx_ptr->getVStreamMap().at(custream);
+            auto stream_ptr = ctx_ptr->get_stream(custream);
             cuerror = cuLaunchKernel(func, dimGrid.x, dimGrid.y, dimGrid.z,
                                      dimBlock.x, dimBlock.y, dimBlock.z,
                                      0, stream_ptr->custream,

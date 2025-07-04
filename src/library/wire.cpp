@@ -546,6 +546,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::stream_create:
 
     std::stringstream ss;
 
+    print_imm_identity(opcode);
     print_imm_identity(flags);
     print_extra_imm_error();
 

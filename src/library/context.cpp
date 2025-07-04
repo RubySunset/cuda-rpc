@@ -195,7 +195,8 @@ clt::Context::stream_create(CUstream_flags flags)
     auto self = pimpl.state->self.lock();
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_stream)
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_STREAM_CREATE)
         .set_imm(&msg::request::imms::flags, flags)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()

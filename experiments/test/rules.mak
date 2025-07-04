@@ -17,9 +17,6 @@ GENERATE_test-service-compute-cuda += --copy $(BUILD_TARGET_service-compute-cuda
 GENERATE_test-service-compute-cuda += --copy $(BUILD_TARGET_service-compute-cuda)/test/.libs/=dist-amd64/bin/
 GENERATE_test-service-compute-cuda += --copy $(BUILD_TARGET_service-compute-cuda)/test/module.ptx=dist-amd64/bin/
 
-ifneq ($(MAKECMDGOALS),sync/$(TARGET_test-service-compute-cuda))
-$(GENERATE_TARGET_test-service-compute-cuda): build-force/service-compute-cuda
-endif
 
-
-$(RUN_TARGET_test-service-compute-cuda): PREPARE_test-service-compute-cuda = "run/test-service-compute-cuda/env/exp-*.yaml"
+run/test-service-compute-cuda: PREPARE_test-service-compute-cuda = "run/test-service-compute-cuda/env/exp-*.yaml"
+run/test-service-compute-cuda: build-force/service-compute-cuda

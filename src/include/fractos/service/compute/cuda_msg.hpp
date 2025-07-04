@@ -461,6 +461,7 @@ namespace fractos::service::compute::cuda::wire {
         struct stream_create {
             struct request {
                 struct imms {
+                    fractos::wire::endian::uint64_t opcode;
                     fractos::wire::endian::uint32_t flags;
                 } __attribute__((packed));
                 struct caps {

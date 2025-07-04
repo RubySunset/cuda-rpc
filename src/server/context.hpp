@@ -20,6 +20,11 @@ namespace impl {
 
     class Context {
     public:
+        std::shared_ptr<Stream> get_stream(CUstream stream);
+        void insert_stream(std::shared_ptr<Stream> stream);
+        void erase_stream(std::shared_ptr<Stream> stream);
+
+    public:
         static std::shared_ptr<Context> factory(fractos::wire::endian::uint32_t id, CUdevice device);
 
         fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
@@ -52,7 +57,6 @@ namespace impl {
         CUcontext _ctx; 
 
         fractos::core::cap::request _req_generic;
-        fractos::core::cap::request _req_stream;
         fractos::core::cap::request _req_event;
         fractos::core::cap::request _req_module_data;
         // fractos::core::cap::request _req_module_file;
@@ -66,10 +70,9 @@ namespace impl {
 
         ~Context();
 
-        const std::unordered_map<CUstream, std::shared_ptr<Stream>>& getVStreamMap() const;
-
     private:
-        std::unordered_map<CUstream, std::shared_ptr<Stream>> _vstream_map;
+        std::mutex _stream_map_mutex;
+        std::unordered_map<CUstream, std::shared_ptr<Stream>> _stream_map;
 
         //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
     };

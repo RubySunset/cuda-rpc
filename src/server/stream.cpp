@@ -174,10 +174,9 @@ impl::Stream::handle_destroy(auto ch, auto args)
         return;
     }
 
-    // TODO: make thread-safe
     auto ctx_ptr = this->ctx_ptr.lock();
     CHECK(ctx_ptr);
-    CHECK(ctx_ptr->getVStreamMap().erase(custream) == 1);
+    ctx_ptr->erase_stream(self);
 
     cuerror = cuStreamDestroy(custream);
 

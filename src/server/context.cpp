@@ -56,8 +56,30 @@ impl::Context::~Context() {
     checkCudaErrors(cuCtxDestroy(_ctx));
 }
 
-const std::unordered_map<CUstream, std::shared_ptr<impl::Stream>>& impl::Context::getVStreamMap() const {
-    return _vstream_map;
+std::shared_ptr<impl::Stream>
+impl::Context::get_stream(CUstream stream)
+{
+    auto lock = std::unique_lock(_stream_map_mutex);
+    auto it = _stream_map.find(stream);
+    if (it == _stream_map.end()) {
+        return nullptr;
+    } else {
+        return it->second;
+    }
+}
+
+void
+impl::Context::insert_stream(std::shared_ptr<Stream> stream)
+{
+    auto lock = std::unique_lock(_stream_map_mutex);
+    CHECK(_stream_map.insert({stream->custream, stream}).second);
+}
+
+void
+impl::Context::erase_stream(std::shared_ptr<Stream> stream)
+{
+    auto lock = std::unique_lock(_stream_map_mutex);
+    CHECK(_stream_map.erase(stream->custream) == 1);
 }
 
 
@@ -352,8 +374,7 @@ impl::Context::handle_stream_create(auto ch, auto args)
         goto out_err;
     }
 
-    // TODO: make thread-safe
-    CHECK(_vstream_map.insert({stream->custream, stream}).second);
+    insert_stream(stream);
 
     stream->register_methods(ch)
         .then([this, self, ch, args=std::move(args), error, cuerror, stream](auto& fut) {
@@ -644,12 +665,6 @@ void impl::Context::handle_destroy(auto args) {
     ch->revoke(self->_req_generic)
         .then([ch, self](auto& fut) {
             fut.get();
-            return ch->revoke(self->_req_stream); // file
-        })
-        .unwrap()
-        .then([ch, self](auto& fut) {
-            fut.get();
-            VLOG(fractos::logging::SERVICE) << "Revoke _req_memory";
             return ch->revoke(self->_req_event); // file
         })
         .unwrap()
