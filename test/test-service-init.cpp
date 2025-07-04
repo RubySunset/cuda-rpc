@@ -42,7 +42,7 @@ main(int argc, char *argv[])
     }
 
     {
-        auto str = ctx->make_stream(CU_STREAM_DEFAULT, 0).get();
+        auto str = ctx->stream_create(CU_STREAM_DEFAULT).get();
         str->synchronize().get();
         str->destroy().get();
     }

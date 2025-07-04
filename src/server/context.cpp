@@ -56,7 +56,7 @@ impl::Context::~Context() {
     checkCudaErrors(cuCtxDestroy(_ctx));
 }
 
-const std::unordered_map<int, std::shared_ptr<impl::Stream>>& impl::Context::getVStreamMap() const {
+const std::unordered_map<CUstream, std::shared_ptr<impl::Stream>>& impl::Context::getVStreamMap() const {
     return _vstream_map;
 }
 
@@ -92,19 +92,6 @@ core::future<void> impl::Context::register_methods(std::shared_ptr<core::channel
         .make_request()
         .then([ch, self](auto& fut) {
             self->_req_generic = fut.get();
-            return ch->make_request_builder<msg_base::make_stream::request>( // file
-                ch->get_default_endpoint(), 
-                [self](auto ch, auto args) {
-                    
-                    self->handle_stream(std::move(args)); // file
-                })
-                .on_channel()
-                .make_request();
-            })
-        .unwrap()
-        .then([ch, self](auto& fut) {
-            self->_req_stream = fut.get();
-            VLOG(fractos::logging::SERVICE) << "SET req_stream"; 
             return ch->make_request_builder<msg_base::make_event::request>( // file
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -176,20 +163,16 @@ impl::Context::handle_generic(auto ch, auto args)
         return std::unique_ptr<ptr>(reinterpret_cast<ptr*>(args.release()));
     };
 
-#define HANDLE(name) \
-    handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args)))
+#define CASE_HANDLE(NAME, name)                                         \
+    case srv_wire_msg::OP_ ## NAME:                                      \
+        handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args))); \
+        break;
 
     switch (opcode) {
-    case srv::wire::Context::OP_GET_API_VERSION:
-        HANDLE(get_api_version);
-        break;
-    case srv::wire::Context::OP_GET_LIMIT:
-        HANDLE(get_limit);
-        break;
-    case srv::wire::Context::OP_MEM_ALLOC:
-        HANDLE(mem_alloc);
-        break;
-
+    CASE_HANDLE(GET_API_VERSION, get_api_version);
+    CASE_HANDLE(GET_LIMIT, get_limit);
+    CASE_HANDLE(MEM_ALLOC, mem_alloc);
+    CASE_HANDLE(STREAM_CREATE, stream_create);
     default:
         LOG_OP(method)
             << " [error] invalid opcode";
@@ -348,51 +331,66 @@ out_err:
         .as_callback_log_ignore_continuation_error();
 }
 
-void impl::Context::handle_stream(auto args) {
-    DVLOG(logging::SERVICE) << "CALL handle_stream";
-    using msg = ::service::compute::cuda::wire::Context::make_stream;
-    
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        DLOG(ERROR) << "got request without continuation, ignoring";
-        return;
+void
+impl::Context::handle_stream_create(auto ch, auto args)
+{
+    METHOD(stream_create);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
+
+    CUstream_flags flags = (CUstream_flags)args->imms.flags.get();
+
+    auto self = this->_self;
+    DCHECK(self);
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+
+    auto [cuerr, stream] = impl::make_stream(*this, flags);
+    if (cuerr != CUDA_SUCCESS) {
+        goto out_err;
     }
 
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
-
-    if (not args->has_exactly_args()) {
-        ch->make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-            .on_channel()
-            .invoke()
-            .as_callback();
-        return;
-    }
-
-    unsigned int flag = args->imms.flags; // uint32_t
-    int id = (int)args->imms.stream_id;
-
-    auto self = _self; // lock()
-
-    VLOG(fractos::logging::SERVICE) << "vstream flag is: " << (uint32_t)flag;
-    LOG(INFO) << "vstream id is: " << id;
-
-    auto [cuerr, stream] = impl::make_stream(*self, flag);
-    CHECK(cuerr == CUDA_SUCCESS);
+    // TODO: make thread-safe
+    CHECK(_vstream_map.insert({stream->custream, stream}).second);
 
     stream->register_methods(ch)
-        .then([this, ch, self, stream, args=std::move(args), flag, id](auto& fut) {
+        .then([this, self, ch, args=std::move(args), error, cuerror, stream](auto& fut) {
             fut.get();
-            _stream = stream;
-            _vstream_map.insert({id, stream});
-            // _vdev_map.insert({value, vdev});
-            ch->make_request_builder<msg::response>(args->caps.continuation)
-                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
+
+            auto custream = stream->custream;
+
+            LOG_RES(method)
+                << " error=" << wire::to_string(error)
+                << " cuerror=" << cudaGetErrorName((cudaError)cuerror)
+                << " custream=" << (void*)custream;
+
+            ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::cuerror, cuerror)
+                .set_imm(&msg::response::imms::custream, (uint64_t)custream)
                 .set_cap(&msg::response::caps::generic, stream->req_generic)
                 .on_channel()
                 .invoke()
-                .as_callback();
-              })
+                .as_callback_log_ignore_continuation_error();
+        })
         .as_callback();
+
+    return;
+
+out_err:
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << cudaGetErrorString((cudaError)cuerror)
+        << " custream=" << (void*)0;
+
+    ch->template make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_continuation_error();
 }
 
 

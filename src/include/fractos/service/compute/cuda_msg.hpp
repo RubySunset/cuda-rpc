@@ -329,7 +329,6 @@ namespace fractos::service::compute::cuda::wire {
                     fractos::core::cap::request generic;
                     fractos::core::cap::request make_memory;
                     fractos::core::cap::request make_memory_rpc_test;
-                    fractos::core::cap::request make_stream;
                     fractos::core::cap::request make_event;
                     fractos::core::cap::request make_module_data; //make_module_data; // 
                     fractos::core::cap::request synchronize;
@@ -373,7 +372,7 @@ namespace fractos::service::compute::cuda::wire {
             OP_GET_API_VERSION,
             OP_GET_LIMIT,
             OP_MEM_ALLOC,
-
+            OP_STREAM_CREATE,
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
 
@@ -459,19 +458,20 @@ namespace fractos::service::compute::cuda::wire {
     std::string to_string(const core::receive_args<Context::mem_alloc::response>& resp);
 
     namespace Context {
-        struct make_stream {
+        struct stream_create {
             struct request {
                 struct imms {
-                    fractos::wire::endian::uint32_t flags; // unsigned int
-                    fractos::wire::endian::uint32_t stream_id;
+                    fractos::wire::endian::uint32_t flags;
                 } __attribute__((packed));
                 struct caps {
-                    fractos::core::cap::request continuation; 
+                    fractos::core::cap::request continuation;
                 };
             };
             struct response {
                 struct imms {
                     fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
+                    fractos::wire::endian::uint64_t custream;
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::request generic;
@@ -480,8 +480,8 @@ namespace fractos::service::compute::cuda::wire {
         };
     }
 
-    std::string to_string(const core::receive_args<Context::make_stream::request>& req);
-    std::string to_string(const core::receive_args<Context::make_stream::response>& resp);
+    std::string to_string(const core::receive_args<Context::stream_create::request>& req);
+    std::string to_string(const core::receive_args<Context::stream_create::response>& resp);
 
     namespace Context {
         struct make_event {
@@ -832,7 +832,7 @@ namespace fractos::service::compute::cuda::wire {
                     fractos::wire::endian::uint64_t block_x;
                     fractos::wire::endian::uint64_t block_y;
                     fractos::wire::endian::uint64_t block_z;
-                    fractos::wire::endian::uint32_t stream_id;
+                    fractos::wire::endian::uint64_t custream;
                     char kernel_args[];
                 } __attribute__((packed));
                 struct caps {

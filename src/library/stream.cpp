@@ -23,12 +23,12 @@ template class fractos::common::service::CltBase<clt::Stream>;
 
 std::shared_ptr<clt::Stream>
 impl::make_stream(std::shared_ptr<fractos::core::channel> ch,
-                  fractos::wire::endian::uint32_t id,
+                  CUstream custream,
                   fractos::core::cap::request req_generic)
 {
     auto state = std::make_shared<impl::StreamState>();
     state->req_generic = std::move(req_generic);
-    state->id = id;
+    state->custream = custream;
 
     return impl::Stream::make(ch, state);
 }
@@ -50,7 +50,7 @@ std::string
 impl::to_string(const impl::StreamState& obj)
 {
     std::stringstream ss;
-    ss << "cuda::Stream(" << (void*)(uint64_t)obj.id.get() << ")";
+    ss << "cuda::Stream(" << (void*)obj.custream << ")";
     return ss.str();
 }
 
@@ -78,12 +78,12 @@ impl::StreamState::do_destroy(std::shared_ptr<core::channel>& ch)
 }
 
 
-fractos::wire::endian::uint32_t
-clt::Stream::get_stream_id()
+CUstream
+clt::Stream::get_stream() const
 {
     auto& pimpl = impl::Stream::get(*this);
 
-    return pimpl.state->id;
+    return pimpl.state->custream;
 }
 
 

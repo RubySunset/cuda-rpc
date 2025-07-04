@@ -17,7 +17,7 @@ namespace impl {
         std::shared_ptr<fractos::core::channel> ch;
 
         fractos::core::cap::request req_generic;
-        fractos::wire::endian::uint32_t id;
+        CUstream custream;
 
         fractos::core::future<void>
         do_destroy(std::shared_ptr<fractos::core::channel>& ch);
@@ -27,7 +27,7 @@ namespace impl {
 
     std::shared_ptr<clt::Stream>
     make_stream(std::shared_ptr<fractos::core::channel> ch,
-                fractos::wire::endian::uint32_t id,
+                CUstream custream,
                 fractos::core::cap::request req_generic);
 
     std::string to_string(const Stream& obj);

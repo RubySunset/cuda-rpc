@@ -540,14 +540,13 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::make_module_da
 }
 
 std::string
-srv::wire::to_string(const core::receive_args<srv::wire::Context::make_stream::request>& obj)
+srv::wire::to_string(const core::receive_args<srv::wire::Context::stream_create::request>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
 
     std::stringstream ss;
 
     print_imm_identity(flags);
-    print_imm_identity(stream_id);
     print_extra_imm_error();
 
     print_cap(continuation);
@@ -557,13 +556,15 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::make_stream::r
 }
 
 std::string
-srv::wire::to_string(const core::receive_args<srv::wire::Context::make_stream::response>& obj)
+srv::wire::to_string(const core::receive_args<srv::wire::Context::stream_create::response>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
 
     std::stringstream ss;
 
     print_imm_error(error);
+    print_imm_cuerror(cuerror);
+    print_imm_hex(custream);
     print_extra_imm_error();
 
     print_cap(generic);
@@ -762,7 +763,6 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::ctx_create::res
     print_cap(generic);
     print_cap(make_memory);
     print_cap(make_memory_rpc_test);
-    print_cap(make_stream);
     print_cap(make_event);
     print_cap(make_module_data);
     print_cap(synchronize);
@@ -785,7 +785,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Function::launch::reque
     print_imm_identity(block_x);
     print_imm_identity(block_y);
     print_imm_identity(block_z);
-    print_imm_identity(stream_id);
+    print_imm_identity(custream);
     print_extra_imm_error();
 
     print_cap(continuation);

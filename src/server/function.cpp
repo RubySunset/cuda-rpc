@@ -159,14 +159,14 @@ impl::Function::handle_launch(auto ch, auto args)
             args_ptr += args_size[i];
         }
 
-        int stream_id = args->imms.stream_id;
-        if (stream_id) {
+        auto custream = (CUstream)args->imms.custream.get();
+        if (custream) {
             LOG_FIRST_N(WARNING, 1) << "TODO: add a proper API to query/get stream_ids";
             LOG_FIRST_N(WARNING, 1) << "TODO: return error when stream_id is incorrect";
-            auto stream_ptr = ctx_ptr->getVStreamMap().at(stream_id);
+            auto stream_ptr = ctx_ptr->getVStreamMap().at(custream);
             cuerror = cuLaunchKernel(func, dimGrid.x, dimGrid.y, dimGrid.z,
                                      dimBlock.x, dimBlock.y, dimBlock.z,
-                                     0, stream_ptr->stream,
+                                     0, stream_ptr->custream,
                                      (void**)kernel_args.data(), 0);
         } else {
             cuerror = cuLaunchKernel(func, dimGrid.x, dimGrid.y, dimGrid.z,

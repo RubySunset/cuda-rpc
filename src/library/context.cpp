@@ -33,7 +33,6 @@ impl::make_context(std::shared_ptr<fractos::core::channel> ch,
                    fractos::core::cap::request req_generic,
                    fractos::core::cap::request req_memory,
                    fractos::core::cap::request req_memory_rpc_test,
-                   fractos::core::cap::request req_stream,
                    fractos::core::cap::request req_event,
                    fractos::core::cap::request req_module_data,
                    fractos::core::cap::request req_ctx_sync,
@@ -44,7 +43,6 @@ impl::make_context(std::shared_ptr<fractos::core::channel> ch,
     state->req_generic = std::move(req_generic);
     state->req_memory = std::move(req_memory);
     state->req_memory_rpc_test = std::move(req_memory_rpc_test);
-    state->req_stream = std::move(req_stream);
     state->req_event = std::move(req_event);
     state->req_module_data = std::move(req_module_data);
     state->req_ctx_sync = std::move(req_ctx_sync);
@@ -187,34 +185,30 @@ clt::Context::make_memory(uint64_t size)
 
 
 core::future<std::shared_ptr<clt::Stream>>
-clt::Context::make_stream(CUstream_flags stream_flags, fractos::wire::endian::uint32_t id)
+clt::Context::stream_create(CUstream_flags flags)
 {
-    METHOD(make_stream);
+    METHOD(stream_create);
     LOG_REQ(method)
-        << " stream_flags=" << stream_flags
-        << " id=" << id;
+        << " flags=" << flags;
 
     auto& pimpl = impl::Context::get(*this);
     auto self = pimpl.state->self.lock();
 
-    unsigned int flag = (unsigned int) stream_flags;
-
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_stream)
-        .set_imm(&msg::request::imms::flags, flag) // unsigned int vs uint32_t
-        .set_imm(&msg::request::imms::stream_id, id) // unsigned int vs uint32_t
+        .set_imm(&msg::request::imms::flags, flags)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp)
         .unwrap()
-        .then_check_response()
-        .then([flag, id](auto& fut) {
+        .then_check_cuda_response()
+        .then([](auto& fut) {
             auto [ch, args] = fut.get();
             CHECK_ARGS_EXACT();
 
             return impl::make_stream(
                 ch,
-                id,
+                (CUstream)args->imms.custream.get(),
                 std::move(args->caps.generic));
         });
 }

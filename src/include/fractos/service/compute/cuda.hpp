@@ -152,6 +152,11 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Module>>
             module_load(const std::string path);
 
+            // cuStreamCreate()
+            [[nodiscard]] core::future<std::shared_ptr<Stream>>
+            stream_create(CUstream_flags flags);
+
+
             // /**
             //  * @brief Wrapper for cuModuleLoad() - not in use
             //  */
@@ -175,12 +180,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              */
             [[nodiscard]] core::future<std::shared_ptr<Event>>
             make_event(fractos::wire::endian::uint32_t flags); // blocking or not
-
-            /**
-             * @brief TODO:Wrapper for cuStreamCreate()
-             */
-            [[nodiscard]] core::future<std::shared_ptr<Stream>>
-            make_stream(CUstream_flags flags, fractos::wire::endian::uint32_t id); // blocking or not
 
             /**
              * @brief TODO:Wrapper for cuMemAllocHost()
@@ -278,14 +277,11 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class Stream : public common::service::CltBase<Stream> {
         public:
-            /**
-             * @brief Wrapper for cuStreamSynchronize()
-             */
+            CUstream get_stream() const;
+
+            // cuStreamSynchronize
             [[nodiscard]] fractos::core::future<void>
             synchronize();
-
-            // TODO: use cuda types
-            fractos::wire::endian::uint32_t get_stream_id();
         };
 
         std::string to_string(const Stream& obj);

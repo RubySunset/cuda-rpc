@@ -29,8 +29,8 @@ namespace impl {
         void handle_get_api_version(auto ch, auto args);
         void handle_get_limit(auto ch, auto args);
         void handle_mem_alloc(auto ch, auto args);
+        void handle_stream_create(auto ch, auto args);
 
-        void handle_stream(auto args);
         void handle_event(auto args);
         void handle_module_file(auto args);
         void handle_module_data(auto args);
@@ -66,10 +66,10 @@ namespace impl {
 
         ~Context();
 
-        const std::unordered_map<int, std::shared_ptr<Stream>>& getVStreamMap() const;
+        const std::unordered_map<CUstream, std::shared_ptr<Stream>>& getVStreamMap() const;
 
     private:
-        std::unordered_map<int, std::shared_ptr<Stream>> _vstream_map;
+        std::unordered_map<CUstream, std::shared_ptr<Stream>> _vstream_map;
 
         //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
     };

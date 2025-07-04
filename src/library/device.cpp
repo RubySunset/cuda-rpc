@@ -206,7 +206,6 @@ clt::Device::make_context(unsigned int flags)
                 std::move(args->caps.generic),
                 std::move(args->caps.make_memory),
                 std::move(args->caps.make_memory_rpc_test),
-                std::move(args->caps.make_stream),
                 std::move(args->caps.make_event),
                 std::move(args->caps.make_module_data),
                 // std::move(args->caps.make_module_file),

@@ -38,7 +38,7 @@ impl::make_stream(Context& ctx, unsigned int flags)
 }
 
 impl::Stream::Stream(Context& ctx, CUstream stream)
-    :stream(stream)
+    :custream(stream)
     ,ctx_ptr(ctx._self)
 {
 }
@@ -136,7 +136,7 @@ impl::Stream::handle_synchronize(auto ch, auto args)
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
 
-    cuerror = cuStreamSynchronize(stream);
+    cuerror = cuStreamSynchronize(custream);
 
     ch->template make_request_builder<msg::response>(args->caps.continuation)
         .set_imm(&msg::response::imms::error, error)
@@ -174,20 +174,12 @@ impl::Stream::handle_destroy(auto ch, auto args)
         return;
     }
 
+    // TODO: make thread-safe
+    auto ctx_ptr = this->ctx_ptr.lock();
+    CHECK(ctx_ptr);
+    CHECK(ctx_ptr->getVStreamMap().erase(custream) == 1);
 
-    cuerror = cuStreamDestroy(stream);
-    if (cuerror != CUDA_SUCCESS) {
-        LOG_RES(method)
-            << " error=" << wire::to_string(error)
-            << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
-        ch->template make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, error)
-            .set_imm(&msg::response::imms::cuerror, cuerror)
-            .on_channel()
-            .invoke()
-            .as_callback();
-        return;
-    }
+    cuerror = cuStreamDestroy(custream);
 
     ch->revoke(self->req_generic)
         .then([this, self, ch, args=std::move(args), error, cuerror](auto& fut) {

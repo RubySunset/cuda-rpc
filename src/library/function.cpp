@@ -74,10 +74,9 @@ clt::Function::launch(const void** args, dim3 gridDim, dim3 blockDim,
     auto& pimpl = impl::Function::get(*this);
     auto self = pimpl.state->self.lock();
 
-    CUstream stream_id = 0;
+    CUstream custream = 0;
     if (stream) {
-        auto& stream_pimpl = impl::Stream::get(stream->get());
-        stream_id = stream_pimpl.state->id;
+        custream = stream->get().get_stream();
     }
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
@@ -89,7 +88,7 @@ clt::Function::launch(const void** args, dim3 gridDim, dim3 blockDim,
         .set_imm(&msg::request::imms::block_x, (uint64_t)blockDim.x)
         .set_imm(&msg::request::imms::block_y, (uint64_t)blockDim.y)
         .set_imm(&msg::request::imms::block_z, (uint64_t)blockDim.z)
-        .set_imm(&msg::request::imms::stream_id, stream_id)
+        .set_imm(&msg::request::imms::custream, (uint64_t)custream)
         .set_cap(&msg::request::caps::continuation, resp);
 
     size_t offset = offsetof(msg::request::imms, kernel_args);
