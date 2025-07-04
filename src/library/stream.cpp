@@ -57,7 +57,7 @@ impl::to_string(const impl::StreamState& obj)
 core::future<void>
 impl::StreamState::do_destroy(std::shared_ptr<core::channel>& ch)
 {
-    METHOD(synchronize);
+    METHOD(destroy);
     LOG_REQ(method)
         << " {}";
 

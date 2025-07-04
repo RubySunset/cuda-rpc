@@ -17,3 +17,13 @@ private:
     void handleError(CUresult err, const std::string& file, int line);
     const CUresult err;
 };
+
+static inline const char* get_CUresult_name(CUresult err) __attribute__((const));
+
+static inline const char *
+get_CUresult_name(CUresult err)
+{
+    const char* res;
+    CHECK(cuGetErrorName(err, &res) == CUDA_SUCCESS);
+    return res;
+}

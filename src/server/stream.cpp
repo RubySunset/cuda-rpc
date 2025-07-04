@@ -138,6 +138,10 @@ impl::Stream::handle_synchronize(auto ch, auto args)
 
     cuerror = cuStreamSynchronize(custream);
 
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror);
+
     ch->template make_request_builder<msg::response>(args->caps.continuation)
         .set_imm(&msg::response::imms::error, error)
         .set_imm(&msg::response::imms::cuerror, cuerror)
@@ -164,7 +168,7 @@ impl::Stream::handle_destroy(auto ch, auto args)
         error = wire::ERR_OTHER;
         LOG_RES(method)
             << " error=" << wire::to_string(error)
-            << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
+            << " cuerror=" << get_CUresult_name(cuerror);
         ch->template make_request_builder<msg::response>(args->caps.continuation)
             .set_imm(&msg::response::imms::error, error)
             .set_imm(&msg::response::imms::cuerror, cuerror)
@@ -185,7 +189,7 @@ impl::Stream::handle_destroy(auto ch, auto args)
             fut.get();
             LOG_RES(method)
                 << " error=" << wire::to_string(error)
-                << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
+                << " cuerror=" << get_CUresult_name(cuerror);
             ch->template make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, error)
                 .set_imm(&msg::response::imms::cuerror, cuerror)
