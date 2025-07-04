@@ -15,11 +15,6 @@ namespace impl {
 
     class Stream : public fractos::common::service::SrvBase {
     public:
-        Stream(Context& ctx, CUstream stream);
-        ~Stream();
-
-        fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
-
         const CUstream stream;
         std::weak_ptr<Context> ctx_ptr;
         std::weak_ptr<Stream> self;
@@ -28,9 +23,14 @@ namespace impl {
         void handle_synchronize(auto args);
         void handle_destroy(auto args);
 
+        // NOTE: for internal use
     public:
         fractos::core::cap::request _req_sync;
         fractos::core::cap::request _req_destroy;
+
+        Stream(Context& ctx, CUstream stream);
+        ~Stream();
+        fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
     };
 
     std::pair<CUresult, std::shared_ptr<Stream>> make_stream(Context& ctx, unsigned int flags);
