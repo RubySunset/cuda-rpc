@@ -10,7 +10,10 @@ namespace srv = fractos::service::compute::cuda;
 
 #define print_imm_cuerror(name)                                         \
     print_imm(name, [](auto& val){                                      \
-        return cudaGetErrorName((cudaError)val.get()); })
+        const char* name;                                               \
+        CHECK(cuGetErrorName((CUresult)val.get(), &name) == CUDA_SUCCESS); \
+        return name;                                                    \
+    })
 
 
 std::string
