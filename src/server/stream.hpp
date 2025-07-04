@@ -24,12 +24,11 @@ namespace impl {
     protected:
         void handle_generic(auto ch, auto args);
         void handle_synchronize(auto ch, auto args);
-        void handle_destroy(auto args);
+        void handle_destroy(auto ch, auto args);
 
         // NOTE: for internal use
     public:
         fractos::core::cap::request req_generic;
-        fractos::core::cap::request _req_destroy;
 
         Stream(Context& ctx, CUstream stream);
         ~Stream();

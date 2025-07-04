@@ -70,19 +70,8 @@ impl::Stream::register_methods(std::shared_ptr<core::channel> ch)
         })
         .on_channel()
         .make_request()
-        .then([ch, self](auto& fut) {
-            VLOG(fractos::logging::SERVICE) << "SET re_destory"; 
-            return ch->make_request_builder<msg_base::destroy::request>( // file
-                ch->get_default_endpoint(), 
-                [self](auto ch, auto args) {
-                    self->handle_destroy(std::move(args)); // file
-                })
-                .on_channel()
-                .make_request();
-            })
-        .unwrap()
-        .then([ch, self, this](auto& fut) {
-            self->_req_destroy = fut.get();
+        .then([self](auto& fut) {
+            self->req_generic = fut.get();
         });
 
 }
@@ -118,6 +107,7 @@ impl::Stream::handle_generic(auto ch, auto args)
 
     switch (opcode) {
     CASE_HANDLE(SYNCHRONIZE, synchronize);
+    CASE_HANDLE(DESTROY, destroy);
     default:
         LOG_RES(method)
             << " [error] invalid opcode";
@@ -156,59 +146,61 @@ impl::Stream::handle_synchronize(auto ch, auto args)
         .as_callback();
 }
 
+void
+impl::Stream::handle_destroy(auto ch, auto args)
+{
+    METHOD(destroy);
+    LOG_REQ(method) << srv::wire::to_string(*args);
 
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
 
-/*
- *  Destroy a Stream, revoke all of its caps
- */
-void impl::Stream::handle_destroy(auto args) {
-    DVLOG(logging::SERVICE) << "CALL handle destroy";
-    using msg = ::service::compute::cuda::wire::Stream::destroy;
-
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
-    
     auto self = this->self.lock();
-    CHECK(self);
+    DCHECK(self);
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
 
-    if (not args->has_exactly_args() or not destroy_maybe()) {
-        ch->make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+    if (not destroy_maybe()) {
+        error = wire::ERR_OTHER;
+        LOG_RES(method)
+            << " error=" << wire::to_string(error)
+            << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
+        ch->template make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, error)
+            .set_imm(&msg::response::imms::cuerror, cuerror)
             .on_channel()
             .invoke()
             .as_callback();
-
         return;
     }
 
-    auto cuerr = cuStreamDestroy(stream);
-    CHECK(cuerr == CUDA_SUCCESS);
 
-    DVLOG(logging::SERVICE) << "Revoke destroy";
-
-    // ch->revoke(self->_memory)
-    //     .then([ch, self](auto& fut) {
-    //               fut.get();
-    //               DVLOG(fractos::logging::SERVICE) << "Revoke _req_deallocate";
-    //               return ch->revoke(self->_req_destroy);
-    //           })
-    //     .unwrap()
+    cuerror = cuStreamDestroy(stream);
+    if (cuerror != CUDA_SUCCESS) {
+        LOG_RES(method)
+            << " error=" << wire::to_string(error)
+            << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
+        ch->template make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, error)
+            .set_imm(&msg::response::imms::cuerror, cuerror)
+            .on_channel()
+            .invoke()
+            .as_callback();
+        return;
+    }
 
     ch->revoke(self->req_generic)
-        .then([ch, self](auto& fut) {
+        .then([this, self, ch, args=std::move(args), error, cuerror](auto& fut) {
             fut.get();
-            return ch->revoke(self->_req_destroy); // file
-        })
-        .unwrap()
-        .then([this, ch, self, args=std::move(args)](auto& fut) {
-            fut.get();
-            DVLOG(fractos::logging::SERVICE) << "cuda stream destroyed";
-            ch->make_request_builder<msg::response>(args->caps.continuation) // response
-                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+            LOG_RES(method)
+                << " error=" << wire::to_string(error)
+                << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
+            ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::cuerror, cuerror)
                 .on_channel()
                 .invoke()
                 .as_callback();
         })
     .as_callback();
-
 }
-

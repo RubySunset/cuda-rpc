@@ -387,7 +387,7 @@ void impl::Context::handle_stream(auto args) {
             // _vdev_map.insert({value, vdev});
             ch->make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
-                .set_cap(&msg::response::caps::destroy, stream->_req_destroy)
+                .set_cap(&msg::response::caps::generic, stream->req_generic)
                 .on_channel()
                 .invoke()
                 .as_callback();
