@@ -7,6 +7,7 @@
 #include <numeric>
 #include <pthread.h>
 
+#include "./common.hpp"
 #include "./context.hpp"
 #include "./stream.hpp"
 #include "./function.hpp"
@@ -179,7 +180,7 @@ impl::Function::handle_launch(auto ch, auto args)
 out:
     LOG_RES(method)
         << " error=" << wire::to_string(error)
-        << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
+        << " cuerror=" << get_CUresult_name(cuerror);
 
     reqb_cont
         .set_imm(&msg::response::imms::error, error)
@@ -206,7 +207,7 @@ impl::Function::handle_destroy(auto ch, auto args)
         error = wire::ERR_OTHER;
         LOG_RES(method)
             << " error=" << wire::to_string(error)
-            << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
+            << " cuerror=" << get_CUresult_name(cuerror);
         reqb_cont
             .set_imm(&msg::response::imms::error, error)
             .set_imm(&msg::response::imms::cuerror, cuerror)
@@ -222,7 +223,7 @@ impl::Function::handle_destroy(auto ch, auto args)
             auto cuerror = CUDA_SUCCESS;
             LOG_RES(method)
                 << " error=" << wire::to_string(error)
-                << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
+                << " cuerror=" << get_CUresult_name(cuerror);
             fut.get();
             ch->template make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, error)
