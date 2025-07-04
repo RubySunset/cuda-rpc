@@ -37,6 +37,27 @@ impl::make_stream(std::shared_ptr<fractos::core::channel> ch,
     return impl::Stream::make(ch, state);
 }
 
+std::string
+clt::to_string(const clt::Stream& obj)
+{
+    auto& pimpl = impl::Stream::get(obj);
+    return impl::to_string(pimpl);
+}
+
+std::string
+impl::to_string(const impl::Stream& obj)
+{
+    return impl::to_string(*obj.state);
+}
+
+std::string
+impl::to_string(const impl::StreamState& obj)
+{
+    std::stringstream ss;
+    ss << "cuda::Stream(" << (void*)(uint64_t)obj.id.get() << ")";
+    return ss.str();
+}
+
 core::future<void>
 impl::StreamState::do_destroy(std::shared_ptr<core::channel>& ch)
 {
