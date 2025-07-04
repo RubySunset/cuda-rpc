@@ -72,6 +72,12 @@ public:
     std::unordered_map<CUdeviceptr, std::shared_ptr<fractos::service::compute::cuda::Memory>> mems;
 
 
+    std::shared_ptr<fractos::service::compute::cuda::Stream> get_stream(CUstream stream);
+
+    std::shared_mutex streams_mutex;
+    std::unordered_map<CUstream, std::shared_ptr<fractos::service::compute::cuda::Stream>> streams;
+
+
     std::shared_mutex events_mutex;
     std::unordered_map<CUevent, std::shared_ptr<fractos::service::compute::cuda::Event>> events;
 };

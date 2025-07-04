@@ -212,3 +212,15 @@ DriverState::get_function(CUfunction function)
         return nullptr;
     }
 }
+
+std::shared_ptr<fractos::service::compute::cuda::Stream>
+DriverState::get_stream(CUstream stream)
+{
+    auto lock = std::shared_lock(streams_mutex);
+    auto it = streams.find(stream);
+    if (it != streams.end()) {
+        return it->second;
+    } else {
+        return nullptr;
+    }
+}
