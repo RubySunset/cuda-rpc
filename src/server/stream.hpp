@@ -37,4 +37,6 @@ namespace impl {
 
     std::pair<CUresult, std::shared_ptr<Stream>> make_stream(Context& ctx, unsigned int flags);
 
+    std::string to_string(const Stream& obj);
+
 }

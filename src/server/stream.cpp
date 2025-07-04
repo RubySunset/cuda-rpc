@@ -44,10 +44,16 @@ impl::Stream::~Stream()
 {
 }
 
-/*
- *  Make handlers for a Stream's caps
- */
-core::future<void> impl::Stream::register_methods(std::shared_ptr<core::channel> ch)
+std::string
+impl::to_string(const impl::Stream& obj)
+{
+    std::stringstream ss;
+    ss << "Stream(" << (void*)obj.get_remote_custream() << ")";
+    return ss.str();
+}
+
+core::future<void>
+impl::Stream::register_methods(std::shared_ptr<core::channel> ch)
 {
     namespace msg_base = ::service::compute::cuda::wire::Stream;
 
