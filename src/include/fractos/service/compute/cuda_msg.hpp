@@ -474,6 +474,7 @@ namespace fractos::service::compute::cuda::wire {
                     fractos::wire::endian::uint8_t error;
                 } __attribute__ ((packed));
                 struct caps {
+                    fractos::core::cap::request generic;
                     fractos::core::cap::request synchronize;
                     fractos::core::cap::request destroy;
                 };
@@ -610,6 +611,14 @@ namespace fractos::service::compute::cuda::wire {
 
     std::string to_string(const core::receive_args<Context::destroy::request>& req);
     std::string to_string(const core::receive_args<Context::destroy::response>& resp);
+
+
+    namespace Stream {
+        enum generic_opcode : uint64_t {
+            OP_INVALID = std::numeric_limits<uint64_t>::max()
+        };
+        using generic = wire::generic;
+    }
 
     namespace Stream {
 

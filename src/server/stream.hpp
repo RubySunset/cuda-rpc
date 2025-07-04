@@ -22,11 +22,13 @@ namespace impl {
         std::weak_ptr<Stream> self;
 
     protected:
+        void handle_generic(auto ch, auto args);
         void handle_synchronize(auto args);
         void handle_destroy(auto args);
 
         // NOTE: for internal use
     public:
+        fractos::core::cap::request req_generic;
         fractos::core::cap::request _req_sync;
         fractos::core::cap::request _req_destroy;
 

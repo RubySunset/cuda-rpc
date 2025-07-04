@@ -24,10 +24,12 @@ template class fractos::common::service::CltBase<clt::Stream>;
 std::shared_ptr<clt::Stream>
 impl::make_stream(std::shared_ptr<fractos::core::channel> ch,
                   fractos::wire::endian::uint32_t id,
+                  fractos::core::cap::request req_generic,
                   fractos::core::cap::request req_stream_sync,
                   fractos::core::cap::request req_stream_destroy)
 {
     auto state = std::make_shared<impl::StreamState>();
+    state->req_generic = std::move(req_generic);
     state->req_stream_sync = std::move(req_stream_sync);
     state->req_stream_destroy = std::move(req_stream_destroy);
     state->id = id;

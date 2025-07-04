@@ -1,16 +1,19 @@
+#include <fractos/common/service/srv_impl.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
 #include <glog/logging.h>
 #include <pthread.h>
 
-#include "common.hpp"
+#include "./common.hpp"
 #include "./context.hpp"
 #include "./stream.hpp"
 
 
+namespace srv = fractos::service::compute::cuda;
+namespace srv_wire = fractos::service::compute::cuda::wire;
+namespace srv_wire_msg = srv_wire::Stream;
 using namespace fractos;
-
 
 
 std::pair<CUresult, std::shared_ptr<impl::Stream>>
@@ -60,20 +63,30 @@ impl::Stream::register_methods(std::shared_ptr<core::channel> ch)
     auto self = this->self.lock();
     CHECK(self);
 
-    return ch->make_request_builder<msg_base::synchronize::request>(
-        ch->get_default_endpoint(), 
+    return ch->make_request_builder<srv_wire_msg::generic::request>(
+        ch->get_default_endpoint(),
         [self](auto ch, auto args) {
-            self->handle_synchronize(std::move(args));
+            self->handle_generic(ch, std::move(args));
         })
         .on_channel()
         .make_request()
+        .then([self, ch](auto& fut) {
+            self->req_generic = fut.get();
+            return ch->template make_request_builder<msg_base::synchronize::request>(
+                ch->get_default_endpoint(), 
+                [self](auto ch, auto args) {
+                    self->handle_synchronize(std::move(args));
+                })
+                .on_channel()
+                .make_request();
+        })
+        .unwrap()
         .then([ch, self](auto& fut) {
             self->_req_sync = fut.get();
             VLOG(fractos::logging::SERVICE) << "SET re_destory"; 
             return ch->make_request_builder<msg_base::destroy::request>( // file
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
-                    
                     self->handle_destroy(std::move(args)); // file
                 })
                 .on_channel()
@@ -91,6 +104,43 @@ CUstream
 impl::Stream::get_remote_custream() const
 {
     return (CUstream)this;
+}
+
+
+void
+impl::Stream::handle_generic(auto ch, auto args)
+{
+    METHOD(generic);
+    CHECK_CAPS_CONT(msg::request::caps::continuation);
+
+    auto opcode = srv_wire_msg::OP_INVALID;
+    if (args->has_imm(&msg::request::imms::opcode)) {
+        opcode = static_cast<srv_wire_msg::generic_opcode>(args->imms.opcode.get());
+    }
+
+    auto reinterpreted = []<class T>(auto args) {
+        using ptr = core::receive_args<T>;
+        return std::unique_ptr<ptr>(reinterpret_cast<ptr*>(args.release()));
+    };
+
+#define CASE_HANDLE(NAME, name)                                         \
+    case srv_wire_msg::OP_ ## NAME:                                      \
+        handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args))); \
+        break;
+
+    switch (opcode) {
+    default:
+        LOG_RES(method)
+            << " [error] invalid opcode";
+        ch->template make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .on_channel()
+            .invoke()
+            .as_callback_log_ignore_continuation_error();
+        break;
+    }
+
+#undef HANDLE
 }
 
 

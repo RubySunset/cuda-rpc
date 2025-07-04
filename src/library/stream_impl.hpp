@@ -16,6 +16,7 @@ namespace impl {
         std::weak_ptr<clt::Stream> self;
         std::shared_ptr<fractos::core::channel> ch;
 
+        fractos::core::cap::request req_generic;
         fractos::core::cap::request req_stream_sync;
         fractos::core::cap::request req_stream_destroy;
         fractos::wire::endian::uint32_t id;
@@ -29,6 +30,7 @@ namespace impl {
     std::shared_ptr<clt::Stream>
     make_stream(std::shared_ptr<fractos::core::channel> ch,
                 fractos::wire::endian::uint32_t id,
+                fractos::core::cap::request req_generic,
                 fractos::core::cap::request req_stream_sync,
                 fractos::core::cap::request req_stream_destroy);
 
