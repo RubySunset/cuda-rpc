@@ -70,19 +70,7 @@ impl::Stream::register_methods(std::shared_ptr<core::channel> ch)
         })
         .on_channel()
         .make_request()
-        .then([self, ch](auto& fut) {
-            self->req_generic = fut.get();
-            return ch->template make_request_builder<msg_base::synchronize::request>(
-                ch->get_default_endpoint(), 
-                [self](auto ch, auto args) {
-                    self->handle_synchronize(std::move(args));
-                })
-                .on_channel()
-                .make_request();
-        })
-        .unwrap()
         .then([ch, self](auto& fut) {
-            self->_req_sync = fut.get();
             VLOG(fractos::logging::SERVICE) << "SET re_destory"; 
             return ch->make_request_builder<msg_base::destroy::request>( // file
                 ch->get_default_endpoint(), 
@@ -129,6 +117,7 @@ impl::Stream::handle_generic(auto ch, auto args)
         break;
 
     switch (opcode) {
+    CASE_HANDLE(SYNCHRONIZE, synchronize);
     default:
         LOG_RES(method)
             << " [error] invalid opcode";
@@ -144,22 +133,24 @@ impl::Stream::handle_generic(auto ch, auto args)
 }
 
 
-void impl::Stream::handle_synchronize(auto args) {
-    VLOG(fractos::logging::SERVICE) << "CALL handle synchronize";
-    using msg = ::service::compute::cuda::wire::Stream::synchronize;
+void
+impl::Stream::handle_synchronize(auto ch, auto args)
+{
+    METHOD(synchronize);
+    LOG_REQ(method) << srv::wire::to_string(*args);
 
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        LOG(ERROR) << "no continuation";
-        return;
-    }
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_IMMS_EXACT(reqb_cont);
+    CHECK_CAPS_EXACT(reqb_cont);
 
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
 
-    auto cuerror = cuStreamSynchronize(stream);
-    CHECK(cuerror == CUDA_SUCCESS);
+    cuerror = cuStreamSynchronize(stream);
 
-    ch->make_request_builder<msg::response>(args->caps.continuation)
-        .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+    ch->template make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
         .on_channel()
         .invoke()
         .as_callback();
@@ -205,12 +196,6 @@ void impl::Stream::handle_destroy(auto args) {
     ch->revoke(self->req_generic)
         .then([ch, self](auto& fut) {
             fut.get();
-            return ch->revoke(self->_req_sync);
-        })
-        .unwrap()
-        .then([ch, self](auto& fut) {
-            fut.get();
-            VLOG(fractos::logging::SERVICE) << "Revoke _req_sync";
             return ch->revoke(self->_req_destroy); // file
         })
         .unwrap()

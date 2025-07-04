@@ -567,7 +567,6 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::make_stream::r
     print_extra_imm_error();
 
     print_cap(generic);
-    print_cap(synchronize);
     print_cap(destroy);
     print_extra_cap_error();
 

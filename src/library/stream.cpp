@@ -1,12 +1,12 @@
-#include <utility>
-
-#include <fractos/wire/endian.hpp>
-#include <fractos/wire/error.hpp>
+#include <fractos/common/service/clt_impl.hpp>
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
+#include <fractos/wire/endian.hpp>
+#include <fractos/wire/error.hpp>
 #include <stream_impl.hpp>
+#include <utility>
 
 
 namespace clt = fractos::service::compute::cuda;
@@ -25,12 +25,10 @@ std::shared_ptr<clt::Stream>
 impl::make_stream(std::shared_ptr<fractos::core::channel> ch,
                   fractos::wire::endian::uint32_t id,
                   fractos::core::cap::request req_generic,
-                  fractos::core::cap::request req_stream_sync,
                   fractos::core::cap::request req_stream_destroy)
 {
     auto state = std::make_shared<impl::StreamState>();
     state->req_generic = std::move(req_generic);
-    state->req_stream_sync = std::move(req_stream_sync);
     state->req_stream_destroy = std::move(req_stream_destroy);
     state->id = id;
 
@@ -99,28 +97,23 @@ clt::Stream::get_stream_id()
 core::future<void>
 clt::Stream::synchronize()
 {
-    using msg = ::service::compute::cuda::wire::Stream::synchronize;
-
-    DVLOG(logging::SERVICE) << "Stream::synchronize <-";
+    METHOD(synchronize);
+    LOG_REQ(method)
+        << " {}";
 
     auto& pimpl = impl::Stream::get(*this);
+    auto self = pimpl.state->self.lock();
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_stream_sync)
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_SYNCHRONIZE)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
-        .invoke(resp) // wait for handle_sync
+        .invoke(resp)
         .unwrap()
+        .then_check_cuda_response()
         .then([](auto& fut) {
             auto [ch, args] = fut.get();
-
-            if (not args->has_exactly_args()) {
-                DVLOG(logging::SERVICE) << "Stream::synchronize ->"
-                                << " error=OTHER args";
-            }
-
-            DVLOG(logging::SERVICE) << "Stream::synchronize ->"
-                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
-            fractos::wire::error_raise_exception_maybe(args->imms.error);
+            CHECK_ARGS_EXACT();
         });
 }

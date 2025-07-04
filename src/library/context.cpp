@@ -216,7 +216,6 @@ clt::Context::make_stream(CUstream_flags stream_flags, fractos::wire::endian::ui
                 ch,
                 id,
                 std::move(args->caps.generic),
-                std::move(args->caps.synchronize),
                 std::move(args->caps.destroy));
         });
 }
