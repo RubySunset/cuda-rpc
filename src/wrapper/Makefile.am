@@ -35,6 +35,7 @@ libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-lib.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-state.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-device.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-error.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-stream.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-event.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-execution.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-memory.cpp
