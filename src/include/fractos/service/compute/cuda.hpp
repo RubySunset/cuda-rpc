@@ -288,6 +288,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             fractos::wire::endian::uint32_t get_stream_id();
         };
 
+        std::string to_string(const Stream& obj);
+
         /**
          * @brief Wrapper for CUevent operations
          */

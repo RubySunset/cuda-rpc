@@ -202,7 +202,12 @@ void impl::Stream::handle_destroy(auto args) {
     //           })
     //     .unwrap()
 
-    ch->revoke(self->_req_sync)
+    ch->revoke(self->req_generic)
+        .then([ch, self](auto& fut) {
+            fut.get();
+            return ch->revoke(self->_req_sync);
+        })
+        .unwrap()
         .then([ch, self](auto& fut) {
             fut.get();
             VLOG(fractos::logging::SERVICE) << "Revoke _req_sync";
