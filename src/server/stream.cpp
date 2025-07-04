@@ -81,6 +81,13 @@ core::future<void> impl::Stream::register_methods(std::shared_ptr<core::channel>
 }
 
 
+CUstream
+impl::Stream::get_remote_custream() const
+{
+    return (CUstream)this;
+}
+
+
 void impl::Stream::handle_synchronize(auto args) {
     VLOG(fractos::logging::SERVICE) << "CALL handle synchronize";
     using msg = ::service::compute::cuda::wire::Stream::synchronize;

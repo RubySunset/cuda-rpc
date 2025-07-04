@@ -15,6 +15,8 @@ namespace impl {
 
     class Stream : public fractos::common::service::SrvBase {
     public:
+        CUstream get_remote_custream() const;
+
         const CUstream stream;
         std::weak_ptr<Context> ctx_ptr;
         std::weak_ptr<Stream> self;
