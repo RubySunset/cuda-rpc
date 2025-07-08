@@ -12,7 +12,7 @@ namespace fractos::service::compute::cuda {
         {
             size_t i = 0;
             std::vector<size_t> args_size;
-            args_size.resize(args.size());
+            args_size.resize(sizeof...(Args));
             std::apply([&](auto& arg) {
                 args_size.push_back(sizeof(arg));
                 args_ptr[i] = &arg;
