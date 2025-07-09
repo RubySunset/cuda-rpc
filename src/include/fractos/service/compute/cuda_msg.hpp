@@ -327,7 +327,6 @@ namespace fractos::service::compute::cuda::wire {
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::request generic;
-                    fractos::core::cap::request make_event;
                     fractos::core::cap::request make_module_data; //make_module_data; // 
                     fractos::core::cap::request synchronize;
                     fractos::core::cap::request destroy;
@@ -371,6 +370,7 @@ namespace fractos::service::compute::cuda::wire {
             OP_GET_LIMIT,
             OP_MEM_ALLOC,
             OP_STREAM_CREATE,
+            OP_EVENT_CREATE,
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
 
@@ -483,30 +483,30 @@ namespace fractos::service::compute::cuda::wire {
     std::string to_string(const core::receive_args<Context::stream_create::response>& resp);
 
     namespace Context {
-        struct make_event {
+        struct event_create {
             struct request {
                 struct imms {
-                    fractos::wire::endian::uint32_t flags; // unsigned int
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint32_t flags;
                 } __attribute__((packed));
                 struct caps {
-                    fractos::core::cap::request continuation; 
+                    fractos::core::cap::request continuation;
                 };
             };
             struct response {
                 struct imms {
                     fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
                 } __attribute__ ((packed));
                 struct caps {
-                    // fractos::core::cap::request record;
-                    // fractos::core::cap::request synchronize;
                     fractos::core::cap::request destroy;
                 };
             };
         };
     }
 
-    std::string to_string(const core::receive_args<Context::make_event::request>& req);
-    std::string to_string(const core::receive_args<Context::make_event::response>& resp);
+    std::string to_string(const core::receive_args<Context::event_create::request>& req);
+    std::string to_string(const core::receive_args<Context::event_create::response>& resp);
 
     namespace Context {
         struct make_module_file {

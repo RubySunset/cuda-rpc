@@ -18,7 +18,7 @@ cuEventCreate(CUevent *phEvent, unsigned int Flags)
     auto ctx_ptr = state.get_current_context();
     CHECK(ctx_ptr);
 
-    auto event_ptr = ctx_ptr->make_event(Flags).get();
+    auto event_ptr = ctx_ptr->event_create((CUevent_flags)Flags).get();
     CUevent cu_event = (CUevent)event_ptr.get();
     *phEvent = cu_event;
 

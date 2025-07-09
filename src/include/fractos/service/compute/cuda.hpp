@@ -156,6 +156,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Stream>>
             stream_create(CUstream_flags flags);
 
+            // cuEventCreate()
+            [[nodiscard]] core::future<std::shared_ptr<Event>>
+            event_create(CUevent_flags flags);
 
             // /**
             //  * @brief Wrapper for cuModuleLoad() - not in use
@@ -178,6 +181,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             /**
              * @brief TODO:Wrapper for cuEventCreate()
              */
+            [[deprecated]]
             [[nodiscard]] core::future<std::shared_ptr<Event>>
             make_event(fractos::wire::endian::uint32_t flags); // blocking or not
 

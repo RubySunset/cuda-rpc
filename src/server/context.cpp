@@ -114,19 +114,6 @@ core::future<void> impl::Context::register_methods(std::shared_ptr<core::channel
         .make_request()
         .then([ch, self](auto& fut) {
             self->_req_generic = fut.get();
-            return ch->make_request_builder<msg_base::make_event::request>( // file
-                ch->get_default_endpoint(), 
-                [self](auto ch, auto args) {
-                    
-                    self->handle_event(std::move(args)); // file
-                })
-                .on_channel()
-                .make_request();
-            })
-        .unwrap()
-        .then([ch, self](auto& fut) {
-            self->_req_event = fut.get();
-            VLOG(fractos::logging::SERVICE) << "SET req_event"; 
             return ch->make_request_builder<msg_base::make_module_data::request>( // file
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -195,6 +182,7 @@ impl::Context::handle_generic(auto ch, auto args)
     CASE_HANDLE(GET_LIMIT, get_limit);
     CASE_HANDLE(MEM_ALLOC, mem_alloc);
     CASE_HANDLE(STREAM_CREATE, stream_create);
+    CASE_HANDLE(EVENT_CREATE, event_create);
     default:
         LOG_OP(method)
             << " [error] invalid opcode";
@@ -415,47 +403,43 @@ out_err:
 }
 
 
-void impl::Context::handle_event(auto args) {
-    DVLOG(logging::SERVICE) << "CALL handle_event";
-    using msg = ::service::compute::cuda::wire::Context::make_event;
-    
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        DLOG(ERROR) << "got request without continuation, ignoring";
-        return;
-    }
+void
+impl::Context::handle_event_create(auto ch, auto args)
+{
+    METHOD(event_create);
+    LOG_REQ(method) << srv::wire::to_string(*args);
 
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
 
-    if (not args->has_exactly_args()) {
-        ch->make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-            .on_channel()
-            .invoke()
-            .as_callback();
-        return;
-    }
+    CUevent_flags flags = (CUevent_flags)args->imms.flags.get();
 
-    unsigned int flag = args->imms.flags; // uint32_t
+    auto self = this->_self;
+    DCHECK(self);
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
 
-    auto self = _self; // lock()
-
-    VLOG(fractos::logging::SERVICE) << "event flag is: " << (uint32_t)flag;
-
-    auto event = std::shared_ptr<Event>(Event::factory(flag, _ctx));
+    auto event = std::shared_ptr<Event>(Event::factory(flags, _ctx));
 
     event->register_methods(ch)
-        .then([this, ch, self, event, args=std::move(args), flag](auto& fut) {
+        .then([this, self, ch, args=std::move(args), error, cuerror, event](auto& fut) {
             fut.get();
+
             _event = event;
-            // _vdev_map.insert({value, vdev});
-            ch->make_request_builder<msg::response>(args->caps.continuation)
-                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
-                // .set_cap(&msg::response::caps::synchronize, event->_req_sync)
+
+            LOG_RES(method)
+                << " error=" << wire::to_string(error)
+                << " cuerror=" << get_CUresult_name(cuerror)
+                ;
+
+            ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::cuerror, cuerror)
                 .set_cap(&msg::response::caps::destroy, event->_req_destroy)
                 .on_channel()
                 .invoke()
                 .as_callback();
-              })
+        })
         .as_callback();
 }
 
@@ -665,12 +649,6 @@ void impl::Context::handle_destroy(auto args) {
     ch->revoke(self->_req_generic)
         .then([ch, self](auto& fut) {
             fut.get();
-            return ch->revoke(self->_req_event); // file
-        })
-        .unwrap()
-        .then([ch, self](auto& fut) {
-            fut.get();
-            VLOG(fractos::logging::SERVICE) << "Revoke _req_stream";
             return ch->revoke(self->_req_module_data); // file
         })
         .unwrap()

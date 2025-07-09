@@ -578,7 +578,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::stream_create:
 }
 
 std::string
-srv::wire::to_string(const core::receive_args<srv::wire::Context::make_event::request>& obj)
+srv::wire::to_string(const core::receive_args<srv::wire::Context::event_create::request>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
 
@@ -594,7 +594,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::make_event::re
 }
 
 std::string
-srv::wire::to_string(const core::receive_args<srv::wire::Context::make_event::response>& obj)
+srv::wire::to_string(const core::receive_args<srv::wire::Context::event_create::response>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
 
@@ -765,7 +765,6 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::ctx_create::res
     print_extra_imm_error();
 
     print_cap(generic);
-    print_cap(make_event);
     print_cap(make_module_data);
     print_cap(synchronize);
     print_cap(destroy);
