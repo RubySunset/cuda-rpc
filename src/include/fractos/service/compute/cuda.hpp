@@ -132,10 +132,12 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             CUcontext get_context() const;
 
             // cuCtxGetApiVersion
-            core::future<unsigned int> get_api_version();
+            [[nodiscard]] core::future<unsigned int>
+            get_api_version();
 
             // cuCtxGetDevice
-            std::shared_ptr<Device> get_device();
+            std::shared_ptr<Device>
+            get_device();
 
             // cuCtxGetLimit
             core::future<size_t> get_limit(CUlimit limit);
