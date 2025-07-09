@@ -18,6 +18,8 @@ namespace impl {
         fractos::core::cap::request req_get_func;
         fractos::core::cap::request req_module_unload;
 
+        CUmodule cumodule;
+
         fractos::core::future<void>
         do_destroy(std::shared_ptr<fractos::core::channel>& ch);
     };
@@ -26,6 +28,7 @@ namespace impl {
 
     std::shared_ptr<clt::Module>
     make_module(std::shared_ptr<fractos::core::channel> ch,
+                CUmodule cumodule,
                 fractos::core::cap::request req_generic,
                 fractos::core::cap::request req_get_func,
                 fractos::core::cap::request req_module_unload);

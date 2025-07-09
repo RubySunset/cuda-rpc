@@ -327,7 +327,6 @@ namespace fractos::service::compute::cuda::wire {
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::request generic;
-                    fractos::core::cap::request make_module_data; //make_module_data; // 
                     fractos::core::cap::request synchronize;
                     fractos::core::cap::request destroy;
                 };
@@ -368,6 +367,7 @@ namespace fractos::service::compute::cuda::wire {
         enum generic_opcode : uint64_t {
             OP_GET_API_VERSION,
             OP_GET_LIMIT,
+            OP_MODULE_LOAD_DATA,
             OP_MEM_ALLOC,
             OP_STREAM_CREATE,
             OP_EVENT_CREATE,
@@ -509,25 +509,24 @@ namespace fractos::service::compute::cuda::wire {
     std::string to_string(const core::receive_args<Context::event_create::response>& resp);
 
     namespace Context {
-        struct make_module_data {
+        struct module_load_data {
             struct request {
                 struct imms {
-                    fractos::wire::endian::uint64_t module_id;
-                    // char file_name[];
+                    fractos::wire::endian::uint64_t opcode;
                 } __attribute__((packed));
                 struct caps {
-                    fractos::core::cap::request continuation; 
-                    fractos::core::cap::memory cuda_file;
+                    fractos::core::cap::request continuation;
+                    fractos::core::cap::memory contents;
                 };
             };
             struct response {
                 struct imms {
                     fractos::wire::endian::uint8_t error;
-                    // fractos::wire::endian::uint64_t address;
+                    fractos::wire::endian::uint64_t cuerror;
+                    fractos::wire::endian::uint64_t cumodule;
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::request generic;
-                    // fractos::core::cap::cap::memory memory;
                     fractos::core::cap::request get_function;
                     fractos::core::cap::request destroy;
                 };
@@ -535,8 +534,8 @@ namespace fractos::service::compute::cuda::wire {
         };
     }
 
-    std::string to_string(const core::receive_args<Context::make_module_data::request>& req);
-    std::string to_string(const core::receive_args<Context::make_module_data::response>& resp);
+    std::string to_string(const core::receive_args<Context::module_load_data::request>& req);
+    std::string to_string(const core::receive_args<Context::module_load_data::response>& resp);
 
     namespace Context {
         struct synchronize {

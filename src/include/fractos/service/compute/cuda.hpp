@@ -151,6 +151,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Module>>
             module_load(const std::string path);
 
+            // cuModuleLoadData()
+            [[nodiscard]] core::future<std::shared_ptr<Module>>
+            module_load_data(core::cap::memory& contents);
+
             // cuMemAlloc
             [[nodiscard]] core::future<std::shared_ptr<Memory>>
             mem_alloc(size_t size);
@@ -163,9 +167,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Event>>
             event_create(CUevent_flags flags);
 
-            /**
-             * @brief TODO:Wrapper for cuModuleLoadData()
-             */
+
+            [[deprecated]]
             [[nodiscard]] core::future<std::shared_ptr<Module>>
             make_module_data(core::cap::memory& contents, uint64_t module_id);
 
@@ -173,9 +176,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Memory>>
             make_memory(uint64_t size); // size_t make_memory(size_t size);
 
-            /**
-             * @brief TODO:Wrapper for cuEventCreate()
-             */
             [[deprecated]]
             [[nodiscard]] core::future<std::shared_ptr<Event>>
             make_event(fractos::wire::endian::uint32_t flags); // blocking or not

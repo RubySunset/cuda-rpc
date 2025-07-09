@@ -273,7 +273,6 @@ impl::Device::handle_ctx_create(auto ch, auto args)
                 .set_imm(&msg::response::imms::error, error)
                 .set_imm(&msg::response::imms::cuerror, cuerror)
                 .set_cap(&msg::response::caps::generic, ctx_ptr->_req_generic)
-                .set_cap(&msg::response::caps::make_module_data, ctx_ptr->_req_module_data) // data
                 .set_cap(&msg::response::caps::synchronize, ctx_ptr->_req_synchronize)
                 .set_cap(&msg::response::caps::destroy, ctx_ptr->_req_destroy)
                 .on_channel()

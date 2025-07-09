@@ -508,30 +508,32 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::synchronize::r
 }
 
 std::string
-srv::wire::to_string(const core::receive_args<srv::wire::Context::make_module_data::request>& obj)
+srv::wire::to_string(const core::receive_args<srv::wire::Context::module_load_data::request>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
 
     std::stringstream ss;
 
-    print_imm_identity(module_id);
+    print_imm_identity(opcode);
     print_extra_imm_error();
 
     print_cap(continuation);
-    print_cap(cuda_file);
+    print_cap(contents);
     print_extra_cap_error();
 
     return ss.str();
 }
 
 std::string
-srv::wire::to_string(const core::receive_args<srv::wire::Context::make_module_data::response>& obj)
+srv::wire::to_string(const core::receive_args<srv::wire::Context::module_load_data::response>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
 
     std::stringstream ss;
 
     print_imm_error(error);
+    print_imm_cuerror(cuerror);
+    print_imm_hex(cumodule);
     print_extra_imm_error();
 
     print_cap(generic);
@@ -765,7 +767,6 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::ctx_create::res
     print_extra_imm_error();
 
     print_cap(generic);
-    print_cap(make_module_data);
     print_cap(synchronize);
     print_cap(destroy);
     print_extra_cap_error();

@@ -71,11 +71,10 @@ void check_memory()
 }
 
 
-impl::Module::Module(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<Context> vctx) {
+impl::Module::Module(CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<Context> vctx) {
     //fork();
     // 
 
-    _id = module_id;  // std::string 
     _destroyed = false;
     _ctx = ctx;
     _vctx = vctx;
@@ -90,8 +89,6 @@ impl::Module::Module(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>
     checkCudaErrors_lo(cuModuleLoadData(&module2, _data.get()));
     _module = module2;
 
-    VLOG(fractos::logging::SERVICE) << "load module :  id = " << _id;
-   
 }
 
 
@@ -118,8 +115,8 @@ std::shared_ptr<impl::Module> impl::Module::factory(std::string& name, CUcontext
     return res;
 }
 
-std::shared_ptr<impl::Module> impl::Module::factory(uint64_t module_id, CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<Context> vctx){
-    auto res = std::shared_ptr<Module>(new Module(module_id, ctx, buffer, size, vctx));
+std::shared_ptr<impl::Module> impl::Module::factory(CUcontext& ctx, std::shared_ptr<char[]>& buffer, size_t size, std::weak_ptr<Context> vctx){
+    auto res = std::shared_ptr<Module>(new Module(ctx, buffer, size, vctx));
     res->_self = res;
     return res;
 }
@@ -184,6 +181,12 @@ core::future<void> impl::Module::register_methods(std::shared_ptr<core::channel>
         .then([ch, self, this](auto& fut) {
             self->_req_generic = fut.get();
         });
+}
+
+CUmodule
+impl::Module::get_remote_cumodule() const
+{
+    return (CUmodule)this;
 }
 
 void

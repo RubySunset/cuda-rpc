@@ -25,6 +25,7 @@ template class fractos::common::service::CltBase<clt::Module>;
 
 std::shared_ptr<clt::Module>
 impl::make_module(std::shared_ptr<fractos::core::channel> ch,
+                  CUmodule cumodule,
                   fractos::core::cap::request req_generic,
                   fractos::core::cap::request req_get_func,
                   fractos::core::cap::request req_module_unload)
@@ -33,6 +34,7 @@ impl::make_module(std::shared_ptr<fractos::core::channel> ch,
     state->req_generic = std::move(req_generic);
     state->req_get_func = std::move(req_get_func);
     state->req_module_unload = std::move(req_module_unload);
+    state->cumodule = cumodule;
 
     return impl::Module::make(ch, state);
 }
@@ -170,6 +172,6 @@ std::string
 impl::to_string(const impl::ModuleState& obj)
 {
     std::stringstream ss;
-    ss << "cuda::Module(" << &obj << ")";
+    ss << "cuda::Module(" << (void*)obj.cumodule << ")";
     return ss.str();
 }

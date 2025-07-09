@@ -33,12 +33,11 @@ namespace impl {
         void handle_generic(auto ch, auto args);
         void handle_get_api_version(auto ch, auto args);
         void handle_get_limit(auto ch, auto args);
+        void handle_module_load_data(auto ch, auto args);
         void handle_mem_alloc(auto ch, auto args);
         void handle_stream_create(auto ch, auto args);
         void handle_event_create(auto ch, auto args);
 
-        void handle_module_file(auto args);
-        void handle_module_data(auto args);
         void handle_synchronize(auto args);
         void handle_destroy(auto args);
 
@@ -57,8 +56,6 @@ namespace impl {
         CUcontext _ctx; 
 
         fractos::core::cap::request _req_generic;
-        fractos::core::cap::request _req_module_data;
-        // fractos::core::cap::request _req_module_file;
         fractos::core::cap::request _req_synchronize;
         fractos::core::cap::request _req_destroy;
 

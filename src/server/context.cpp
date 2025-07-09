@@ -114,19 +114,6 @@ core::future<void> impl::Context::register_methods(std::shared_ptr<core::channel
         .make_request()
         .then([ch, self](auto& fut) {
             self->_req_generic = fut.get();
-            return ch->make_request_builder<msg_base::make_module_data::request>( // file
-                ch->get_default_endpoint(), 
-                [self](auto ch, auto args) {
-                    
-                    self->handle_module_data(std::move(args)); // data
-                })
-                .on_channel()
-                .make_request();
-            })
-        .unwrap()
-        .then([ch, self](auto& fut) {
-            self->_req_module_data = fut.get(); // file
-            VLOG(fractos::logging::SERVICE) << "SET req_module_data"; // file
             return ch->make_request_builder<msg_base::synchronize::request>(
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -180,6 +167,7 @@ impl::Context::handle_generic(auto ch, auto args)
     switch (opcode) {
     CASE_HANDLE(GET_API_VERSION, get_api_version);
     CASE_HANDLE(GET_LIMIT, get_limit);
+    CASE_HANDLE(MODULE_LOAD_DATA, module_load_data);
     CASE_HANDLE(MEM_ALLOC, mem_alloc);
     CASE_HANDLE(STREAM_CREATE, stream_create);
     CASE_HANDLE(EVENT_CREATE, event_create);
@@ -444,91 +432,54 @@ impl::Context::handle_event_create(auto ch, auto args)
 }
 
 
-void impl::Context::handle_module_data(auto args) {
-    auto t_start = std::chrono::high_resolution_clock::now();
+void
+impl::Context::handle_module_load_data(auto ch, auto args)
+{
+    METHOD(module_load_data);
+    LOG_REQ(method) << srv::wire::to_string(*args);
 
-    VLOG(fractos::logging::SERVICE) << "CALL handle_module_data";
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
 
-    using msg = ::service::compute::cuda::wire::Context::make_module_data;
-    
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        LOG(ERROR) << "got request without continuation, ignoring";
-        return;
-    }
-    
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
+    auto self = this->_self;
+    DCHECK(self);
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
 
-    if (not args->has_exactly_args()) {
-        ch->make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-            .on_channel()
-            .invoke()
-            .as_callback();
-        return;
-    }
-
-    auto module_id = args->imms.module_id;
-
-    auto self = _self;
-    VLOG(fractos::logging::SERVICE) << "module id is: " << module_id;
-
-    
-    auto size = args->caps.cuda_file.get_size();
-
-    std::shared_ptr<char[]> buffer(new char[size]);
-
+    auto contents_size = args->caps.contents.get_size();
+    std::shared_ptr<char[]> contents_buffer(new char[contents_size]);
     {
         // passing explicit MR avoids MR creation and prefetching
         auto& mr = ch->get_default_memory_region();
-        auto copied_mem = ch->make_memory(buffer.get(), size, mr).get();
-        ch->copy(args->caps.cuda_file, copied_mem).get();
-    }
-    LOG(INFO) << "get cuda_file in memory";
-
-    // std::ofstream outfile("module_code.ptx", std::ios::binary | std::ios::app);
-    // if (outfile.is_open()) {
-    //     outfile.write(buffer.get(), size);
-    //     outfile.close();
-    //     std::cout << "Buffer appended to module_code.ptx successfully." << std::endl;
-    // } else {
-    //     std::cerr << "Failed to open file for writing." << std::endl;
-    // }
-
-    // CUcontext newContext;
-    // checkCudaErrors(cuCtxSetCurrent(_ctx));
-    // CUmodule module;
-    // checkCudaErrors_lo(cuModuleLoadData(&module, buffer.get()));
-    
-    if (not buffer.get()[0]) {
-        LOG(FATAL) << "ptx buffer is not valid for load";
+        auto copied_mem = ch->make_memory(contents_buffer.get(), contents_size, mr).get();
+        ch->copy(args->caps.contents, copied_mem).get();
     }
 
-    auto mod = std::shared_ptr<Module>(Module::factory(module_id, _ctx, buffer, size, self));
-
-    // auto mod = std::shared_ptr<Module>(Module::factory(file_name, _ctx));
-
+    auto mod = std::shared_ptr<Module>(Module::factory(_ctx, contents_buffer, contents_size, self));
 
     mod->register_methods(ch)
-        .then([this, ch, self, mod, args=std::move(args) ](auto& fut) { //, args=std::move(args),  mr_=std::move(mr_)
+        .then([this, self, ch, args=std::move(args), error, cuerror, mod](auto& fut) {
             fut.get();
+
             _mod = mod;
 
-            ch->make_request_builder<msg::response>(args->caps.continuation)
-                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
+            LOG_RES(method)
+                << " error=" << wire::to_string(error)
+                << " cuerror=" << get_CUresult_name(cuerror)
+                << " cumodule=" << (void*)mod->get_remote_cumodule();
+
+            ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::cuerror, cuerror)
+                .set_imm(&msg::response::imms::cumodule, (uint64_t)mod->get_remote_cumodule())
                 .set_cap(&msg::response::caps::generic, mod->_req_generic)
                 .set_cap(&msg::response::caps::get_function, mod->_req_get_func)
                 .set_cap(&msg::response::caps::destroy, mod->_req_destroy)
                 .on_channel()
-                .invoke() // op . then
+                .invoke()
                 .as_callback();
-            // auto t_usec = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - t_start);
-            // LOG(INFO) << "time for load module server: " << t_usec.count() << std::endl;
-            })
+        })
         .as_callback();
-
-    auto t_usec = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - t_start);
-    LOG(INFO) << "time for load module server: " << t_usec.count() << std::endl;
-    
 }
 
 
@@ -582,12 +533,6 @@ void impl::Context::handle_destroy(auto args) {
     ch->revoke(self->_req_generic)
         .then([ch, self](auto& fut) {
             fut.get();
-            return ch->revoke(self->_req_module_data); // file
-        })
-        .unwrap()
-        .then([ch, self](auto& fut) {
-            fut.get();
-            VLOG(fractos::logging::SERVICE) << "Revoke _req_module_data"; // file
             return ch->revoke(self->_req_synchronize);
         })
         .unwrap()

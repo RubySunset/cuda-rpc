@@ -31,14 +31,12 @@ std::shared_ptr<clt::Context>
 impl::make_context(std::shared_ptr<fractos::core::channel> ch,
                    std::shared_ptr<clt::Device> device,
                    fractos::core::cap::request req_generic,
-                   fractos::core::cap::request req_module_data,
                    fractos::core::cap::request req_ctx_sync,
                    fractos::core::cap::request req_ctx_destroy)
 {
     auto state = std::make_shared<impl::ContextState>();
     state->device = device;
     state->req_generic = std::move(req_generic);
-    state->req_module_data = std::move(req_module_data);
     state->req_ctx_sync = std::move(req_ctx_sync);
     state->req_ctx_destroy = std::move(req_ctx_destroy);
     state->context_ptr = std::unique_ptr<char[]>(new char[512]);
@@ -234,7 +232,7 @@ clt::Context::event_create(CUevent_flags flags)
         .invoke(resp)
         .unwrap()
         .then_check_cuda_response()
-        .then([self, flags](auto& fut) {
+        .then([self](auto& fut) {
             auto [ch, args] = fut.get();
             CHECK_ARGS_EXACT();
 
@@ -268,7 +266,7 @@ clt::Context::module_load(const std::string path)
     return pimpl.ch->make_memory((const void*)contents.get(), size, mr)
         .then([this, self, contents](auto& fut) {
             auto mem = fut.get();
-            return this->make_module_data(mem, 0)
+            return this->module_load_data(mem)
                 .then([contents, mem=std::move(mem)](auto& fut) mutable {
                     return fut.get();
                 });
@@ -277,32 +275,31 @@ clt::Context::module_load(const std::string path)
 }
 
 core::future<std::shared_ptr<clt::Module>>
-clt::Context::make_module_data(core::cap::memory& contents, uint64_t module_id)
+clt::Context::module_load_data(core::cap::memory& contents)
 {
-    METHOD(make_module_data);
+    METHOD(module_load_data);
     LOG_REQ(method)
-        << " contents=" << core::to_string(contents)
-        << " module_id=" << module_id;
+        << " contents=" << core::to_string(contents);
 
     auto& pimpl = impl::Context::get(*this);
     auto self = pimpl.state->self.lock();
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_module_data)
-         .set_imm(&msg::request::imms::module_id, module_id)
-        // .set_imm(offsetof(msg::request::imms, file_name), file_name.c_str(), file_name.size())
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_MODULE_LOAD_DATA)
         .set_cap(&msg::request::caps::continuation, resp)
-        .set_cap(&msg::request::caps::cuda_file, contents)
+        .set_cap(&msg::request::caps::contents, contents)
         .on_channel()
         .invoke(resp)
         .unwrap()
-        .then_check_response()
-        .then([self, module_id](auto& fut) { // function_name
+        .then_check_cuda_response()
+        .then([self](auto& fut) {
             auto [ch, args] = fut.get();
             CHECK_ARGS_EXACT();
 
             return impl::make_module(
                 ch,
+                (CUmodule)args->imms.cumodule.get(),
                 std::move(args->caps.generic),
                 std::move(args->caps.get_function),
                 std::move(args->caps.destroy));
