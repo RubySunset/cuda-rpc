@@ -765,7 +765,6 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::ctx_create::res
     print_extra_imm_error();
 
     print_cap(generic);
-    print_cap(make_memory_rpc_test);
     print_cap(make_event);
     print_cap(make_module_data);
     print_cap(synchronize);

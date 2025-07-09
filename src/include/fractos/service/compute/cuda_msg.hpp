@@ -327,7 +327,6 @@ namespace fractos::service::compute::cuda::wire {
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::request generic;
-                    fractos::core::cap::request make_memory_rpc_test;
                     fractos::core::cap::request make_event;
                     fractos::core::cap::request make_module_data; //make_module_data; // 
                     fractos::core::cap::request synchronize;
