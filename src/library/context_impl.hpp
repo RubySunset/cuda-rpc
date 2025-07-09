@@ -23,7 +23,6 @@ namespace impl {
         std::weak_ptr<clt::Device> device;
 
         fractos::core::cap::request req_generic;
-        fractos::core::cap::request req_memory;
         fractos::core::cap::request req_memory_rpc_test;
         fractos::core::cap::request req_event;
         fractos::core::cap::request req_module_data; // file
@@ -43,7 +42,6 @@ namespace impl {
     make_context(std::shared_ptr<fractos::core::channel> ch,
                  std::shared_ptr<clt::Device> device,
                  fractos::core::cap::request req_generic,
-                 fractos::core::cap::request req_memory,
                  fractos::core::cap::request req_memory_rpc_test,
                  fractos::core::cap::request req_event,
                  fractos::core::cap::request req_module_data,

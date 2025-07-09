@@ -31,7 +31,6 @@ std::shared_ptr<clt::Context>
 impl::make_context(std::shared_ptr<fractos::core::channel> ch,
                    std::shared_ptr<clt::Device> device,
                    fractos::core::cap::request req_generic,
-                   fractos::core::cap::request req_memory,
                    fractos::core::cap::request req_memory_rpc_test,
                    fractos::core::cap::request req_event,
                    fractos::core::cap::request req_module_data,
@@ -41,7 +40,6 @@ impl::make_context(std::shared_ptr<fractos::core::channel> ch,
     auto state = std::make_shared<impl::ContextState>();
     state->device = device;
     state->req_generic = std::move(req_generic);
-    state->req_memory = std::move(req_memory);
     state->req_memory_rpc_test = std::move(req_memory_rpc_test);
     state->req_event = std::move(req_event);
     state->req_module_data = std::move(req_module_data);
