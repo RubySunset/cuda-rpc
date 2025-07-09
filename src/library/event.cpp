@@ -22,10 +22,12 @@ template class fractos::common::service::CltBase<clt::Event>;
 
 std::shared_ptr<clt::Event>
 impl::make_event(std::shared_ptr<fractos::core::channel> ch,
+                 CUevent cuevent,
                  fractos::core::cap::request req_event_destroy)
 {
     auto state = std::make_shared<impl::EventState>();
     state->req_event_destroy = std::move(req_event_destroy);
+    state->cuevent = cuevent;
 
     return impl::Event::make(ch, state);
 }
@@ -98,6 +100,6 @@ std::string
 impl::to_string(const EventState& obj)
 {
     std::stringstream ss;
-    ss << "cuda::event(" << &obj << ")";
+    ss << "cuda::Event(" << (void*)obj.cuevent << ")";
     return ss.str();
 }

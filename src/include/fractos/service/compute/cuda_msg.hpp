@@ -497,6 +497,7 @@ namespace fractos::service::compute::cuda::wire {
                 struct imms {
                     fractos::wire::endian::uint8_t error;
                     fractos::wire::endian::uint64_t cuerror;
+                    fractos::wire::endian::uint64_t cuevent;
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::request destroy;

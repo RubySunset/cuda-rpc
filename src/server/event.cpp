@@ -102,6 +102,12 @@ core::future<void> impl::Event::register_methods(std::shared_ptr<core::channel> 
 
 }
 
+CUevent
+impl::Event::get_remote_cuevent() const
+{
+    return (CUevent)this;
+}
+
 
 // void impl::Event::handle_synchronize(auto args) {
 //     VLOG(fractos::logging::SERVICE) << "CALL handle synchronize";

@@ -9,6 +9,8 @@ namespace impl {
 
     class Event {
     public:
+        CUevent get_remote_cuevent() const;
+
         static std::shared_ptr<Event> factory(fractos::wire::endian::uint32_t flags,
                                                   CUcontext& ctx);
 

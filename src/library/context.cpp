@@ -238,6 +238,7 @@ clt::Context::event_create(CUevent_flags flags)
 
             return impl::make_event(
                 ch,
+                (CUevent)args->imms.cuevent.get(),
                 std::move(args->caps.destroy));
         });
 }

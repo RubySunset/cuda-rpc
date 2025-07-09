@@ -415,14 +415,18 @@ impl::Context::handle_event_create(auto ch, auto args)
 
             _event = event;
 
+            auto cuevent = event->get_remote_cuevent();
+
             LOG_RES(method)
                 << " error=" << wire::to_string(error)
                 << " cuerror=" << get_CUresult_name(cuerror)
+                << " cuevent=" << (void*)cuevent;
                 ;
 
             ch->template make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, error)
                 .set_imm(&msg::response::imms::cuerror, cuerror)
+                .set_imm(&msg::response::imms::cuevent, (uint64_t)cuevent)
                 .set_cap(&msg::response::caps::destroy, event->_req_destroy)
                 .on_channel()
                 .invoke()
