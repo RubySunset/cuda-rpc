@@ -140,7 +140,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             get_device();
 
             // cuCtxGetLimit
-            core::future<size_t> get_limit(CUlimit limit);
+            [[nodiscard]] core::future<size_t>
+            get_limit(CUlimit limit);
 
             // cuCtxSynchronize
             [[nodiscard]] fractos::core::future<void>
