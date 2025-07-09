@@ -356,11 +356,11 @@ impl::Context::handle_stream_create(auto ch, auto args)
         .then([this, self, ch, args=std::move(args), error, cuerror, stream](auto& fut) {
             fut.get();
 
-            auto custream = stream->custream;
+            auto custream = stream->get_remote_custream();
 
             LOG_RES(method)
                 << " error=" << wire::to_string(error)
-                << " cuerror=" << cudaGetErrorName((cudaError)cuerror)
+                << " cuerror=" << get_CUresult_name(cuerror)
                 << " custream=" << (void*)custream;
 
             ch->template make_request_builder<msg::response>(args->caps.continuation)
