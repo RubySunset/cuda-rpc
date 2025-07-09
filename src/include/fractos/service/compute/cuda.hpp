@@ -160,12 +160,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Event>>
             event_create(CUevent_flags flags);
 
-            // /**
-            //  * @brief Wrapper for cuModuleLoad() - not in use
-            //  */
-            // [[nodiscard]] core::future<std::shared_ptr<Module>>
-            // make_module_file(const std::string& file_path); // cubin PTX fatbin 
-
             /**
              * @brief TODO:Wrapper for cuModuleLoadData()
              */

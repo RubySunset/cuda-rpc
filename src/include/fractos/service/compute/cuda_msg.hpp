@@ -509,33 +509,6 @@ namespace fractos::service::compute::cuda::wire {
     std::string to_string(const core::receive_args<Context::event_create::response>& resp);
 
     namespace Context {
-        struct make_module_file {
-            struct request {
-                struct imms {
-                    // fractos::wire::endian::uint64_t virtual_device_id;
-                    // fractos::wire::endian::uint64_t name; // transfer through string with uint64_t num = std::stoull(str);
-                    fractos::wire::endian::uint64_t file_name_size;
-                    char file_name[];
-                } __attribute__((packed));
-                struct caps {
-                    fractos::core::cap::request continuation; 
-                };
-            };
-            struct response {
-                struct imms {
-                    fractos::wire::endian::uint8_t error;
-                    // fractos::wire::endian::uint64_t address;
-                } __attribute__ ((packed));
-                struct caps {
-                    // fractos::core::cap::cap::memory memory;
-                    fractos::core::cap::request get_function;
-                    fractos::core::cap::request destroy;
-                };
-            };
-        };
-    }
-
-    namespace Context {
         struct make_module_data {
             struct request {
                 struct imms {

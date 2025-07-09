@@ -205,7 +205,6 @@ clt::Device::make_context(unsigned int flags)
                 self,
                 std::move(args->caps.generic),
                 std::move(args->caps.make_module_data),
-                // std::move(args->caps.make_module_file),
                 std::move(args->caps.synchronize),
                 std::move(args->caps.destroy));
         });
