@@ -24,7 +24,7 @@ cuMemAlloc(CUdeviceptr* devPtr, size_t size)
     auto ctx_ptr = state.get_current_context();
     std::shared_ptr<srv::Memory> mem_ptr;
     try {
-        mem_ptr = ctx_ptr->make_memory(size).get();
+        mem_ptr = ctx_ptr->mem_alloc(size).get();
     } catch (const srv::CudaError& e) {
         return e.cuerror;
     }

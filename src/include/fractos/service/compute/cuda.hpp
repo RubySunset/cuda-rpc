@@ -147,13 +147,13 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] fractos::core::future<void>
             synchronize();
 
-            // cuMemAlloc
-            [[nodiscard]] core::future<std::shared_ptr<Memory>>
-            mem_alloc(size_t size);
-
             // cuModuleLoad
             [[nodiscard]] core::future<std::shared_ptr<Module>>
             module_load(const std::string path);
+
+            // cuMemAlloc
+            [[nodiscard]] core::future<std::shared_ptr<Memory>>
+            mem_alloc(size_t size);
 
             // cuStreamCreate()
             [[nodiscard]] core::future<std::shared_ptr<Stream>>
@@ -169,9 +169,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Module>>
             make_module_data(core::cap::memory& contents, uint64_t module_id);
 
-            /**
-             * @brief Wrapper for cuMemAlloc()
-             */
+            [[deprecated]]
             [[nodiscard]] core::future<std::shared_ptr<Memory>>
             make_memory(uint64_t size); // size_t make_memory(size_t size);
 
@@ -209,7 +207,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             /**
              * @brief TODO:Wrapper for cuMemMap()
              */
-            [[deprecated]]
             [[nodiscard]] core::future<std::shared_ptr<Memory>>
             make_memory(MemoryReservation& reservation, MemoryAllocation& allocation, unsigned long long flags);
         };

@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
                     cleanup_fractos(conn);
                     finish_experiment(start_time, true);
                 } else {
-                    conn->ctx->make_memory(buffer_size)
+                    conn->ctx->mem_alloc(buffer_size)
                         .then([&finish_experiment, &cleanup_fractos, conn, idx, start_time](auto&& fut) {
                             try {
                                 conn->allocs_fractos[idx] = fut.get();
