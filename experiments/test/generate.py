@@ -20,6 +20,7 @@ def run(base_dir, output_dir, src_dir, copy):
         ],
         test=[
             "test-service-init",
+            "test-service-memory",
             "test-stream",
         ],
     )
