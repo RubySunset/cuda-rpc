@@ -7,17 +7,21 @@ namespace fractos::service::compute::cuda {
     namespace detail {
 
         template<class... Args>
+        static inline
         void
-        fill_args_ptr(Function& func, const void** args_ptr, std::tuple<Args...>& args)
+        fill_args_ptr(Function& func, const void** args_ptr, const Args&... args)
         {
-            size_t i = 0;
             std::vector<size_t> args_size;
             args_size.resize(sizeof...(Args));
-            std::apply([&](auto& arg) {
-                args_size.push_back(sizeof(arg));
-                args_ptr[i] = &arg;
-                i++;
-            }, args);
+
+            size_t index = 0;
+            auto process_arg = [&](const auto& arg) {
+                args_size[index] = sizeof(arg);
+                args_ptr[index] = &arg;
+                index++;
+            };
+            (process_arg(args), ...);
+
             func._launch_check_args(args_size);
         }
 
@@ -29,8 +33,7 @@ namespace fractos::service::compute::cuda {
     {
         const void* args_ptr[sizeof...(args_)];
         if constexpr (sizeof...(args_)) {
-            std::tuple<Args...> args(std::forward<Args>(args_)...);
-            detail::fill_args_ptr(*this, args_ptr, args);
+            detail::fill_args_ptr(*this, args_ptr, std::forward<Args>(args_)...);
         }
         return launch(args_ptr, gridDim, blockDim, 0, {});
     }
@@ -41,8 +44,7 @@ namespace fractos::service::compute::cuda {
     {
         const void* args_ptr[sizeof...(args_)];
         if constexpr (sizeof...(args_)) {
-            std::tuple<Args...> args(std::forward<Args>(args_)...);
-            detail::fill_args_ptr(*this, args_ptr, args);
+            detail::fill_args_ptr(*this, args_ptr, std::forward<Args>(args_)...);
         }
         return launch(args_ptr, gridDim, blockDim, sharedMem, {});
     }
@@ -53,8 +55,7 @@ namespace fractos::service::compute::cuda {
     {
         const void* args_ptr[sizeof...(args_)];
         if constexpr (sizeof...(args_)) {
-            std::tuple<Args...> args(std::forward<Args>(args_)...);
-            detail::fill_args_ptr(*this, args_ptr, args);
+            detail::fill_args_ptr(*this, args_ptr, std::forward<Args>(args_)...);
         }
         return launch(args_ptr, gridDim, blockDim, 0, stream);
     }
@@ -65,8 +66,7 @@ namespace fractos::service::compute::cuda {
     {
         const void* args_ptr[sizeof...(args_)];
         if constexpr (sizeof...(args_)) {
-            std::tuple<Args...> args(std::forward<Args>(args_)...);
-            detail::fill_args_ptr(*this, args_ptr, args);
+            detail::fill_args_ptr(*this, args_ptr, std::forward<Args>(args_)...);
         }
         return launch(args_ptr, gridDim, blockDim, sharedMem, stream);
     }
