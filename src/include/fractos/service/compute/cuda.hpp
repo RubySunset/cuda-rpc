@@ -318,11 +318,11 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class Memory : public common::service::CltBase<Memory> {
         public:
-            char* get_addr();
+            CUdeviceptr get_deviceptr();
             fractos::core::cap::memory& get_cap_mem();
         };
 
-        std::string to_string(const Module& obj);
+        std::string to_string(const Memory& obj);
 
         class MemoryAllocation : public common::service::CltBase<MemoryAllocation> {
         };

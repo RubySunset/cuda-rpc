@@ -1,43 +1,37 @@
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <queue>
 #include <chrono>
+#include <cuda.h>
+#include <fractos/common/service/srv_base.hpp>
 #include <fractos/service/compute/cuda.hpp>
-using namespace fractos;
+#include <queue>
+#include <stdlib.h>
+#include <sys/stat.h>
 
 
 namespace impl {
+    class Context;
+}
 
-    class Memory {
+namespace impl {
+
+    class Memory : public fractos::common::service::SrvBase {
     public:
-        static std::shared_ptr<Memory> factory(fractos::wire::endian::uint32_t size, CUcontext& ctx);
+        CUdeviceptr cuptr;
+        fractos::core::cap::memory memory;
+        std::unique_ptr<fractos::core::memory_region> mr;
+        std::weak_ptr<Context> ctx;
+        std::shared_ptr<Memory> self; // NOTE: keep object alive
 
-        fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
+        // NOTE: for internal use
+    public:
+        fractos::core::cap::request req_generic;
 
+        void handle_generic(auto ch, auto args);
     protected:
-        void handle_destroy(auto args);
-    
-    private:
-        void memory_free(char* base);  
-        fractos::wire::endian::uint32_t _size;
-
-        std::shared_ptr<Memory> _self;
-        bool _destroyed;
-        CUcontext _ctx;
-
-    public:
-        fractos::core::cap::request _req_destroy;
-
-        fractos::core::cap::memory _memory;
-        std::shared_ptr<fractos::core::memory_region> _mr;
-    
-        CUdeviceptr base;
-
-        Memory(fractos::wire::endian::uint32_t size, CUcontext& ctx);
-
-        ~Memory();
-
-        //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
+        void handle_destroy(auto ch, auto args);
     };
 
+    fractos::core::future<std::tuple<fractos::wire::error_type, CUresult, std::shared_ptr<Memory>>>
+    make_memory(std::shared_ptr<fractos::core::channel> ch, std::shared_ptr<Context> ctx, size_t size);
+
+    std::string to_string(const Memory& obj);
 }

@@ -22,16 +22,14 @@ template class fractos::common::service::CltBase<clt::Memory>;
 
 std::shared_ptr<clt::Memory>
 impl::make_memory(std::shared_ptr<fractos::core::channel> ch,
-                  CUdeviceptr addr,
-                  size_t size,
-                  core::cap::request req_mem_destroy,
-                  core::cap::memory memory)
+                  CUdeviceptr cudeviceptr,
+                  core::cap::memory memory,
+                  core::cap::request req_generic)
 {
     auto state = std::make_shared<impl::MemoryState>();
-    state->req_mem_destroy = std::move(req_mem_destroy);
-    state->addr = addr;
-    state->size = size;
+    state->cudeviceptr = cudeviceptr;
     state->memory = std::move(memory);
+    state->req_generic = std::move(req_generic);
 
     return impl::Memory::make(ch, state);
 }
@@ -39,44 +37,59 @@ impl::make_memory(std::shared_ptr<fractos::core::channel> ch,
 core::future<void>
 impl::MemoryState::do_destroy(std::shared_ptr<core::channel>& ch)
 {
-    using msg = ::service::compute::cuda::wire::Memory::destroy;
+    METHOD(destroy);
+    LOG_REQ(method)
+        << " {}";
 
-    DVLOG(logging::SERVICE) << "Memory::destroy <-";
+    auto self = this->self.lock();
+    CHECK(self);
 
     auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
-    return ch->make_request_builder<msg::request>(req_mem_destroy)
+    return ch->make_request_builder<msg::request>(req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_DESTROY)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
-        .invoke(resp) // wait for handle_destroy
+        .invoke(resp)
         .unwrap()
+        .then_check_cuda_response_ptr(self)
         .then([](auto& fut) {
             auto [ch, args] = fut.get();
-
-            if (not args->has_exactly_args()) {
-                // throw core::other_error("invalid response format for Memory::destroy");
-                DVLOG(logging::SERVICE) << "Memory::destroy ->"
-                                << " error=OTHER args";
-            }
-
-            DVLOG(logging::SERVICE) << "Memory::destroy ->"
-                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
-            fractos::wire::error_raise_exception_maybe(args->imms.error);
+            CHECK_ARGS_EXACT();
         });
 }
 
 
-char*
-clt::Memory::get_addr()
+CUdeviceptr
+clt::Memory::get_deviceptr()
 {
     auto& pimpl = impl::Memory::get(*this);
-
-    return (char*)pimpl.state->addr;
+    return pimpl.state->cudeviceptr;
 }
 
 core::cap::memory&
 clt::Memory::get_cap_mem()
 {
     auto& pimpl = impl::Memory::get(*this);
-
     return pimpl.state->memory;
+}
+
+std::string
+clt::to_string(const clt::Memory& obj)
+{
+    auto& pimpl = impl::Memory::get(obj);
+    return impl::to_string(pimpl);
+}
+
+std::string
+impl::to_string(const Memory& obj)
+{
+    return to_string(*obj.state);
+}
+
+std::string
+impl::to_string(const MemoryState& obj)
+{
+    std::stringstream ss;
+    ss << "cuda::Memory(" << (void*)obj.cudeviceptr << ")";
+    return ss.str();
 }

@@ -162,9 +162,8 @@ clt::Context::mem_alloc(size_t size)
             return impl::make_memory(
                 ch,
                 address,
-                size,
-                std::move(args->caps.destroy),
-                std::move(args->caps.memory));
+                std::move(args->caps.memory),
+                std::move(args->caps.generic));
         });
 }
 

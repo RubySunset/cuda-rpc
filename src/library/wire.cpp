@@ -471,7 +471,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::mem_alloc::res
     print_extra_imm_error();
 
     print_cap(memory);
-    print_cap(destroy);
+    print_cap(generic);
     print_extra_cap_error();
 
     return ss.str();
@@ -870,6 +870,29 @@ srv::wire::to_string(const core::receive_args<srv::wire::Event::destroy::respons
 
     print_empty_caps();
 
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Memory::destroy::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+    std::stringstream ss;
+    print_empty_imms();
+    print_cap(continuation);
+    print_extra_cap_error();
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Memory::destroy::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+    std::stringstream ss;
+    print_imm_error(error);
+    print_imm_cuerror(cuerror);
+    print_extra_imm_error();
+    print_empty_caps();
     return ss.str();
 }
 

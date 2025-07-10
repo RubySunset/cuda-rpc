@@ -262,71 +262,32 @@ impl::Context::handle_mem_alloc(auto ch, auto args)
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT(reqb_cont);
 
+    auto self = this->_self;
+    CHECK(self);
     size_t size = args->imms.size.get();
 
-    auto error = wire::ERR_SUCCESS;
-    auto cuerror = CUDA_SUCCESS;
-    CUdeviceptr base = 0;
+    make_memory(ch, self, size)
+        .then([this, self, ch, args=std::move(args)](auto& fut) {
+            auto [error, cuerror, res] = fut.get();
 
-    cuerror = cuCtxSetCurrent(_ctx);
-    if (cuerror != CUDA_SUCCESS) {
-        goto out_err;
-    }
+            LOG_RES(method)
+                << " error=" << wire::to_string(error)
+                << " cuerror=" << get_CUresult_name(cuerror)
+                << " address=" << (void*)res->cuptr
+                << " memory=" << core::to_string(res->memory)
+                << " req_generic=" << core::to_string(res->req_generic);
 
-    cuerror = cuMemAlloc(&base, size);
-    if (cuerror != CUDA_SUCCESS) {
-        goto out_err;
-    }
-
-    {
-        auto cont = std::make_shared<core::cap::request>(std::move(args->caps.continuation));
-
-        ch->make_memory((void*)base, size)
-            .then([this, self=_self, ch, error, cuerror, base, size, cont](auto& fut) {
-                auto mem = fut.get();
-
-                auto dev_mem = std::shared_ptr<Memory>(Memory::factory(size, _ctx));
-                dev_mem->_memory = std::move(mem);
-                dev_mem->base = base;
-
-                dev_mem->register_methods(ch)
-                    .then([this, self, ch, error, cuerror, dev_mem, cont](auto& fut) {
-                        fut.get();
-
-                        LOG_RES(method)
-                            << " error=" << wire::to_string(error)
-                            << " cuerror=" << cudaGetErrorName((cudaError)cuerror)
-                            << " memory=" << core::to_string(dev_mem->_memory)
-                            << " destroy=" << core::to_string(dev_mem->_req_destroy);
-
-                        ch->template make_request_builder<msg::response>(*cont)
-                            .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
-                            .set_imm(&msg::response::imms::cuerror, CUDA_SUCCESS)
-                            .set_imm(&msg::response::imms::address, dev_mem->base)
-                            .set_cap(&msg::response::caps::memory, dev_mem->_memory)
-                            .set_cap(&msg::response::caps::destroy, dev_mem->_req_destroy)
-                            .on_channel()
-                            .invoke()
-                            .as_callback_log_ignore_continuation_error();
-                    })
-                    .as_callback();
-            })
-            .as_callback();
-    }
-
-    return;
-
-out_err:
-    LOG_RES(method)
-        << " error=" << wire::to_string(error)
-        << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
-
-    reqb_cont
-        .set_imm(&msg::response::imms::error, error)
-        .set_imm(&msg::response::imms::cuerror, cuerror)
-        .on_channel()
-        .invoke()
-        .as_callback_log_ignore_continuation_error();
+            ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::cuerror, cuerror)
+                .set_imm(&msg::response::imms::address, res->cuptr)
+                .set_cap(&msg::response::caps::memory, res->memory)
+                .set_cap(&msg::response::caps::generic, res->req_generic)
+                .on_channel()
+                .invoke()
+                .as_callback_log_ignore_continuation_error();
+        })
+        .as_callback();
 }
 
 void

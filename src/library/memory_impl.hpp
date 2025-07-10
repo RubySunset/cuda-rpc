@@ -15,10 +15,10 @@ namespace impl {
 
     struct MemoryState : public fractos::common::service::ImplState {
         std::weak_ptr<clt::Memory> self;
-        fractos::core::cap::request req_mem_destroy;
-        CUdeviceptr addr;
-        size_t size;
+        CUdeviceptr cudeviceptr;
         fractos::core::cap::memory memory;
+
+        fractos::core::cap::request req_generic;
 
         fractos::core::future<void>
         do_destroy(std::shared_ptr<fractos::core::channel>& ch);
@@ -28,10 +28,9 @@ namespace impl {
 
     std::shared_ptr<clt::Memory>
     make_memory(std::shared_ptr<fractos::core::channel> ch,
-                CUdeviceptr addr,
-                size_t size,
-                fractos::core::cap::request req_mem_destroy,
-                fractos::core::cap::memory memory);
+                CUdeviceptr cudeviceptr,
+                fractos::core::cap::memory memory,
+                fractos::core::cap::request req_generic);
 
     std::string to_string(const Memory& obj);
     std::string to_string(const MemoryState& obj);

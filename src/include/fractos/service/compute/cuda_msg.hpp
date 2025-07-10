@@ -446,7 +446,7 @@ namespace fractos::service::compute::cuda::wire {
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::memory memory;
-                    fractos::core::cap::request destroy;
+                    fractos::core::cap::request generic;
                 };
             };
         };
@@ -685,10 +685,18 @@ namespace fractos::service::compute::cuda::wire {
 
 
     namespace Memory {
+        enum generic_opcode : uint64_t {
+            OP_DESTROY,
+            OP_INVALID = std::numeric_limits<uint64_t>::max()
+        };
+        using generic = wire::generic;
+    }
 
+    namespace Memory {
         struct destroy {
             struct request {
                 struct imms {
+                    fractos::wire::endian::uint64_t opcode;
                 } __attribute__((packed));
                 struct caps {
                     fractos::core::cap::request continuation;
@@ -697,12 +705,16 @@ namespace fractos::service::compute::cuda::wire {
             struct response {
                 struct imms {
                     fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint8_t cuerror;
                 } __attribute__ ((packed));
                 struct caps {
                 };
             };
         };
     }
+
+    std::string to_string(const core::receive_args<Memory::destroy::request>& req);
+    std::string to_string(const core::receive_args<Memory::destroy::response>& resp);
 
     namespace Module {
 

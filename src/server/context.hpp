@@ -69,8 +69,6 @@ namespace impl {
     private:
         std::mutex _stream_map_mutex;
         std::unordered_map<CUstream, std::shared_ptr<Stream>> _stream_map;
-
-        //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
     };
 
     std::string to_string(const Context& obj);

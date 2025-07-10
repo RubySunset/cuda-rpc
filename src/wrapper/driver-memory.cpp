@@ -29,7 +29,7 @@ cuMemAlloc(CUdeviceptr* devPtr, size_t size)
         return e.cuerror;
     }
 
-    *devPtr = (CUdeviceptr)mem_ptr->get_addr();
+    *devPtr = mem_ptr->get_deviceptr();
     {
         auto mems_lock = std::unique_lock(state.mems_mutex);
         auto res = state.mems.insert(std::make_pair(*devPtr, mem_ptr));
