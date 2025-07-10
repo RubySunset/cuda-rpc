@@ -788,7 +788,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Function::launch::reque
     print_imm_identity(block_y);
     print_imm_identity(block_z);
     print_imm_identity(custream);
-    print_extra_imm_error();
+    print_imm_array(kernel_args, obj.imms_size() - sizeof(obj.imms));
 
     print_cap(continuation);
     print_extra_cap_error();
