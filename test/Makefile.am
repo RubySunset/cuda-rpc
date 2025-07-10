@@ -19,5 +19,8 @@ module.ptx: module.cu
 noinst_PROGRAMS += test-service-init
 test_service_init_SOURCES = test-service-init.cpp
 
+noinst_PROGRAMS += test-service-memory
+test_service_memory_SOURCES = test-service-memory.cpp
+
 noinst_PROGRAMS += test-stream
 test_stream_SOURCES = test-stream.cpp
