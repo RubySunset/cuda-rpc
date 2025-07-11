@@ -6,6 +6,7 @@
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
 
+#include "./common.hpp"
 #include "./device.hpp"
 #include "./context.hpp"
 
