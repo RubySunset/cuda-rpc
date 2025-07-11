@@ -164,7 +164,7 @@ void CUDARTAPI __cudaRegisterFunction(
     DVLOG(logging::SERVICE)
         << "__cudaRegisterFunction ->"
         << " handle=" << fatCubinHandle
-        // << " hostFun=" << (void*)hostFun
+        << " hostFun=" << (void*)hostFun
         << " deviceName=" << deviceName;
 
     auto [err, state_ptr] = get_runtime_state_with_error();
@@ -183,16 +183,24 @@ void CUDARTAPI __cudaRegisterFunction(
     CHECK(module_desc_it != state.global->modules.end());
     auto module_desc = module_desc_it->second;
 
-    auto func_desc = std::make_shared<RuntimeState::func_desc>();
-    func_desc->module = module;
-    func_desc->name = deviceName;
-    func_desc->func = 0;
-
     auto module_entries_lock = std::unique_lock(module_desc->entries_mutex);
-    CHECK(module_desc->funcs.insert((uintptr_t)hostFun).second);
+    auto module_entries_res = module_desc->funcs.insert((uintptr_t)hostFun);
+    CHECK(module_entries_res.second);
 
     auto entries_lock = std::unique_lock(state.global->entries_mutex);
-    CHECK(state.global->funcs.insert(std::make_pair((uintptr_t)hostFun, func_desc)).second);
+    auto entries_it = state.global->funcs.find((uintptr_t)hostFun);
+    if (entries_it == state.global->funcs.end()) {
+        auto func_desc = std::make_shared<RuntimeState::func_desc>();
+        CHECK(func_desc->modules.insert(module).second);
+        func_desc->name = deviceName;
+        func_desc->func = 0;
+        auto entries_res = state.global->funcs.insert(std::make_pair((uintptr_t)hostFun, func_desc));
+        CHECK(entries_res.second);
+    } else {
+        auto entry_lock = std::unique_lock(entries_it->second->mutex);
+        CHECK(entries_it->second->name == deviceName);
+        CHECK(entries_it->second->modules.insert(module).second);
+    }
 }
 
 extern "C" [[gnu::visibility("default")]]

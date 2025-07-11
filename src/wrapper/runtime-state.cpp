@@ -115,8 +115,9 @@ RuntimeThreadState::get_function(const void* address)
     if (func == 0) [[unlikely]] {
         auto lock = std::unique_lock(desc->mutex);
         if (desc->func == 0) {
+            DCHECK(not desc->modules.empty());
             CUfunction real_func;
-            auto err = cuModuleGetFunction(&real_func, desc->module, desc->name.c_str());
+            auto err = cuModuleGetFunction(&real_func, *desc->modules.begin(), desc->name.c_str());
             if (err != CUDA_SUCCESS) {
                 return std::make_pair((cudaError_t)err, nullptr);
             }

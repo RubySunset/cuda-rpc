@@ -14,7 +14,7 @@
 
 struct RuntimeState {
     struct func_desc {
-        CUmodule module;
+        std::unordered_set<CUmodule> modules;
         std::string name;
         std::atomic<CUfunction> func;
         std::mutex mutex;
