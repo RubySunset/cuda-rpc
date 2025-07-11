@@ -20,21 +20,6 @@ namespace srv_wire_msg = srv_wire::Context;
 using namespace fractos;
 
 
-#define MAX_IO_SIZE    (1024 * 1024 * 16)   
-
-#define checkCudaErrors_lo(err)  handleError_llo(err, __FILE__, __LINE__)
-
-void handleError_llo(CUresult err, const std::string& file, int line) {
-    if (CUDA_SUCCESS != err) {
-        LOG(INFO) << "CUDA Driver API error = " << err
-                    << " from file <" << file << ">, line " << line << ".\n";
-        // exit(-1);
-    }
-    LOG(INFO) << "CUDA Driver API SUCCESS from file <" << file << ">, line " << line << ".\n";
-}
-
-
-
 impl::Context::Context(fractos::wire::endian::uint32_t value, CUdevice device) {
     //fork();
     _id = value;
