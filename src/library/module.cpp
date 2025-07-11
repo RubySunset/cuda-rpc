@@ -67,6 +67,15 @@ impl::ModuleState::do_destroy(std::shared_ptr<core::channel>& ch)
         });
 }
 
+
+CUmodule
+clt::Module::get_module() const
+{
+    auto& pimpl = impl::Module::get(*this);
+
+    return pimpl.state->cumodule;
+}
+
 // Module::Module(std::shared_ptr<void> pimpl, std::string name) : _pimpl(pimpl) {
 
 //     DLOG(INFO) << "initialize module : " << name << " from file path";

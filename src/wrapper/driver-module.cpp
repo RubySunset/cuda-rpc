@@ -120,9 +120,8 @@ cuModuleLoadData(CUmodule *module, const void *image)
     auto image_cap = ch.make_memory(image, image_size, mr).get();
     CHECK(not image_cap.has_any_perms(fractos::core::cap::PERM_WR));
 
-    LOG(ERROR) << "TODO: no use for module_id arg";
     auto module_ptr = ctx_ptr->module_load_data(image_cap).get();
-    auto module_id = (CUmodule)module_ptr.get();
+    auto module_id = module_ptr->get_module();
     auto module_desc = std::make_shared<DriverState::module_desc>();
     module_desc->image = image;
     module_desc->image_size = image_size;

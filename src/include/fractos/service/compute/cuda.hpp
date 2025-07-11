@@ -221,6 +221,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class Module : public common::service::CltBase<Module> {
         public:
+            CUmodule get_module() const;
 
             // cuModuleGetGlobal
             [[nodiscard]] core::future<CUdeviceptr>
