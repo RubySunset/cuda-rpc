@@ -177,6 +177,37 @@ clt::Device::total_mem() const
         });
 }
 
+core::future<cudaDeviceProp>
+clt::Device::get_properties() const
+{
+    METHOD(get_properties);
+    LOG_REQ(method)
+        << " {}";
+
+    auto& pimpl = impl::Device::get(*this);
+    auto self = pimpl.state->self.lock();
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_GET_PROPERTIES)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_cuda_response()
+        .then([self](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_CAPS_EXACT();
+            CHECK_IMMS_ALL();
+            CHECK_ARGS_COND(args->imms.data_size == sizeof(cudaDeviceProp));
+            CHECK_ARGS_COND(args->imms_size() == (sizeof(args->imms) + sizeof(cudaDeviceProp)));
+
+            cudaDeviceProp res;
+            memcpy(&res, args->imms.data, sizeof(res));
+            return res;
+        });
+}
+
 core::future<std::shared_ptr<clt::Context>>
 clt::Device::make_context(unsigned int flags)
 {

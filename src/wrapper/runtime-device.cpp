@@ -6,7 +6,6 @@
 #include <./runtime-syms-extern.hpp>
 
 
-// * device management
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html
 
 extern "C" [[gnu::visibility("default")]]
@@ -49,6 +48,33 @@ cudaGetDeviceCount(int *count)
     auto& state [[maybe_unused]] = get_runtime_state();
     auto err = (cudaError_t)cuDeviceGetCount(count);
     return_error(err);
+}
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaGetDeviceProperties_v2(cudaDeviceProp* prop, int  device)
+{
+    auto error = cudaSuccess;
+
+    auto& state [[maybe_unused]] = get_runtime_state();
+    // NOTE: avoid error type conversion warnings, should never fail
+    auto& driver_state = get_driver_state_unsafe();
+    CHECK(&driver_state);
+
+    auto device_ptr = driver_state.get_device_ordinal(device);
+    if (not device_ptr) {
+        error = cudaErrorInvalidDevice;
+        goto out;
+    }
+
+    try {
+        *prop = device_ptr->get_properties().get();
+    } catch (const fractos::service::compute::cuda::CudaError& e) {
+        error = (cudaError_t)e.cuerror;
+    }
+
+out:
+    return_error(error);
 }
 
 extern "C" [[gnu::visibility("default")]]

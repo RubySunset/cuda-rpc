@@ -345,6 +345,39 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::total_mem::resp
 }
 
 std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Device::get_properties::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(opcode);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Device::get_properties::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_imm_cuerror(cuerror);
+    print_imm_identity(data_size);
+    print_imm_array(data, obj.imms_size() - sizeof(obj.imms));
+
+    print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
 srv::wire::to_string(const core::receive_args<srv::wire::Device::destroy::request>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;

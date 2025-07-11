@@ -202,6 +202,7 @@ namespace fractos::service::compute::cuda::wire {
             OP_GET_NAME,
             OP_GET_UUID,
             OP_TOTAL_MEM,
+            OP_GET_PROPERTIES,
             OP_CTX_CREATE,
             OP_DESTROY,
 
@@ -308,6 +309,32 @@ namespace fractos::service::compute::cuda::wire {
 
     std::string to_string(const core::receive_args<Device::total_mem::request>& req);
     std::string to_string(const core::receive_args<Device::total_mem::response>& resp);
+
+    namespace Device {
+        struct get_properties {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
+                    fractos::wire::endian::uint64_t data_size;
+                    char data[];
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
+    }
+
+    std::string to_string(const core::receive_args<Device::get_properties::request>& req);
+    std::string to_string(const core::receive_args<Device::get_properties::response>& resp);
 
     namespace Device {
         struct ctx_create {

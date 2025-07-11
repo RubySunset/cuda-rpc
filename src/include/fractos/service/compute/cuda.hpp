@@ -107,6 +107,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             // cuDeviceTotalMem
             core::future<size_t> total_mem() const;
 
+            // cudaGetDeviceProperties
+            core::future<cudaDeviceProp> get_properties() const;
+
             /**
              * @brief TODO: transfer vector<CUctxCreateParams> through message
              * @brief Wrapper for cuCtxCreate_v4()

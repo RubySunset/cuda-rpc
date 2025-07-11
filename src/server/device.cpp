@@ -1,3 +1,4 @@
+#include <cuda_runtime.h>
 #include <pthread.h>
 #include <glog/logging.h>
 #include <fractos/common/service/srv_impl.hpp>
@@ -86,6 +87,7 @@ impl::Device::handle_generic(auto ch, auto args)
     CASE_HANDLE(GET_NAME, get_name);
     CASE_HANDLE(GET_UUID, get_uuid);
     CASE_HANDLE(TOTAL_MEM, total_mem);
+    CASE_HANDLE(GET_PROPERTIES, get_properties);
     CASE_HANDLE(CTX_CREATE, ctx_create);
     CASE_HANDLE(DESTROY, destroy);
     default:
@@ -227,6 +229,39 @@ impl::Device::handle_total_mem(auto ch, auto args)
     reqb_cont
         .set_imm(&msg::response::imms::error, error)
         .set_imm(&msg::response::imms::bytes, bytes)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_continuation_error();
+}
+
+void
+impl::Device::handle_get_properties(auto ch, auto args)
+{
+    // this is not a cuda driver operation, but it's easier and faster than
+    // a sequence of calls to cuDeviceGetAttribute()
+
+    METHOD(get_properties);
+    LOG_REQ(method) << srv_wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
+
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+
+    cudaDeviceProp prop;
+    cuerror = (CUresult)cudaGetDeviceProperties(&prop, device);
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror)
+        << " data_size=" << sizeof(prop);
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
+        .set_imm(&msg::response::imms::data_size, sizeof(prop))
+        .set_imm(&msg::response::imms::data, &prop, sizeof(prop))
         .on_channel()
         .invoke()
         .as_callback_log_ignore_continuation_error();
