@@ -76,29 +76,18 @@ impl::Device::handle_generic(auto ch, auto args)
         return std::unique_ptr<ptr>(reinterpret_cast<ptr*>(args.release()));
     };
 
-#define HANDLE(name) \
-    handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args)))
+#define CASE_HANDLE(NAME, name)                                         \
+    case srv_wire_msg::OP_ ## NAME:                                      \
+        handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args))); \
+        break;
 
     switch (opcode) {
-    case srv_wire_msg::OP_GET_ATTRIBUTE:
-        HANDLE(get_attribute);
-        break;
-    case srv_wire_msg::OP_GET_NAME:
-        HANDLE(get_name);
-        break;
-    case srv_wire_msg::OP_GET_UUID:
-        HANDLE(get_uuid);
-        break;
-    case srv_wire_msg::OP_TOTAL_MEM:
-        HANDLE(total_mem);
-        break;
-    case srv_wire_msg::OP_CTX_CREATE:
-        HANDLE(ctx_create);
-        break;
-    case srv_wire_msg::OP_DESTROY:
-        HANDLE(destroy);
-        break;
-
+    CASE_HANDLE(GET_ATTRIBUTE, get_attribute);
+    CASE_HANDLE(GET_NAME, get_name);
+    CASE_HANDLE(GET_UUID, get_uuid);
+    CASE_HANDLE(TOTAL_MEM, total_mem);
+    CASE_HANDLE(CTX_CREATE, ctx_create);
+    CASE_HANDLE(DESTROY, destroy);
     default:
         LOG_OP(method)
             << " [error] invalid opcode";
