@@ -2,9 +2,13 @@
 #include <fractos/core/gns.hpp>
 #include <fractos/core/process.hpp>
 #include <fractos/core/process_config.hpp>
+#include <fractos/service/compute/cuda.hpp>
 
 #include <./common.hpp>
 #include <./driver-state.hpp>
+
+
+namespace clt = fractos::service::compute::cuda;
 
 
 // * FractOS objects
@@ -220,6 +224,52 @@ DriverState::get_function(CUfunction function)
     auto it = functions.find(function);
     if (it != functions.end()) {
         return it->second;
+    } else {
+        return nullptr;
+    }
+}
+
+std::shared_ptr<clt::Memory>
+DriverState::get_memory(CUdeviceptr addr)
+{
+    auto lock = std::shared_lock(mems_mutex);
+    auto it = mems.upper_bound(addr);
+    if (it == mems.end()) {
+        return nullptr;
+    } else if (it->second->base <= addr){
+        CHECK(addr < (it->second->base + it->second->size));
+        return it->second->mem;
+    } else {
+        return nullptr;
+    }
+}
+
+void
+DriverState::insert_memory(std::shared_ptr<clt::Memory> mem)
+{
+    auto& cap = mem->get_cap_mem();
+    DCHECK(cap.get_addr() == mem->get_deviceptr());
+    auto mem_desc = std::make_shared<DriverState::mem_desc>();
+    mem_desc->base = cap.get_addr();
+    mem_desc->size = cap.get_size();
+    mem_desc->mem = mem;
+
+    auto lock = std::unique_lock(mems_mutex);
+    auto res = mems.insert(std::make_pair(mem_desc->base+mem_desc->size, mem_desc));
+    CHECK(res.second);
+}
+
+std::shared_ptr<clt::Memory>
+DriverState::erase_memory(CUdeviceptr addr)
+{
+    auto lock = std::unique_lock(mems_mutex);
+    auto it = mems.find(addr);
+    if (it == mems.end()) {
+        return nullptr;
+    } else if (it->second->base <= addr and addr < (it->second->base + it->second->size)){
+        auto res = it->second;
+        mems.erase(it);
+        return res->mem;
     } else {
         return nullptr;
     }

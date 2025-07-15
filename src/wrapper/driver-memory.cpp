@@ -30,11 +30,7 @@ cuMemAlloc(CUdeviceptr* devPtr, size_t size)
     }
 
     *devPtr = mem_ptr->get_deviceptr();
-    {
-        auto mems_lock = std::unique_lock(state.mems_mutex);
-        auto res = state.mems.insert(std::make_pair(*devPtr, mem_ptr));
-        CHECK(res.second);
-    }
+    state.insert_memory(mem_ptr);
 
     return CUDA_SUCCESS;
 }
@@ -45,15 +41,9 @@ cuMemFree_v2(CUdeviceptr dptr)
 {
     auto& state = get_driver_state();
 
-    std::shared_ptr<srv::Memory> mem_ptr;
-    {
-        auto mems_lock = std::unique_lock(state.mems_mutex);
-        auto it = state.mems.find(dptr);
-        if (it == state.mems.end()) {
-            return CUDA_ERROR_INVALID_VALUE;
-        }
-        mem_ptr = it->second;
-        state.mems.erase(it);
+    auto mem_ptr = state.erase_memory(dptr);
+    if (not mem_ptr) {
+        return CUDA_ERROR_INVALID_VALUE;
     }
 
     mem_ptr->destroy().get();
@@ -79,34 +69,27 @@ do_memcpy(std::pair<pointer_type, CUdeviceptr> src,
     CHECK(ctx_ptr);
 
     std::shared_ptr<srv::Memory> mem_src, mem_dst;
-    {
-        auto mems_lock = std::shared_lock(state.mems_mutex);
-        switch (src.first) {
-        case A:
-        case D:
-        {
-            auto it = state.mems.find(src.second);
-            if (it != state.mems.end()) {
-                mem_src = it->second;
-            }
-            break;
+    switch (src.first) {
+    case A:
+    case D:
+        mem_src = state.get_memory(src.second);
+        if (not mem_src) {
+            return CUDA_ERROR_INVALID_VALUE;
         }
-        case H:
-            break;
+        break;
+    case H:
+        break;
+    }
+    switch (dst.first) {
+    case A:
+    case D:
+        mem_dst = state.get_memory(dst.second);
+        if (not mem_dst) {
+            return CUDA_ERROR_INVALID_VALUE;
         }
-        switch (dst.first) {
-        case A:
-        case D:
-        {
-            auto it = state.mems.find(dst.second);
-            if (it != state.mems.end()) {
-                mem_dst = it->second;
-            }
-            break;
-        }
-        case H:
-            break;
-        }
+        break;
+    case H:
+        break;
     }
 
     if (mem_src and mem_dst) {

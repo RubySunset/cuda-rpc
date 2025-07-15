@@ -4,6 +4,7 @@
 #include <fractos/core/channel.hpp>
 #include <fractos/core/process.hpp>
 #include <fractos/service/compute/cuda.hpp>
+#include <map>
 #include <shared_mutex>
 #include <stack>
 #include <unordered_map>
@@ -78,8 +79,19 @@ public:
 
     // memory
 
+    std::shared_ptr<fractos::service::compute::cuda::Memory> get_memory(CUdeviceptr addr);
+    void insert_memory(std::shared_ptr<fractos::service::compute::cuda::Memory> mem);
+    std::shared_ptr<fractos::service::compute::cuda::Memory> erase_memory(CUdeviceptr addr);
+
+private:
     std::shared_mutex mems_mutex;
-    std::unordered_map<CUdeviceptr, std::shared_ptr<fractos::service::compute::cuda::Memory>> mems;
+    struct mem_desc {
+        CUdeviceptr base;
+        size_t size;
+        std::shared_ptr<fractos::service::compute::cuda::Memory> mem;
+    };
+    std::map<CUdeviceptr, std::shared_ptr<mem_desc>> mems;
+public:
 
     // stream
 
