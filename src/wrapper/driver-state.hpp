@@ -45,6 +45,7 @@ public:
 private:
     std::shared_mutex contexts_mutex;
     std::unordered_map<CUcontext, std::shared_ptr<fractos::service::compute::cuda::Context>> contexts;
+    std::unordered_map<CUcontext, std::shared_ptr<boost::thread_specific_ptr<std::shared_ptr<fractos::service::compute::cuda::Stream>>>> context_thread_streams;
 public:
 
     boost::thread_specific_ptr<std::stack<std::shared_ptr<fractos::service::compute::cuda::Context>>> context_stack;
@@ -83,6 +84,7 @@ public:
     // stream
 
     std::shared_ptr<fractos::service::compute::cuda::Stream> get_stream(CUstream stream);
+    std::shared_ptr<fractos::service::compute::cuda::Stream> get_stream_per_thread();
 
     std::shared_mutex streams_mutex;
     std::unordered_map<CUstream, std::shared_ptr<fractos::service::compute::cuda::Stream>> streams;

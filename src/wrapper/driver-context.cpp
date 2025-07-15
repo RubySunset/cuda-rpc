@@ -11,6 +11,8 @@ extern "C" [[gnu::visibility("default")]]
 CUresult
 cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev)
 {
+    LOG_FIRST_N(ERROR, 1) << "TODO: deregister per-thread streams when thread exits";
+
     auto& state = get_driver_state();
     auto device = state.get_device(dev);
 

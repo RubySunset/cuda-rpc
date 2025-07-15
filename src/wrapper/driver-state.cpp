@@ -150,6 +150,11 @@ DriverState::insert_context(std::shared_ptr<fractos::service::compute::cuda::Con
 
     auto res1 = contexts.insert(std::make_pair(ctx->get_context(), ctx));
     CHECK(res1.second);
+
+    auto tptr = std::make_shared<
+        boost::thread_specific_ptr<std::shared_ptr<fractos::service::compute::cuda::Stream>>>();
+    auto res2 = context_thread_streams.emplace(std::make_pair(ctx->get_context(), tptr));
+    CHECK(res2.second);
 }
 
 std::shared_ptr<fractos::service::compute::cuda::Context>
@@ -223,11 +228,43 @@ DriverState::get_function(CUfunction function)
 std::shared_ptr<fractos::service::compute::cuda::Stream>
 DriverState::get_stream(CUstream stream)
 {
+    if (stream == CU_STREAM_PER_THREAD) {
+        return get_stream_per_thread();
+    }
+
     auto lock = std::shared_lock(streams_mutex);
     auto it = streams.find(stream);
     if (it != streams.end()) {
         return it->second;
     } else {
         return nullptr;
+    }
+}
+
+std::shared_ptr<fractos::service::compute::cuda::Stream>
+DriverState::get_stream_per_thread()
+{
+    auto ctx = get_current_context();
+    if (not ctx) {
+        return nullptr;
+    }
+
+    std::shared_ptr<boost::thread_specific_ptr<std::shared_ptr<fractos::service::compute::cuda::Stream>>> tptr;
+    {
+        auto lock = std::shared_lock(contexts_mutex);
+        auto it = context_thread_streams.find(ctx->get_context());
+        CHECK(it != context_thread_streams.end());
+
+        tptr = it->second;
+    }
+
+    auto* ptr = tptr->get();
+    if (ptr) {
+        return *ptr;
+    } else {
+        auto stream = new std::shared_ptr<fractos::service::compute::cuda::Stream>(
+            ctx->stream_create(CU_STREAM_DEFAULT).get());
+        tptr->reset(stream);
+        return *stream;
     }
 }
