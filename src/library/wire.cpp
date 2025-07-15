@@ -511,6 +511,40 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::mem_alloc::res
 }
 
 std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::mem_get_info::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(opcode);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::mem_get_info::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_imm_cuerror(cuerror);
+    print_imm_identity(free);
+    print_imm_identity(total);
+    print_extra_imm_error();
+
+    print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
 srv::wire::to_string(const core::receive_args<srv::wire::Context::synchronize::request>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;

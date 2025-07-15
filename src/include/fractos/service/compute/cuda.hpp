@@ -150,6 +150,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] fractos::core::future<void>
             synchronize();
 
+
             // cuModuleLoad
             [[nodiscard]] core::future<std::shared_ptr<Module>>
             module_load(const std::string path);
@@ -158,13 +159,19 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Module>>
             module_load_data(core::cap::memory& contents);
 
+
             // cuMemAlloc
             [[nodiscard]] core::future<std::shared_ptr<Memory>>
             mem_alloc(size_t size);
 
+            // cuMemGetInfo (returns pair<free, total>)
+            core::future<std::pair<size_t, size_t>> mem_get_info() const;
+
+
             // cuStreamCreate()
             [[nodiscard]] core::future<std::shared_ptr<Stream>>
             stream_create(CUstream_flags flags);
+
 
             // cuEventCreate()
             [[nodiscard]] core::future<std::shared_ptr<Event>>

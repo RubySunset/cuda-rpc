@@ -70,3 +70,13 @@ cudaMemcpy(void *dst, const void *src, size_t count, enum cudaMemcpyKind kind)
         return_error(cudaErrorInvalidValue);
     }
 }
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaMemGetInfo(size_t* free, size_t* total)
+{
+    auto& state = get_runtime_state();
+
+    auto err = (cudaError_t)cuMemGetInfo(free, total);
+    return_error(err);
+}

@@ -6,7 +6,7 @@
 #include <glog/logging.h>
 #include <pthread.h>
 
-#include "common.hpp"
+#include "./common.hpp"
 #include "./context.hpp"
 #include "./stream.hpp"
 #include "./event.hpp"
@@ -154,6 +154,7 @@ impl::Context::handle_generic(auto ch, auto args)
     CASE_HANDLE(GET_LIMIT, get_limit);
     CASE_HANDLE(MODULE_LOAD_DATA, module_load_data);
     CASE_HANDLE(MEM_ALLOC, mem_alloc);
+    CASE_HANDLE(MEM_GET_INFO, mem_get_info);
     CASE_HANDLE(STREAM_CREATE, stream_create);
     CASE_HANDLE(EVENT_CREATE, event_create);
     default:
@@ -273,6 +274,46 @@ impl::Context::handle_mem_alloc(auto ch, auto args)
                 .as_callback_log_ignore_continuation_error();
         })
         .as_callback();
+}
+
+void
+impl::Context::handle_mem_get_info(auto ch, auto args)
+{
+    METHOD(mem_get_info);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
+
+    auto self = this->_self;
+    CHECK(self);
+
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+    size_t free = 0, total = 0;
+
+    cuerror = cuCtxSetCurrent(self->_ctx);
+    if (cuerror != CUDA_SUCCESS) {
+        goto out;
+    }
+
+    cuerror = cuMemGetInfo(&free, &total);
+
+out:
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror)
+        << " free=" << free
+        << " total=" << total;
+
+    ch->template make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
+        .set_imm(&msg::response::imms::free, free)
+        .set_imm(&msg::response::imms::total, total)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_continuation_error();
 }
 
 void

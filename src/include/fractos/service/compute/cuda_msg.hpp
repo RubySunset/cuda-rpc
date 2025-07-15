@@ -396,6 +396,7 @@ namespace fractos::service::compute::cuda::wire {
             OP_GET_LIMIT,
             OP_MODULE_LOAD_DATA,
             OP_MEM_ALLOC,
+            OP_MEM_GET_INFO,
             OP_STREAM_CREATE,
             OP_EVENT_CREATE,
             OP_INVALID = std::numeric_limits<uint64_t>::max()
@@ -481,6 +482,32 @@ namespace fractos::service::compute::cuda::wire {
 
     std::string to_string(const core::receive_args<Context::mem_alloc::request>& req);
     std::string to_string(const core::receive_args<Context::mem_alloc::response>& resp);
+
+    namespace Context {
+        struct mem_get_info {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
+                    fractos::wire::endian::uint64_t free;
+                    fractos::wire::endian::uint64_t total;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
+    }
+
+    std::string to_string(const core::receive_args<Context::mem_get_info::request>& req);
+    std::string to_string(const core::receive_args<Context::mem_get_info::response>& resp);
 
     namespace Context {
         struct stream_create {

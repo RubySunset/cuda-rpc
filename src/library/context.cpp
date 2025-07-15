@@ -167,6 +167,35 @@ clt::Context::mem_alloc(size_t size)
         });
 }
 
+core::future<std::pair<size_t, size_t>>
+clt::Context::mem_get_info() const
+{
+    METHOD(mem_get_info);
+    LOG_REQ(method)
+        << " {}";
+
+    auto& pimpl = impl::Context::get(*this);
+    auto self = pimpl.state->self.lock();
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_MEM_GET_INFO)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_cuda_response()
+        .then([this, self](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_ARGS_EXACT();
+
+            size_t free = args->imms.free.get();
+            size_t total = args->imms.total.get();
+
+            return std::make_pair(free, total);
+        });
+}
+
 
 core::future<std::shared_ptr<clt::Memory>>
 clt::Context::make_memory(uint64_t size)
