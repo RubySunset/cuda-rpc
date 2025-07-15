@@ -12,8 +12,11 @@
 #include <unordered_set>
 
 
+using fatCubinHandle_t = void*;
+
 struct RuntimeState {
     struct func_desc {
+        std::unordered_set<fatCubinHandle_t> fat_cubin_handles;
         std::unordered_set<CUmodule> modules;
         std::string name;
         std::atomic<CUfunction> func;
@@ -21,7 +24,8 @@ struct RuntimeState {
     };
 
     struct var_desc {
-        CUmodule module;
+        fatCubinHandle_t fat_cubin_handle;
+        std::atomic<CUmodule> module;
         std::string name;
         std::atomic<CUdeviceptr> address;
         std::mutex mutex;
@@ -29,11 +33,14 @@ struct RuntimeState {
 
     struct module_desc {
         std::mutex entries_mutex;
+        fatCubinHandle_t fat_cubin_handle;
+        std::atomic<CUmodule> module;
         std::unordered_set<uintptr_t> funcs;
         std::unordered_set<uintptr_t> vars;
     };
 
     std::mutex modules_mutex;
+    std::unordered_map<fatCubinHandle_t, std::shared_ptr<module_desc>> fat_cubin_handles;
     std::unordered_map<CUmodule, std::shared_ptr<module_desc>> modules;
 
     std::shared_mutex entries_mutex;
@@ -47,6 +54,7 @@ struct RuntimeThreadState {
     CUdevice dev;
     std::shared_ptr<RuntimeState> global;
 
+    std::pair<cudaError_t, CUmodule> get_module(fatCubinHandle_t handle);
     std::pair<cudaError_t, CUfunction> get_function(const void* address);
     std::pair<cudaError_t, CUdeviceptr> get_variable(const void* address);
 };

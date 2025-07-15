@@ -35,18 +35,13 @@ extern "C" [[gnu::visibility("default")]]
 void** CUDARTAPI
 __cudaRegisterFatBinary(void* fatCubin)
 {
-    CUmodule module;
-
     auto [err, state_ptr] = get_runtime_state_with_error();
     if (err) {
         DVLOG(logging::SERVICE)
-            << "__cudaRegisterFatBinary ->"
-            << " fatCubin=0x" << std::hex << fatCubin;
-        module = 0;
-        DVLOG(logging::SERVICE)
-            << "__cudaRegisterFatBinary <- "
-            << "0x" << std::hex << module;
-        return (void**)module;
+            << "__cudaRegisterFatBinary <->"
+            << " fatCubin=0x" << std::hex << fatCubin
+            << " err=" << cudaGetErrorName(err);
+        return (void**)0;
     }
 
     CHECK(state_ptr);
@@ -57,41 +52,32 @@ __cudaRegisterFatBinary(void* fatCubin)
     CHECK(desc->version == FATBINC_VERSION);
 
     DVLOG(logging::SERVICE)
-        << "__cudaRegisterFatBinary ->"
+        << "__cudaRegisterFatBinary <->"
         << " fatCubin=0x" << std::hex << fatCubin
         << " desc->data=0x" << std::hex << desc->data;
 
-    state.last_error = (cudaError_t)cuModuleLoadData(&module, (const void*)desc->data);
-    if (state.last_error != cudaSuccess) {
-        LOG(FATAL) << "failed cuModuleLoadData(..., " << (const void*)desc->data << "): "
-                   << cudaGetErrorName(state.last_error);
-    }
-
     auto module_desc = std::make_shared<RuntimeState::module_desc>();
+    module_desc->module = 0;
     {
         auto modules_lock = std::unique_lock(state.global->modules_mutex);
-        auto res = state.global->modules.insert(std::make_pair(module, module_desc));
+        auto res = state.global->fat_cubin_handles.insert(std::make_pair((fatCubinHandle_t)desc, module_desc));
         CHECK(res.second);
     }
 
-    DVLOG(logging::SERVICE)
-        << "__cudaRegisterFatBinary <- "
-        << "0x" << std::hex << module;
-
-    return (void**)module;
+    return (void**)desc;
 }
 
 extern "C" [[gnu::visibility("default")]]
 void CUDARTAPI
 __cudaRegisterFatBinaryEnd(void** fatCubinHandle)
 {
+    DVLOG(logging::SERVICE)
+        << "__cudaRegisterFatBinaryEnd <->"
+        << " fatCubinHandle=0x" << std::hex << fatCubinHandle;
+
     if (not fatCubinHandle) {
         return;
     }
-
-    DVLOG(logging::SERVICE)
-        << "__cudaRegisterFatBinaryEnd ->"
-        << " fatCubinHandle=0x" << std::hex << fatCubinHandle;
 }
 
 extern "C" [[gnu::visibility("default")]]
@@ -115,18 +101,26 @@ __cudaUnregisterFatBinary(void** fatCubinHandle)
     }
     auto& state = *state_ptr;
 
-    auto module = (CUmodule)fatCubinHandle;
-
     auto modules_lock = std::unique_lock(state.global->modules_mutex);
     auto entries_lock = std::unique_lock(state.global->entries_mutex);
 
-    state.last_error = (cudaError_t)cuModuleUnload(module);
-    if (state.last_error != cudaSuccess) {
-        goto out;
+    std::shared_ptr<RuntimeState::module_desc> module_desc;
+    {
+        auto it = state.global->fat_cubin_handles.find((fatCubinHandle_t)fatCubinHandle);
+        CHECK(it != state.global->fat_cubin_handles.end());
+        module_desc = it->second;
+
+        auto module = module_desc->module.load();
+        if (module != 0) {
+            state.last_error = (cudaError_t)cuModuleUnload(module);
+            if (state.last_error != cudaSuccess) {
+                goto out;
+            }
+        }
     }
 
     {
-        auto module_desc_it = state.global->modules.find(module);
+        auto module_desc_it = state.global->modules.find(module_desc->module);
         CHECK(module_desc_it != state.global->modules.end());
         auto module_desc = module_desc_it->second;
 
@@ -138,7 +132,8 @@ __cudaUnregisterFatBinary(void** fatCubinHandle)
             CHECK(state.global->vars.erase(func) == 1);
         }
 
-        state.global->modules.erase(module_desc_it);
+        CHECK(state.global->fat_cubin_handles.erase(fatCubinHandle) == 1);
+        CHECK(state.global->modules.erase(module_desc->module) == 1);
     }
 
 out:
@@ -161,26 +156,27 @@ void CUDARTAPI __cudaRegisterFunction(
         int     *wSize
     )
 {
-    DVLOG(logging::SERVICE)
-        << "__cudaRegisterFunction ->"
-        << " handle=" << fatCubinHandle
-        << " hostFun=" << (void*)hostFun
-        << " deviceName=" << deviceName;
-
     auto [err, state_ptr] = get_runtime_state_with_error();
     if (err) {
         DVLOG(logging::SERVICE)
-            << "__cudaRegisterFunction <- "
+            << "__cudaRegisterFunction <-> "
+            << " handle=" << fatCubinHandle
+            << " hostFun=" << (void*)hostFun
+            << " deviceName=" << deviceName
             << " err=" << cudaGetErrorName((cudaError_t)err);
         return;
+    } else {
+        DVLOG(logging::SERVICE)
+            << "__cudaRegisterFunction <->"
+            << " handle=" << fatCubinHandle
+            << " hostFun=" << (void*)hostFun
+            << " deviceName=" << deviceName;
     }
     auto& state = *state_ptr;
 
-    auto module = (CUmodule)fatCubinHandle;
-
     auto modules_lock = std::unique_lock(state.global->modules_mutex);
-    auto module_desc_it = state.global->modules.find(module);
-    CHECK(module_desc_it != state.global->modules.end());
+    auto module_desc_it = state.global->fat_cubin_handles.find(fatCubinHandle);
+    CHECK(module_desc_it != state.global->fat_cubin_handles.end());
     auto module_desc = module_desc_it->second;
 
     auto module_entries_lock = std::unique_lock(module_desc->entries_mutex);
@@ -191,7 +187,7 @@ void CUDARTAPI __cudaRegisterFunction(
     auto entries_it = state.global->funcs.find((uintptr_t)hostFun);
     if (entries_it == state.global->funcs.end()) {
         auto func_desc = std::make_shared<RuntimeState::func_desc>();
-        CHECK(func_desc->modules.insert(module).second);
+        CHECK(func_desc->fat_cubin_handles.insert(fatCubinHandle).second);
         func_desc->name = deviceName;
         func_desc->func = 0;
         auto entries_res = state.global->funcs.insert(std::make_pair((uintptr_t)hostFun, func_desc));
@@ -199,7 +195,7 @@ void CUDARTAPI __cudaRegisterFunction(
     } else {
         auto entry_lock = std::unique_lock(entries_it->second->mutex);
         CHECK(entries_it->second->name == deviceName);
-        CHECK(entries_it->second->modules.insert(module).second);
+        CHECK(entries_it->second->fat_cubin_handles.insert(fatCubinHandle).second);
     }
 }
 
@@ -215,30 +211,32 @@ void CUDARTAPI __cudaRegisterVar(
         int    global
     )
 {
-    DVLOG(logging::SERVICE)
-        << "__cudaRegisterVar ->"
-        << " handle=" << fatCubinHandle
-        << " hostVar=" << (void*)hostVar
-        << " deviceName=" << deviceName;
-
     auto [err, state_ptr] = get_runtime_state_with_error();
     if (err) {
         DVLOG(logging::SERVICE)
-            << "__cudaRegisterVar <- "
+            << "__cudaRegisterVar <->"
+            << " handle=" << fatCubinHandle
+            << " hostVar=" << (void*)hostVar
+            << " deviceName=" << deviceName
             << " err=" << cudaGetErrorName((cudaError_t)err);
         return;
+    } else {
+        DVLOG(logging::SERVICE)
+            << "__cudaRegisterVar <->"
+            << " handle=" << fatCubinHandle
+            << " hostVar=" << (void*)hostVar
+            << " deviceName=" << deviceName;
     }
     auto& state = *state_ptr;
 
-    auto module = (CUmodule)fatCubinHandle;
-
     auto modules_lock = std::unique_lock(state.global->modules_mutex);
-    auto module_desc_it = state.global->modules.find(module);
-    CHECK(module_desc_it != state.global->modules.end());
+    auto module_desc_it = state.global->fat_cubin_handles.find(fatCubinHandle);
+    CHECK(module_desc_it != state.global->fat_cubin_handles.end());
     auto module_desc = module_desc_it->second;
 
     auto var_desc = std::make_shared<RuntimeState::var_desc>();
-    var_desc->module = module;
+    var_desc->fat_cubin_handle = fatCubinHandle;
+    var_desc->module = 0;
     var_desc->name = deviceName;
     var_desc->address = 0;
 
