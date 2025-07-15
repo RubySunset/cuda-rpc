@@ -137,12 +137,19 @@ DriverState::get_device_primary_context(CUdevice device)
             ctx = entry->device->make_context(0).get();
             entry->context = ctx;
 
-            auto contexts_lock = std::unique_lock(contexts_mutex);
-            auto res = contexts.insert(std::make_pair(ctx->get_context(), ctx));
-            CHECK(res.second);
+            insert_context(ctx);
         }
     }
     return ctx;
+}
+
+void
+DriverState::insert_context(std::shared_ptr<fractos::service::compute::cuda::Context> ctx)
+{
+    auto contexts_lock = std::unique_lock(contexts_mutex);
+
+    auto res1 = contexts.insert(std::make_pair(ctx->get_context(), ctx));
+    CHECK(res1.second);
 }
 
 std::shared_ptr<fractos::service::compute::cuda::Context>

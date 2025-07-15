@@ -16,6 +16,7 @@ std::shared_ptr<fractos::core::channel> get_channel_ptr();
 struct DriverState {
     std::shared_ptr<fractos::service::compute::cuda::Service> service;
 
+    // device
 
     std::shared_ptr<fractos::service::compute::cuda::Device> get_device_ordinal(int ordinal);
     std::shared_ptr<fractos::service::compute::cuda::Device> get_device(CUdevice device);
@@ -33,17 +34,22 @@ private:
     std::shared_ptr<device_entry> _get_device_entry(CUdevice device);
 public:
 
+    // context
 
     std::shared_ptr<fractos::service::compute::cuda::Context> get_context(CUcontext ctx);
-
-    std::shared_mutex contexts_mutex;
-    std::unordered_map<CUcontext, std::shared_ptr<fractos::service::compute::cuda::Context>> contexts;
-
+    void insert_context(std::shared_ptr<fractos::service::compute::cuda::Context> ctx);
 
     std::shared_ptr<fractos::service::compute::cuda::Context> get_current_context();
     std::stack<std::shared_ptr<fractos::service::compute::cuda::Context>>& get_context_stack();
 
+private:
+    std::shared_mutex contexts_mutex;
+    std::unordered_map<CUcontext, std::shared_ptr<fractos::service::compute::cuda::Context>> contexts;
+public:
+
     boost::thread_specific_ptr<std::stack<std::shared_ptr<fractos::service::compute::cuda::Context>>> context_stack;
+
+    // module
 
     struct module_desc {
         const void* image;
@@ -58,6 +64,8 @@ public:
     std::shared_mutex modules_mutex;
     std::unordered_map<CUmodule, std::shared_ptr<module_desc>> modules;
 
+    // function
+
     struct func_desc {
         std::shared_ptr<fractos::service::compute::cuda::Function> function;
     };
@@ -67,16 +75,19 @@ public:
     std::shared_mutex functions_mutex;
     std::unordered_map<CUfunction, std::shared_ptr<func_desc>> functions;
 
+    // memory
 
     std::shared_mutex mems_mutex;
     std::unordered_map<CUdeviceptr, std::shared_ptr<fractos::service::compute::cuda::Memory>> mems;
 
+    // stream
 
     std::shared_ptr<fractos::service::compute::cuda::Stream> get_stream(CUstream stream);
 
     std::shared_mutex streams_mutex;
     std::unordered_map<CUstream, std::shared_ptr<fractos::service::compute::cuda::Stream>> streams;
 
+    // event
 
     std::shared_mutex events_mutex;
     std::unordered_map<CUevent, std::shared_ptr<fractos::service::compute::cuda::Event>> events;
