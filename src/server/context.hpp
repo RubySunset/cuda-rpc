@@ -36,6 +36,7 @@ namespace impl {
         void handle_module_load_data(auto ch, auto args);
         void handle_mem_alloc(auto ch, auto args);
         void handle_mem_get_info(auto ch, auto args);
+        void handle_memset(auto ch, auto args);
         void handle_stream_create(auto ch, auto args);
         void handle_event_create(auto ch, auto args);
 

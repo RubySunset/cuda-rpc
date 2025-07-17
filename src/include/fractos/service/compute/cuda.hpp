@@ -168,6 +168,38 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::pair<size_t, size_t>>
             mem_get_info() const;
 
+            // cuMemsetD{8,16,32}
+            [[nodiscard]] core::future<void>
+            memset(CUdeviceptr addr, uint8_t val, size_t width);
+            [[nodiscard]] core::future<void>
+            memset(CUdeviceptr addr, uint16_t val, size_t width);
+            [[nodiscard]] core::future<void>
+            memset(CUdeviceptr addr, uint32_t val, size_t width);
+
+            // cuMemsetD{8,16,32}Async
+            [[nodiscard]] core::future<void>
+            memset(CUdeviceptr addr, uint8_t val, size_t width, Stream& stream);
+            [[nodiscard]] core::future<void>
+            memset(CUdeviceptr addr, uint16_t val, size_t width, Stream& stream);
+            [[nodiscard]] core::future<void>
+            memset(CUdeviceptr addr, uint32_t val, size_t width, Stream& stream);
+
+            // cuMemsetD2D{8,16,32}
+            [[nodiscard]] core::future<void>
+            memset(CUdeviceptr addr, size_t pitch, uint8_t val, size_t width, size_t height);
+            [[nodiscard]] core::future<void>
+            memset(CUdeviceptr addr, size_t pitch, uint16_t val, size_t width, size_t height);
+            [[nodiscard]] core::future<void>
+            memset(CUdeviceptr addr, size_t pitch, uint32_t val, size_t width, size_t height);
+
+            // cuMemsetD2D{8,16,32}Async
+            [[nodiscard]] core::future<void>
+            memset(CUdeviceptr addr, size_t pitch, uint8_t val, size_t width, size_t height, Stream& stream);
+            [[nodiscard]] core::future<void>
+            memset(CUdeviceptr addr, size_t pitch, uint16_t val, size_t width, size_t height, Stream& stream);
+            [[nodiscard]] core::future<void>
+            memset(CUdeviceptr addr, size_t pitch, uint32_t val, size_t width, size_t height, Stream& stream);
+
 
             // cuStreamCreate()
             [[nodiscard]] core::future<std::shared_ptr<Stream>>

@@ -545,6 +545,45 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::mem_get_info::
 }
 
 std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::memset::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(opcode);
+    print_imm_hex(addr);
+    print_imm_identity(row_elems);
+    print_imm_identity(row_pad);
+    print_imm_identity(row_count);
+    print_imm_identity(value);
+    print_imm_identity(value_bytes);
+    print_imm_identity(custream);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::memset::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_imm_cuerror(cuerror);
+    print_extra_imm_error();
+
+    print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
 srv::wire::to_string(const core::receive_args<srv::wire::Context::synchronize::request>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;

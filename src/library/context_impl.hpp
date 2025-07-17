@@ -31,6 +31,13 @@ namespace impl {
 
         fractos::core::future<void>
         do_destroy(std::shared_ptr<fractos::core::channel>& ch);
+
+        auto
+        memset(std::shared_ptr<fractos::core::channel> ch,
+               CUdeviceptr addr,
+               uint64_t row_elems, uint64_t row_pad, uint64_t row_count,
+               uint64_t value, uint8_t value_bytes,
+               std::optional<std::reference_wrapper<clt::Stream>> stream);
     };
 
     using Context = fractos::common::service::ImplWrapper<clt::Context, impl::ContextState>;

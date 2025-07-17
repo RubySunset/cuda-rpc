@@ -196,6 +196,134 @@ clt::Context::mem_get_info() const
         });
 }
 
+auto
+impl::ContextState::memset(std::shared_ptr<core::channel> ch,
+                           CUdeviceptr addr,
+                           uint64_t row_elems, uint64_t row_pad, uint64_t row_count,
+                           uint64_t value, uint8_t value_bytes,
+                           std::optional<std::reference_wrapper<clt::Stream>> stream)
+{
+    CUstream custream = 0;
+    if (stream) {
+        custream = stream->get().get_stream();
+    }
+
+    METHOD(memset);
+    LOG_REQ(method)
+        << " addr=" << (void*)addr
+        << " row_elems=" << row_elems
+        << " row_pad=" << row_pad
+        << " row_count=" << row_count
+        << " value=" << value
+        << " value_bytes=" << value_bytes
+        << " custream=" << (void*)custream;
+
+    auto self = this->self.lock();
+
+    auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
+    return ch->make_request_builder<msg::request>(this->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_MEMSET)
+        .set_imm(&msg::request::imms::addr, addr)
+        .set_imm(&msg::request::imms::row_elems, row_elems)
+        .set_imm(&msg::request::imms::row_pad, row_pad)
+        .set_imm(&msg::request::imms::row_count, row_count)
+        .set_imm(&msg::request::imms::value, value)
+        .set_imm(&msg::request::imms::value_bytes, value_bytes)
+        .set_imm(&msg::request::imms::custream, (uint64_t)custream)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_cuda_response()
+        .then([this, self, stream](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_ARGS_EXACT();
+        });
+}
+
+core::future<void>
+clt::Context::memset(CUdeviceptr addr, uint8_t val, size_t width)
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.state->memset(pimpl.ch, addr, width, 0, 0, val, 1, {});
+}
+
+core::future<void>
+clt::Context::memset(CUdeviceptr addr, uint16_t val, size_t width)
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.state->memset(pimpl.ch, addr, width, 0, 0, val, 2, {});
+}
+
+core::future<void>
+clt::Context::memset(CUdeviceptr addr, uint32_t val, size_t width)
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.state->memset(pimpl.ch, addr, width, 0, 0, val, 4, {});
+}
+
+core::future<void>
+clt::Context::memset(CUdeviceptr addr, uint8_t val, size_t width, Stream& stream)
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.state->memset(pimpl.ch, addr, width, 0, 0, val, 1, stream);
+}
+
+core::future<void>
+clt::Context::memset(CUdeviceptr addr, uint16_t val, size_t width, Stream& stream)
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.state->memset(pimpl.ch, addr, width, 0, 0, val, 2, stream);
+}
+
+core::future<void>
+clt::Context::memset(CUdeviceptr addr, uint32_t val, size_t width, Stream& stream)
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.state->memset(pimpl.ch, addr, width, 0, 0, val, 4, stream);
+}
+
+core::future<void>
+clt::Context::memset(CUdeviceptr addr, size_t pitch, uint8_t val, size_t width, size_t height)
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.state->memset(pimpl.ch, addr, width, pitch, height, val, 1, {});
+}
+
+core::future<void>
+clt::Context::memset(CUdeviceptr addr, size_t pitch, uint16_t val, size_t width, size_t height)
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.state->memset(pimpl.ch, addr, width, pitch, height, val, 2, {});
+}
+
+core::future<void>
+clt::Context::memset(CUdeviceptr addr, size_t pitch, uint32_t val, size_t width, size_t height)
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.state->memset(pimpl.ch, addr, width, pitch, height, val, 4, {});
+}
+
+core::future<void>
+clt::Context::memset(CUdeviceptr addr, size_t pitch, uint8_t val, size_t width, size_t height, Stream& stream)
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.state->memset(pimpl.ch, addr, width, pitch, height, val, 1, stream);
+}
+
+core::future<void>
+clt::Context::memset(CUdeviceptr addr, size_t pitch, uint16_t val, size_t width, size_t height, Stream& stream)
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.state->memset(pimpl.ch, addr, width, pitch, height, val, 2, stream);
+}
+
+core::future<void>
+clt::Context::memset(CUdeviceptr addr, size_t pitch, uint32_t val, size_t width, size_t height, Stream& stream)
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.state->memset(pimpl.ch, addr, width, pitch, height, val, 4, stream);
+}
 
 core::future<std::shared_ptr<clt::Memory>>
 clt::Context::make_memory(uint64_t size)

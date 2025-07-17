@@ -155,6 +155,7 @@ impl::Context::handle_generic(auto ch, auto args)
     CASE_HANDLE(MODULE_LOAD_DATA, module_load_data);
     CASE_HANDLE(MEM_ALLOC, mem_alloc);
     CASE_HANDLE(MEM_GET_INFO, mem_get_info);
+    CASE_HANDLE(MEMSET, memset);
     CASE_HANDLE(STREAM_CREATE, stream_create);
     CASE_HANDLE(EVENT_CREATE, event_create);
     default:
@@ -311,6 +312,113 @@ out:
         .set_imm(&msg::response::imms::cuerror, cuerror)
         .set_imm(&msg::response::imms::free, free)
         .set_imm(&msg::response::imms::total, total)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_continuation_error();
+}
+
+static inline
+bool
+is_1d(auto& args)
+{
+    if (args->imms.row_count == 0) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void
+impl::Context::handle_memset(auto ch, auto args)
+{
+    METHOD(memset);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
+
+    auto self = this->_self;
+    CHECK(self);
+
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+    auto addr = (CUdeviceptr)args->imms.addr;
+    auto custream_arg = (CUstream)args->imms.custream.get();
+
+    std::shared_ptr<Stream> stream_ptr;
+    CUstream custream;
+
+    if (custream_arg == 0) {
+        custream = custream_arg;
+        cuerror = cuCtxSetCurrent(self->_ctx);
+        if (cuerror != CUDA_SUCCESS) {
+            goto out;
+        }
+    } else {
+        stream_ptr = get_stream(custream_arg);
+        if (not stream_ptr) {
+            cuerror = CUDA_ERROR_INVALID_HANDLE;
+            goto out;
+        }
+        custream = stream_ptr->custream;
+    }
+
+    switch ((unsigned int)args->imms.value_bytes) {
+    case 1: // 8B
+        if (is_1d(args)) {
+            cuerror = cuMemsetD8Async(addr,
+                                      args->imms.value.get() & 0xff,
+                                      args->imms.row_elems.get(),
+                                      custream);
+        } else {
+            cuerror = cuMemsetD2D8Async(addr,
+                                        args->imms.row_pad.get(),
+                                        args->imms.value.get() & 0xff,
+                                        args->imms.row_elems.get(),
+                                        args->imms.row_count.get(),
+                                        custream);
+        }
+        break;
+    case 2: // 16B
+        if (is_1d(args)) {
+            cuerror = cuMemsetD16Async(addr,
+                                       args->imms.value.get() & 0xffff,
+                                       args->imms.row_elems.get(),
+                                       custream);
+        } else {
+            cuerror = cuMemsetD2D16Async(addr,
+                                         args->imms.row_pad.get(),
+                                         args->imms.value.get() & 0xffff,
+                                         args->imms.row_elems.get(),
+                                         args->imms.row_count.get(),
+                                         custream);
+        }
+        break;
+    case 4: // 32B
+        if (is_1d(args)) {
+            cuerror = cuMemsetD32Async(addr,
+                                       args->imms.value.get() & 0xffffffff,
+                                       args->imms.row_elems.get(),
+                                       custream);
+        } else {
+            cuerror = cuMemsetD2D32Async(addr,
+                                         args->imms.row_pad.get(),
+                                         args->imms.value.get() & 0xffffffff,
+                                         args->imms.row_elems.get(),
+                                         args->imms.row_count.get(),
+                                         custream);
+        }
+        break;
+    }
+
+out:
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror);
+
+    ch->template make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
         .on_channel()
         .invoke()
         .as_callback_log_ignore_continuation_error();
