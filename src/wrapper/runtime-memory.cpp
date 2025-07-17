@@ -107,3 +107,35 @@ cudaMemcpyAsync(void *dst, const void *src, size_t count, enum cudaMemcpyKind ki
         return_error(cudaErrorInvalidValue);
     }
 }
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaMemset(void *devPtr, int value, size_t count)
+{
+    auto& state = get_runtime_state();
+    return_error((cudaError_t)cuMemsetD8((CUdeviceptr)devPtr, value&0xff, count));
+}
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaMemsetAsync(void *devPtr, int value, size_t count, cudaStream_t stream)
+{
+    auto& state = get_runtime_state();
+    return_error((cudaError_t)cuMemsetD8Async((CUdeviceptr)devPtr, value&0xff, count, stream));
+}
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaMemset2D(void *devPtr, size_t pitch, int value, size_t width, size_t height)
+{
+    auto& state = get_runtime_state();
+    return_error((cudaError_t)cuMemsetD2D8((CUdeviceptr)devPtr, pitch, value&0xff, width, height));
+}
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaMemset2DAsync(void *devPtr, size_t pitch, int value, size_t width, size_t height, cudaStream_t stream)
+{
+    auto& state = get_runtime_state();
+    return_error((cudaError_t)cuMemsetD2D8Async((CUdeviceptr)devPtr, pitch, value&0xff, width, height, stream));
+}
