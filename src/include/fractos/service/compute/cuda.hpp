@@ -286,6 +286,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class Stream : public common::service::CltBase<Stream> {
         public:
+            // NOTE: result can be null
+            std::shared_ptr<Context> get_context() const;
+
             CUstream get_stream() const;
 
             // cuStreamSynchronize

@@ -8,6 +8,8 @@
 #include <stream_impl.hpp>
 #include <utility>
 
+#include "./context_impl.hpp"
+
 
 namespace clt = fractos::service::compute::cuda;
 namespace srv_wire = fractos::service::compute::cuda::wire;
@@ -22,11 +24,13 @@ template class fractos::common::service::CltBase<clt::Stream>;
 
 
 std::shared_ptr<clt::Stream>
-impl::make_stream(std::shared_ptr<fractos::core::channel> ch,
+impl::make_stream(clt::Context& ctx,
+                  std::shared_ptr<fractos::core::channel> ch,
                   CUstream custream,
                   fractos::core::cap::request req_generic)
 {
     auto state = std::make_shared<impl::StreamState>();
+    state->ctx = impl::Context::get(ctx).state->self;
     state->req_generic = std::move(req_generic);
     state->custream = custream;
 
@@ -77,6 +81,14 @@ impl::StreamState::do_destroy(std::shared_ptr<core::channel>& ch)
         });
 }
 
+
+std::shared_ptr<clt::Context>
+clt::Stream::get_context() const
+{
+    auto& pimpl = impl::Stream::get(*this);
+
+    return pimpl.state->ctx.lock();
+}
 
 CUstream
 clt::Stream::get_stream() const

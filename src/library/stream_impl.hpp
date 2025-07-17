@@ -16,6 +16,7 @@ namespace impl {
         std::weak_ptr<clt::Stream> self;
         std::shared_ptr<fractos::core::channel> ch;
 
+        std::weak_ptr<clt::Context> ctx;
         fractos::core::cap::request req_generic;
         CUstream custream;
 
@@ -26,7 +27,8 @@ namespace impl {
     using Stream = fractos::common::service::ImplWrapper<clt::Stream, impl::StreamState>;
 
     std::shared_ptr<clt::Stream>
-    make_stream(std::shared_ptr<fractos::core::channel> ch,
+    make_stream(clt::Context& ctx,
+                std::shared_ptr<fractos::core::channel> ch,
                 CUstream custream,
                 fractos::core::cap::request req_generic);
 

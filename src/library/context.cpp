@@ -223,11 +223,12 @@ clt::Context::stream_create(CUstream_flags flags)
         .invoke(resp)
         .unwrap()
         .then_check_cuda_response()
-        .then([](auto& fut) {
+        .then([this, self](auto& fut) {
             auto [ch, args] = fut.get();
             CHECK_ARGS_EXACT();
 
             return impl::make_stream(
+                *this,
                 ch,
                 (CUstream)args->imms.custream.get(),
                 std::move(args->caps.generic));
