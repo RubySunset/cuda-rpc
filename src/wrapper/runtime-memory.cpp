@@ -46,6 +46,16 @@ cudaMalloc(void** devPtr, size_t size)
 
 extern "C" [[gnu::visibility("default")]]
 cudaError_t CUDARTAPI
+cudaMemGetInfo(size_t* free, size_t* total)
+{
+    auto& state = get_runtime_state();
+
+    auto err = (cudaError_t)cuMemGetInfo(free, total);
+    return_error(err);
+}
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
 cudaMemcpy(void *dst, const void *src, size_t count, enum cudaMemcpyKind kind)
 {
     auto& state = get_runtime_state();
@@ -69,14 +79,4 @@ cudaMemcpy(void *dst, const void *src, size_t count, enum cudaMemcpyKind kind)
     default:
         return_error(cudaErrorInvalidValue);
     }
-}
-
-extern "C" [[gnu::visibility("default")]]
-cudaError_t CUDARTAPI
-cudaMemGetInfo(size_t* free, size_t* total)
-{
-    auto& state = get_runtime_state();
-
-    auto err = (cudaError_t)cuMemGetInfo(free, total);
-    return_error(err);
 }

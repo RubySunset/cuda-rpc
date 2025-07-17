@@ -165,7 +165,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             mem_alloc(size_t size);
 
             // cuMemGetInfo (returns pair<free, total>)
-            core::future<std::pair<size_t, size_t>> mem_get_info() const;
+            [[nodiscard]] core::future<std::pair<size_t, size_t>>
+            mem_get_info() const;
 
 
             // cuStreamCreate()

@@ -51,6 +51,23 @@ cuMemFree_v2(CUdeviceptr dptr)
     return CUDA_SUCCESS;
 }
 
+extern "C" [[gnu::visibility("default")]]
+CUresult CUDAAPI
+cuMemGetInfo(size_t* free, size_t* total)
+{
+    auto& state = get_driver_state();
+
+    auto ctx_ptr = state.get_current_context();
+
+    try {
+        std::tie(*free, *total) = ctx_ptr->mem_get_info().get();
+    } catch (const srv::CudaError& e) {
+        return e.cuerror;
+    }
+
+    return CUDA_SUCCESS;
+}
+
 enum pointer_type {
     A,
     H,
@@ -150,21 +167,4 @@ CUresult CUDAAPI
 cuMemcpyHtoD_v2(CUdeviceptr dstDevice, const void* srcHost, size_t ByteCount)
 {
     return do_memcpy(std::make_pair(H, (CUdeviceptr)srcHost), std::make_pair(D, dstDevice), ByteCount);
-}
-
-extern "C" [[gnu::visibility("default")]]
-CUresult CUDAAPI
-cuMemGetInfo(size_t* free, size_t* total)
-{
-    auto& state = get_driver_state();
-
-    auto ctx_ptr = state.get_current_context();
-
-    try {
-        std::tie(*free, *total) = ctx_ptr->mem_get_info().get();
-    } catch (const srv::CudaError& e) {
-        return e.cuerror;
-    }
-
-    return CUDA_SUCCESS;
 }
