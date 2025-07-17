@@ -80,3 +80,30 @@ cudaMemcpy(void *dst, const void *src, size_t count, enum cudaMemcpyKind kind)
         return_error(cudaErrorInvalidValue);
     }
 }
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaMemcpyAsync(void *dst, const void *src, size_t count, enum cudaMemcpyKind kind, cudaStream_t stream)
+{
+    auto& state = get_runtime_state();
+
+    switch (kind) {
+    case cudaMemcpyHostToHost:
+        return_error((cudaError_t)cuMemcpyAsync((CUdeviceptr)dst, (CUdeviceptr)src, count, stream));
+        break;
+    case cudaMemcpyHostToDevice:
+        return_error((cudaError_t)cuMemcpyHtoDAsync((CUdeviceptr)dst, src, count, stream));
+        break;
+    case cudaMemcpyDeviceToHost:
+        return_error((cudaError_t)cuMemcpyDtoHAsync(dst, (CUdeviceptr)src, count, stream));
+        break;
+    case cudaMemcpyDeviceToDevice:
+        return((cudaError_t)cuMemcpyDtoDAsync((CUdeviceptr)dst, (CUdeviceptr)src, count, stream));
+        break;
+    case cudaMemcpyDefault:
+        return_error((cudaError_t)cuMemcpyAsync((CUdeviceptr)dst, (CUdeviceptr)src, count, stream));
+        break;
+    default:
+        return_error(cudaErrorInvalidValue);
+    }
+}
