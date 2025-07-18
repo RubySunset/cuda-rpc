@@ -124,6 +124,20 @@ impl::Service::get_device(CUdevice device)
 }
 
 void
+impl::Service::erase_device(std::shared_ptr<Device> dev)
+{
+    auto devices_lock = std::unique_lock(_devices_mutex);
+    {
+        auto res = _ordinal_devices.erase(dev->get_remote_cuordinal());
+        CHECK(res == 1);
+    }
+    {
+        auto res = _devices.erase(dev->get_remote_cudevice());
+        CHECK(res == 1);
+    }
+}
+
+void
 impl::Service::handle_connect(auto ch, auto args)
 {
     static const std::string method = "handle_connect";

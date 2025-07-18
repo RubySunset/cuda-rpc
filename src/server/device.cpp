@@ -361,6 +361,8 @@ impl::Device::handle_destroy(auto ch, auto args)
         return;
     }
 
+    service->erase_device(self);
+
     ch->revoke(self->_req_generic)
         .then([this, self, ch, args=std::move(args), error, cuerror](auto& fut) {
             fut.get();

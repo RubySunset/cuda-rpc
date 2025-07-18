@@ -25,6 +25,7 @@ namespace impl {
 
         fractos::core::future<std::shared_ptr<Device>> get_or_make_device_ordinal(auto ch, int ordinal);
         std::shared_ptr<Device> get_device(CUdevice device);
+        void erase_device(std::shared_ptr<Device> device);
 
         ~Service();
 
