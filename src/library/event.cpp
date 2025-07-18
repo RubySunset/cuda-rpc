@@ -23,10 +23,10 @@ template class fractos::common::service::CltBase<clt::Event>;
 std::shared_ptr<clt::Event>
 impl::make_event(std::shared_ptr<fractos::core::channel> ch,
                  CUevent cuevent,
-                 fractos::core::cap::request req_event_destroy)
+                 fractos::core::cap::request req_generic)
 {
     auto state = std::make_shared<impl::EventState>();
-    state->req_event_destroy = std::move(req_event_destroy);
+    state->req_generic = std::move(req_generic);
     state->cuevent = cuevent;
 
     return impl::Event::make(ch, state);
@@ -42,45 +42,17 @@ impl::EventState::do_destroy(std::shared_ptr<core::channel>& ch)
     auto self = this->self.lock();
 
     auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
-    return ch->make_request_builder<msg::request>(req_event_destroy)
+    return ch->make_request_builder<msg::request>(req_generic)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp)
         .unwrap()
-        .then_check_response_ptr(self)
+        .then_check_cuda_response()
         .then([self](auto& fut) {
             auto [ch, args] = fut.get();
             CHECK_ARGS_EXACT();
         });
 }
-
-
-// core::future<void> Event::synchronize() {
-//     using msg = ::service::compute::cuda::wire::Event::synchronize;
-
-//     DVLOG(logging::SERVICE) << "Event::synchronize <-";
-
-//     auto& pimpl = impl::Event::get(*this);
-
-//     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-//     return pimpl.ch->make_request_builder<msg::request>(pimpl.req_stream_sync)
-//         .set_cap(&msg::request::caps::continuation, resp)
-//         .on_channel()
-//         .invoke(resp) // wait for handle_sync
-//         .unwrap()
-//         .then([](auto& fut) {
-//             auto [ch, args] = fut.get();
-
-//             if (not args->has_exactly_args()) {
-//                 DVLOG(logging::SERVICE) << "Event::synchronize ->"
-//                                 << " error=OTHER args";
-//             }
-
-//             DVLOG(logging::SERVICE) << "Event::synchronize ->"
-//                                     << " error=" << wire::to_string((wire::error_type)args->imms.error.get());
-//             wire::error_raise_exception_maybe(args->imms.error);
-//         });
-// }
 
 
 std::string

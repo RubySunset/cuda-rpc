@@ -15,9 +15,9 @@ namespace impl {
 
     struct EventState : public fractos::common::service::ImplState {
         std::weak_ptr<clt::Event> self;
-        // fractos::core::cap::request req_event_sync;
-        fractos::core::cap::request req_event_destroy;
         CUevent cuevent;
+
+        fractos::core::cap::request req_generic;
 
         fractos::core::future<void>
         do_destroy(std::shared_ptr<fractos::core::channel>& ch);
@@ -28,7 +28,7 @@ namespace impl {
     std::shared_ptr<clt::Event>
     make_event(std::shared_ptr<fractos::core::channel> ch,
                CUevent cuevent,
-               fractos::core::cap::request req_event_destroy);
+               fractos::core::cap::request req_generic);
 
     std::string to_string(const Event& obj);
     std::string to_string(const EventState& obj);

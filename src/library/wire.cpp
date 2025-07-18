@@ -711,7 +711,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::event_create::
     print_imm_error(error);
     print_extra_imm_error();
 
-    print_cap(destroy);
+    print_cap(generic);
     print_extra_cap_error();
 
     return ss.str();
@@ -956,7 +956,8 @@ srv::wire::to_string(const core::receive_args<srv::wire::Event::destroy::request
 
     std::stringstream ss;
 
-    print_empty_imms();
+    print_imm_identity(opcode);
+    print_extra_imm_error();
 
     print_cap(continuation);
     print_extra_cap_error();
@@ -972,6 +973,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Event::destroy::respons
     std::stringstream ss;
 
     print_imm_error(error);
+    print_imm_cuerror(cuerror);
     print_extra_imm_error();
 
     print_empty_caps();

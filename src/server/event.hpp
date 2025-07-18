@@ -1,45 +1,39 @@
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <queue>
-#include <chrono>
+#include <cuda.h>
+#include <fractos/wire/error.hpp>
+#include <fractos/common/service/srv_base.hpp>
 #include <fractos/service/compute/cuda.hpp>
+#include <memory>
+#include <tuple>
 
 
 namespace impl {
+    class Context;
+}
 
-    class Event {
+namespace impl {
+
+    class Event : public fractos::common::service::SrvBase {
     public:
         CUevent get_remote_cuevent() const;
 
-        static std::shared_ptr<Event> factory(fractos::wire::endian::uint32_t flags,
-                                                  CUcontext& ctx);
+        CUevent cuevent;
+        std::shared_ptr<Context> ctx_ptr;
+        std::weak_ptr<Event> self;
+        std::shared_ptr<Event> self_active;
 
-        fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
-
-    protected:
-        // void handle_synchronize(auto args);
-        void handle_destroy(auto args);
-    
-    private:
-        // void stream_synchronize();  
-        void event_destroy();  
-        fractos::wire::endian::uint32_t _flags;
-        // fractos::wire::endian::uint32_t _id;
-
-        std::shared_ptr<Event> _self;
-        bool _destroyed;
-        CUcontext _ctx;
-        CUevent _event;
-
+        // NOTE: for internal use
     public:
-        // fractos::core::cap::request _req_sync;
-        fractos::core::cap::request _req_destroy;
-        Event(fractos::wire::endian::uint32_t flags, CUcontext& ctx);
+        fractos::core::cap::request req_generic;
 
-        ~Event();
-        // const CUstream& getCUEvent() const;
-
-        //std::vector<std::shared_ptr<gpu_device_memory>> allocations;
+        void handle_generic(auto ch, auto args);
+    protected:
+        void handle_destroy(auto ch, auto args);
     };
+
+    fractos::core::future<std::tuple<fractos::wire::error_type, CUresult, std::shared_ptr<Event>>>
+    make_event(std::shared_ptr<fractos::core::channel> ch,
+               std::shared_ptr<Context> ctx, unsigned int flags);
+
+    std::string to_string(const Event& obj);
 
 }

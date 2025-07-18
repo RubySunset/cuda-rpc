@@ -495,34 +495,30 @@ impl::Context::handle_event_create(auto ch, auto args)
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT(reqb_cont);
 
-    CUevent_flags flags = (CUevent_flags)args->imms.flags.get();
-
     auto self = this->_self;
     DCHECK(self);
-    auto error = wire::ERR_SUCCESS;
-    auto cuerror = CUDA_SUCCESS;
+    CUevent_flags flags = (CUevent_flags)args->imms.flags.get();
 
-    auto event = std::shared_ptr<Event>(Event::factory(flags, _ctx));
+    make_event(ch, self, flags)
+        .then([this, self, ch, args=std::move(args)](auto& fut) {
+            auto [error, cuerror, res] = fut.get();
 
-    event->register_methods(ch)
-        .then([this, self, ch, args=std::move(args), error, cuerror, event](auto& fut) {
-            fut.get();
-
-            _event = event;
-
-            auto cuevent = event->get_remote_cuevent();
+            CUevent cuevent = 0;
+            if (not error and not cuerror) {
+                cuevent = res->get_remote_cuevent();
+            }
 
             LOG_RES(method)
                 << " error=" << wire::to_string(error)
                 << " cuerror=" << get_CUresult_name(cuerror)
-                << " cuevent=" << (void*)cuevent;
-                ;
+                << " cuevent=" << (void*)cuevent
+                << " req_generic=" << core::to_string(res->req_generic);
 
             ch->template make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, error)
                 .set_imm(&msg::response::imms::cuerror, cuerror)
                 .set_imm(&msg::response::imms::cuevent, (uint64_t)cuevent)
-                .set_cap(&msg::response::caps::destroy, event->_req_destroy)
+                .set_cap(&msg::response::caps::generic, res->req_generic)
                 .on_channel()
                 .invoke()
                 .as_callback();
