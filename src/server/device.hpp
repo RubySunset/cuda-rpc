@@ -12,6 +12,7 @@ using namespace fractos;
 
 
 namespace impl {
+    class Service;
     class Context;
 }
 
@@ -19,12 +20,23 @@ namespace impl {
 
     class Device : public fractos::common::service::SrvBase {
     public:
-        const CUdevice device;
-        std::weak_ptr<Context> ctx_ptr;
+        int get_remote_cuordinal() const;
+        CUdevice get_remote_cudevice() const;
+
+        CUdevice cudevice;
+        std::shared_ptr<Service> service;
         std::weak_ptr<Device> self;
 
-    protected:
+        // TODO: delete
+        std::weak_ptr<Context> ctx;
+
+        // NOTE: for internal use
+    public:
+        int _remote_cuordinal;
+        fractos::core::cap::request _req_generic;
+
         void handle_generic(auto ch, auto args);
+    protected:
         void handle_get_attribute(auto ch, auto args);
         void handle_get_name(auto ch, auto args);
         void handle_get_uuid(auto ch, auto args);
@@ -32,18 +44,12 @@ namespace impl {
         void handle_get_properties(auto ch, auto args);
         void handle_ctx_create(auto ch, auto args);
         void handle_destroy(auto ch, auto args);
-
-    public:
-        fractos::core::cap::request req_generic;
-
-    public:
-        // NOTE: for internal use
-        Device(int ordinal);
-        ~Device();
-        fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
     };
 
-    std::pair<CUresult, std::shared_ptr<Device>> make_device(int ordinal);
+    fractos::core::future<std::tuple<fractos::wire::error_type, CUresult, std::shared_ptr<Device>>>
+    make_device(std::shared_ptr<fractos::core::channel> ch,
+                std::shared_ptr<Service> service,
+                int cuordinal);
 
     std::string to_string(const Device& obj);
 

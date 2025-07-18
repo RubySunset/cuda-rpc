@@ -1,12 +1,14 @@
 #include <cuda_runtime.h>
-#include <pthread.h>
-#include <glog/logging.h>
 #include <fractos/common/service/srv_impl.hpp>
+#include <fractos/core/error.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
+#include <glog/logging.h>
+#include <pthread.h>
 
 #include "./common.hpp"
+#include "./service.hpp"
 #include "./device.hpp"
 #include "./context.hpp"
 
@@ -17,50 +19,74 @@ namespace srv_wire_msg = srv_wire::Device;
 using namespace fractos;
 
 
-std::pair<CUresult, std::shared_ptr<impl::Device>>
-impl::make_device(int ordinal)
+std::string
+impl::to_string(const Device& obj)
 {
+    std::stringstream ss;
+    ss << "Device(" << obj.get_remote_cudevice() << ")";
+    return ss.str();
+}
+
+
+core::future<std::tuple<wire::error_type, CUresult, std::shared_ptr<impl::Device>>>
+impl::make_device(std::shared_ptr<fractos::core::channel> ch,
+                  std::shared_ptr<Service> service,
+                  int cuordinal)
+{
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
     std::shared_ptr<Device> res;
 
-    CUdevice device;
-    auto cuerr = cuDeviceGet(&device, ordinal);
+    CUdevice cudevice;
+    auto cuerr = cuDeviceGet(&cudevice, cuordinal);
     if (cuerr != CUDA_SUCCESS) {
-        return std::make_pair(cuerr, res);
+        return core::make_ready_future(std::make_tuple(error, cuerror, res));
     }
 
-    res = std::make_shared<Device>(device);
+    res = std::make_shared<Device>();
+    res->_remote_cuordinal = cuordinal;
+    res->cudevice = cudevice;
+    res->service = service;
     res->self = res;
-    return std::make_pair(cuerr, res);
-}
 
-impl::Device::Device(CUdevice device)
-    :device(device)
-{
-}
-
-impl::Device::~Device()
-{
-}
-
-core::future<void>
-impl::Device::register_methods(std::shared_ptr<core::channel> ch)
-{
-    namespace msg_base = ::service::compute::cuda::wire::Device;
-
-
-    auto self = this->self.lock();
-
-    return ch->make_request_builder<msg_base::generic::request>(
+    return ch->make_request_builder<srv_wire_msg::generic::request>(
         ch->get_default_endpoint(),
-        [self](auto ch, auto args) {
-            self->handle_generic(ch, std::move(args));
+        [res](auto ch, auto args) {
+            res->handle_generic(ch, std::move(args));
         })
         .on_channel()
         .make_request()
-        .then([self](auto& fut) {
-            self->req_generic = fut.get();
+        .then([res](auto& fut) {
+            res->_req_generic = fut.get();
+        })
+        .then([error, cuerror, res](auto& fut) mutable {
+            try {
+                fut.get();
+            } catch (const core::generic_error& e) {
+                error = (wire::error_type)e.error;
+            }
+
+            if (error or cuerror) {
+                LOG(FATAL) << "TODO: undo Device and return error";
+            }
+
+            return std::make_tuple(error, cuerror, res);
         });
 }
+
+
+int
+impl::Device::get_remote_cuordinal() const
+{
+    return _remote_cuordinal;
+}
+
+CUdevice
+impl::Device::get_remote_cudevice() const
+{
+    return (CUdevice)get_remote_cuordinal();
+}
+
 
 void
 impl::Device::handle_generic(auto ch, auto args)
@@ -124,7 +150,7 @@ impl::Device::handle_get_attribute(auto ch, auto args)
 
     int pi;
     auto attrib = (CUdevice_attribute)args->imms.attrib.get();
-    auto res = cuDeviceGetAttribute(&pi, attrib, device);
+    auto res = cuDeviceGetAttribute(&pi, attrib, cudevice);
 
     auto error = wire::ERR_SUCCESS;
     if (res != CUDA_SUCCESS) {
@@ -154,7 +180,7 @@ impl::Device::handle_get_name(auto ch, auto args)
 
     size_t name_len = 512;
     char name[name_len];
-    auto res = cuDeviceGetName(name, name_len, device);
+    auto res = cuDeviceGetName(name, name_len, cudevice);
     name_len = strlen(name);
 
     auto error = wire::ERR_SUCCESS;
@@ -187,7 +213,7 @@ impl::Device::handle_get_uuid(auto ch, auto args)
 
     static_assert(sizeof(CUuuid) == sizeof(msg::response::imms::uuid));
     CUuuid uuid;
-    auto res = cuDeviceGetUuid(&uuid, device);
+    auto res = cuDeviceGetUuid(&uuid, cudevice);
 
     auto error = wire::ERR_SUCCESS;
     if (res != CUDA_SUCCESS) {
@@ -216,7 +242,7 @@ impl::Device::handle_total_mem(auto ch, auto args)
     CHECK_ARGS_EXACT(reqb_cont);
 
     size_t bytes;
-    auto res = cuDeviceTotalMem(&bytes, device);
+    auto res = cuDeviceTotalMem(&bytes, cudevice);
 
     auto error = wire::ERR_SUCCESS;
     if (res != CUDA_SUCCESS) {
@@ -251,7 +277,7 @@ impl::Device::handle_get_properties(auto ch, auto args)
     auto cuerror = CUDA_SUCCESS;
 
     cudaDeviceProp prop;
-    cuerror = (CUresult)cudaGetDeviceProperties(&prop, device);
+    cuerror = (CUresult)cudaGetDeviceProperties(&prop, cudevice);
 
     LOG_RES(method)
         << " error=" << wire::to_string(error)
@@ -283,23 +309,23 @@ impl::Device::handle_ctx_create(auto ch, auto args)
 
     unsigned int flags = args->imms.flags;
 
-    auto ctx_ptr = impl::Context::factory(flags, device);
+    auto ctx = impl::Context::factory(flags, cudevice);
 
     LOG_RES(method)
         << " error=" << wire::to_string(error)
         << " cuerror=" << cudaGetErrorString((cudaError)cuerror)
-        << " ctx_ptr=" << to_string(*ctx_ptr);
+        << " ctx=" << to_string(*ctx);
 
-    ctx_ptr->register_methods(ch)
-        .then([this, ch, args=std::move(args), self, ctx_ptr, error, cuerror](auto& fut) {
+    ctx->register_methods(ch)
+        .then([this, ch, args=std::move(args), self, ctx, error, cuerror](auto& fut) {
             fut.get();
-            self->ctx_ptr = ctx_ptr;
+            self->ctx = ctx;
             ch->template make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, error)
                 .set_imm(&msg::response::imms::cuerror, cuerror)
-                .set_cap(&msg::response::caps::generic, ctx_ptr->_req_generic)
-                .set_cap(&msg::response::caps::synchronize, ctx_ptr->_req_synchronize)
-                .set_cap(&msg::response::caps::destroy, ctx_ptr->_req_destroy)
+                .set_cap(&msg::response::caps::generic, ctx->_req_generic)
+                .set_cap(&msg::response::caps::synchronize, ctx->_req_synchronize)
+                .set_cap(&msg::response::caps::destroy, ctx->_req_destroy)
                 .on_channel()
                 .invoke()
                 .as_callback();
@@ -317,6 +343,7 @@ impl::Device::handle_destroy(auto ch, auto args)
     CHECK_ARGS_EXACT(reqb_cont);
 
     auto self = this->self.lock();
+    CHECK(self);
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
 
@@ -334,8 +361,8 @@ impl::Device::handle_destroy(auto ch, auto args)
         return;
     }
 
-    ch->revoke(self->req_generic)
-        .then([this, ch, args=std::move(args), self, error, cuerror](auto& fut) {
+    ch->revoke(self->_req_generic)
+        .then([this, self, ch, args=std::move(args), error, cuerror](auto& fut) {
             fut.get();
 
             LOG_RES(method)
@@ -350,12 +377,4 @@ impl::Device::handle_destroy(auto ch, auto args)
                 .as_callback();
         })
     .as_callback();
-}
-
-std::string
-impl::to_string(const Device& obj)
-{
-    std::stringstream ss;
-    ss << "Device(" << &obj << ")";
-    return ss.str();
 }

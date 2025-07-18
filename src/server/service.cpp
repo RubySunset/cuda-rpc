@@ -86,25 +86,25 @@ impl::Service::get_or_make_device_ordinal(auto ch, int ordinal)
         }
     }
 
-    auto [cuerr, dev] = make_device(ordinal);
-    if (cuerr != CUDA_SUCCESS) {
-        return core::make_ready_future(nullptr);
-    }
+    auto self = _self.lock();
+    CHECK(self);
 
-    return dev->register_methods(ch)
-        .then([this, self=_self.lock(), dev, ordinal](auto& fut) {
-            fut.get();
+    return make_device(ch, self, ordinal)
+        .then([this, self](auto& fut) {
+            auto [error, cuerror, dev] = fut.get();
+            auto cuordinal = dev->get_remote_cuordinal();
+            auto cudevice = dev->get_remote_cudevice();
 
             auto devices_lock = std::unique_lock(_devices_mutex);
 
-            auto res1 = _ordinal_devices.insert(std::make_pair(ordinal, dev));
+            auto res1 = _ordinal_devices.insert(std::make_pair(cuordinal, dev));
             if (not res1.second) {
-                auto it = _ordinal_devices.find(ordinal);
+                auto it = _ordinal_devices.find(cuordinal);
                 CHECK(it != _ordinal_devices.end());
                 return it->second;
             }
 
-            auto res2 = _devices.insert(std::make_pair(dev->device, dev));
+            auto res2 = _devices.insert(std::make_pair(cudevice, dev));
             CHECK(res2.second);
 
             return dev;
@@ -293,30 +293,30 @@ impl::Service::handle_device_get(auto ch, auto args)
             auto dev = fut.get();
 
             auto error = wire::ERR_SUCCESS;
-            CUdevice device;
+            CUdevice cudevice;
             auto req = ch->template make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, error);
 
             if (dev) {
-                device = dev->device;
+                cudevice = dev->get_remote_cudevice();
                 LOG_RES(method)
                     << " error=" << wire::to_string(error)
-                    << " device=" << device
-                    << " generic=" << core::to_string(dev->req_generic);
+                    << " cudevice=" << cudevice
+                    << " generic=" << core::to_string(dev->_req_generic);
                 req
-                    .set_cap(&msg::response::caps::generic, dev->req_generic);
+                    .set_cap(&msg::response::caps::generic, dev->_req_generic);
             } else {
-                device = -1;
+                cudevice = -1;
                 LOG_RES(method)
                     << " error=" << wire::to_string(error)
-                    << " device=" << device;
+                    << " cudevice=" << cudevice;
                 core::cap::request null(core::cap::null_cid);
                 req
                     .set_cap(&msg::response::caps::generic, null);
             }
 
             req
-                .set_imm(&msg::response::imms::device, device)
+                .set_imm(&msg::response::imms::device, cudevice)
                 .on_channel()
                 .invoke()
                 .as_callback_log_ignore_continuation_error();
