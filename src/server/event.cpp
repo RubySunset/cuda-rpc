@@ -30,7 +30,6 @@ fractos::core::future<std::tuple<wire::error_type, CUresult, std::shared_ptr<imp
 impl::make_event(std::shared_ptr<fractos::core::channel> ch,
                  std::shared_ptr<Context> ctx, unsigned int flags)
 {
-
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
     std::shared_ptr<Event> res;
@@ -156,8 +155,9 @@ impl::Event::handle_destroy(auto ch, auto args)
             }
 
             out_inner:
-            ctx_ptr.reset();
-            self_active.reset();
+
+            this->ctx_ptr.reset();
+            this->self.reset();
 
             LOG_RES(method)
                 << " error=" << wire::to_string(error)

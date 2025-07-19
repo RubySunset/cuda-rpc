@@ -18,8 +18,7 @@ namespace impl {
 
         CUevent cuevent;
         std::shared_ptr<Context> ctx_ptr;
-        std::weak_ptr<Event> self;
-        std::shared_ptr<Event> self_active;
+        std::shared_ptr<Event> self;
 
         // NOTE: for internal use
     public:
