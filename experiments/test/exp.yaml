@@ -15,6 +15,11 @@ experiment-info:
   done-file: {{DONE}}
 
 experiment:
+  - name: time-padding
+    node: *node
+    run-program:
+      type: uplane
+      command: sleep 2s
   - name: manager
     node: *node
     run-program: *run-program-fractos-manager
