@@ -27,9 +27,6 @@ namespace impl {
         std::shared_ptr<Service> service;
         std::weak_ptr<Device> self;
 
-        // TODO: delete
-        std::weak_ptr<Context> ctx;
-
         // NOTE: for internal use
     public:
         int _remote_cuordinal;
