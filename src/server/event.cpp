@@ -7,6 +7,8 @@
 #include <pthread.h>
 
 #include "./common.hpp"
+#include "./service.hpp"
+#include "./device.hpp"
 #include "./context.hpp"
 #include "./event.hpp"
 
@@ -71,6 +73,9 @@ impl::make_event(std::shared_ptr<fractos::core::channel> ch,
             } else {
                 res->self = res;
             }
+
+            res->ctx_ptr->insert_event(res);
+            res->ctx_ptr->device->service->insert_event(res);
 
             return std::make_tuple(error, cuerror, res);
         });
@@ -156,6 +161,8 @@ impl::Event::handle_destroy(auto ch, auto args)
 
             out_inner:
 
+            ctx_ptr->erase_event(self);
+            ctx_ptr->device->service->erase_event(self);
             this->ctx_ptr.reset();
             this->self.reset();
 

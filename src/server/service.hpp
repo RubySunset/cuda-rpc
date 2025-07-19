@@ -6,6 +6,7 @@
 
 namespace impl {
     class Device;
+    class Event;
 }
 
 namespace impl {
@@ -27,7 +28,9 @@ namespace impl {
         std::shared_ptr<Device> get_device(CUdevice device);
         void erase_device(std::shared_ptr<Device> device);
 
-        ~Service();
+        std::shared_ptr<Event> get_event(CUevent cuevent);
+        void insert_event(std::shared_ptr<Event> event);
+        void erase_event(std::shared_ptr<Event> event);
 
     protected:
         void handle_connect(auto ch, auto args);
@@ -47,6 +50,9 @@ namespace impl {
         std::shared_mutex _devices_mutex;
         std::unordered_map<int, std::shared_ptr<Device>> _ordinal_devices;
         std::unordered_map<CUdevice, std::shared_ptr<Device>> _devices;
+
+        std::shared_mutex _events_mutex;
+        std::unordered_map<CUevent, std::shared_ptr<Event>> _events;
 
         std::shared_ptr<fractos::core::channel> ch;
         std::weak_ptr<Service> _self;

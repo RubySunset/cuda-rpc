@@ -29,7 +29,6 @@ namespace impl {
         void insert_stream(std::shared_ptr<Stream> stream);
         void erase_stream(std::shared_ptr<Stream> stream);
 
-        std::shared_ptr<Event> get_event(CUevent event);
         void insert_event(std::shared_ptr<Event> event);
         void erase_event(std::shared_ptr<Event> event);
 
@@ -40,6 +39,9 @@ namespace impl {
     private:
         std::mutex _stream_map_mutex;
         std::unordered_map<CUstream, std::shared_ptr<Stream>> _stream_map;
+
+        std::mutex _event_map_mutex;
+        std::unordered_map<CUevent, std::shared_ptr<Event>> _event_map;
 
         // NOTE: for internal use
     public:

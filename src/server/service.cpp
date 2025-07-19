@@ -7,6 +7,7 @@
 
 #include "./service.hpp"
 #include "./device.hpp"
+#include "./event.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
@@ -35,10 +36,6 @@ std::shared_ptr<impl::Service> impl::Service::factory() {
     return res;
 }
 
-impl::Service::~Service() {
-
-
-}
 /*
  *  The handler for make_device request
  *  Registers all methods that a Device has
@@ -136,6 +133,33 @@ impl::Service::erase_device(std::shared_ptr<Device> dev)
         CHECK(res == 1);
     }
 }
+
+std::shared_ptr<impl::Event>
+impl::Service::get_event(CUevent cuevent)
+{
+    auto lock = std::shared_lock(_events_mutex);
+    auto it = _events.find(cuevent);
+    if (it != _events.end()) {
+        return it->second;
+    } else {
+        return nullptr;
+    }
+}
+
+void
+impl::Service::insert_event(std::shared_ptr<Event> event)
+{
+    auto lock = std::unique_lock(_events_mutex);
+    CHECK(_events.insert({event->cuevent, event}).second);
+}
+
+void
+impl::Service::erase_event(std::shared_ptr<Event> event)
+{
+    auto lock = std::unique_lock(_events_mutex);
+    CHECK(_events.erase(event->cuevent) == 1);
+}
+
 
 void
 impl::Service::handle_connect(auto ch, auto args)
