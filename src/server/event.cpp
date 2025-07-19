@@ -35,7 +35,7 @@ impl::make_event(std::shared_ptr<fractos::core::channel> ch,
     auto cuerror = CUDA_SUCCESS;
     std::shared_ptr<Event> res;
 
-    cuerror = cuCtxSetCurrent(ctx->_ctx);
+    cuerror = cuCtxSetCurrent(ctx->cucontext);
     if (cuerror != CUDA_SUCCESS) {
         return core::make_ready_future(std::make_tuple(error, cuerror, res));
     }
@@ -145,7 +145,7 @@ impl::Event::handle_destroy(auto ch, auto args)
         .then([ch, this, self, args=std::move(args), error, cuerror](auto& fut) mutable {
             fut.get();
 
-            cuerror = cuCtxSetCurrent(ctx_ptr->_ctx);
+            cuerror = cuCtxSetCurrent(ctx_ptr->cucontext);
             if (cuerror != CUDA_SUCCESS) {
                 goto out_inner;
             }

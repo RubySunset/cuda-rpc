@@ -23,8 +23,6 @@ namespace impl {
         std::weak_ptr<clt::Device> device;
 
         fractos::core::cap::request req_generic;
-        fractos::core::cap::request req_ctx_sync;
-        fractos::core::cap::request req_ctx_destroy;
 
         // an opaque data structure in libcuda
         std::unique_ptr<char[]> context_ptr;
@@ -45,9 +43,7 @@ namespace impl {
     std::shared_ptr<clt::Context>
     make_context(std::shared_ptr<fractos::core::channel> ch,
                  std::shared_ptr<clt::Device> device,
-                 fractos::core::cap::request req_generic,
-                 fractos::core::cap::request req_ctx_sync,
-                 fractos::core::cap::request req_ctx_destroy);
+                 fractos::core::cap::request req_generic);
 
     std::string to_string(const Context& obj);
     std::string to_string(const ContextState& obj);

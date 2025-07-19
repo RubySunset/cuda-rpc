@@ -30,15 +30,11 @@ template class fractos::common::service::CltBase<clt::Context>;
 std::shared_ptr<clt::Context>
 impl::make_context(std::shared_ptr<fractos::core::channel> ch,
                    std::shared_ptr<clt::Device> device,
-                   fractos::core::cap::request req_generic,
-                   fractos::core::cap::request req_ctx_sync,
-                   fractos::core::cap::request req_ctx_destroy)
+                   fractos::core::cap::request req_generic)
 {
     auto state = std::make_shared<impl::ContextState>();
     state->device = device;
     state->req_generic = std::move(req_generic);
-    state->req_ctx_sync = std::move(req_ctx_sync);
-    state->req_ctx_destroy = std::move(req_ctx_destroy);
     state->context_ptr = std::unique_ptr<char[]>(new char[512]);
     state->context = (CUcontext)state->context_ptr.get();
 
@@ -55,12 +51,13 @@ impl::ContextState::do_destroy(std::shared_ptr<core::channel>& ch)
     auto self = this->self.lock();
 
     auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
-    return ch->make_request_builder<msg::request>(req_ctx_destroy)
+    return ch->make_request_builder<msg::request>(req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_DESTROY)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp)
         .unwrap()
-        .then_check_response_ptr(self)
+        .then_check_cuda_response()
         .then([self](auto& fut) {
             auto [ch, args] = fut.get();
             CHECK_ARGS_EXACT();
@@ -475,13 +472,14 @@ clt::Context::synchronize()
     auto self = pimpl.state->self.lock();
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_ctx_sync)
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_SYNCHRONIZE)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp)
         .unwrap()
-        .then_check_response()
-        .then([](auto& fut) {
+        .then_check_cuda_response()
+        .then([self](auto& fut) {
             auto [ch, args] = fut.get();
             CHECK_ARGS_EXACT();
         });

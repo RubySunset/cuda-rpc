@@ -24,7 +24,7 @@ impl::make_function(std::shared_ptr<impl::Context> ctx_ptr, CUmodule mod, const 
 {
     std::shared_ptr<Function> res;
 
-    auto error = cuCtxSetCurrent(ctx_ptr->_ctx);
+    auto error = cuCtxSetCurrent(ctx_ptr->cucontext);
     if (error != CUDA_SUCCESS) {
         return std::make_pair(error, res);
     }
@@ -161,7 +161,7 @@ impl::Function::handle_launch(auto ch, auto args)
 
     auto ctx_ptr = this->ctx_ptr.lock();
     CHECK(ctx_ptr);
-    cuerror = cuCtxSetCurrent(ctx_ptr->_ctx);
+    cuerror = cuCtxSetCurrent(ctx_ptr->cucontext);
     if (cuerror != CUDA_SUCCESS) {
         goto out;
     }

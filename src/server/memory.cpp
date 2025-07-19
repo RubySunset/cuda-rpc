@@ -26,7 +26,7 @@ impl::make_memory(std::shared_ptr<core::channel> ch, std::shared_ptr<Context> ct
     auto cuerror = CUDA_SUCCESS;
     std::shared_ptr<Memory> res;
 
-    cuerror = cuCtxSetCurrent(ctx->_ctx);
+    cuerror = cuCtxSetCurrent(ctx->cucontext);
     if (cuerror != CUDA_SUCCESS) {
         return core::make_ready_future(std::make_tuple(error, cuerror, res));
     }
@@ -154,7 +154,7 @@ impl::Memory::handle_destroy(auto ch, auto args)
                 goto out_inner;
             }
 
-            cuerror = cuCtxSetCurrent(ctx->_ctx);
+            cuerror = cuCtxSetCurrent(ctx->cucontext);
             if (cuerror != CUDA_SUCCESS) {
                 goto out_inner;
             }

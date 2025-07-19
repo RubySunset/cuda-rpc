@@ -341,7 +341,7 @@ namespace fractos::service::compute::cuda::wire {
             struct request {
                 struct imms {
                     fractos::wire::endian::uint64_t opcode;
-                    fractos::wire::endian::uint32_t flags; // unsigned int
+                    fractos::wire::endian::uint32_t flags;
                 } __attribute__((packed));
                 struct caps {
                     fractos::core::cap::request continuation;
@@ -351,11 +351,10 @@ namespace fractos::service::compute::cuda::wire {
                 struct imms {
                     fractos::wire::endian::uint8_t error;
                     fractos::wire::endian::uint64_t cuerror;
+                    fractos::wire::endian::uint64_t cucontext;
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::request generic;
-                    fractos::core::cap::request synchronize;
-                    fractos::core::cap::request destroy;
                 };
             };
         };
@@ -390,7 +389,6 @@ namespace fractos::service::compute::cuda::wire {
 
 
     namespace Context {
-
         enum generic_opcode : uint64_t {
             OP_GET_API_VERSION,
             OP_GET_LIMIT,
@@ -400,11 +398,11 @@ namespace fractos::service::compute::cuda::wire {
             OP_MEMSET,
             OP_STREAM_CREATE,
             OP_EVENT_CREATE,
+            OP_SYNCHRONIZE,
+            OP_DESTROY,
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
-
         using generic = wire::generic;
-
     }
 
     namespace Context {
@@ -628,6 +626,7 @@ namespace fractos::service::compute::cuda::wire {
         struct synchronize {
             struct request {
                 struct imms {
+                    fractos::wire::endian::uint64_t opcode;
                 } __attribute__((packed));
                 struct caps {
                     fractos::core::cap::request continuation;
@@ -636,6 +635,7 @@ namespace fractos::service::compute::cuda::wire {
             struct response {
                 struct imms {
                     fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
                 } __attribute__ ((packed));
                 struct caps {
                 };
@@ -650,6 +650,7 @@ namespace fractos::service::compute::cuda::wire {
         struct destroy {
             struct request {
                 struct imms {
+                    fractos::wire::endian::uint64_t opcode;
                 } __attribute__((packed));
                 struct caps {
                     fractos::core::cap::request continuation;
@@ -658,6 +659,7 @@ namespace fractos::service::compute::cuda::wire {
             struct response {
                 struct imms {
                     fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
                 } __attribute__ ((packed));
                 struct caps {
                 };

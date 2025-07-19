@@ -1,4 +1,5 @@
 #include <fractos/common/service/srv_impl.hpp>
+#include <fractos/core/error.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
@@ -7,6 +8,7 @@
 #include <pthread.h>
 
 #include "./common.hpp"
+#include "./device.hpp"
 #include "./context.hpp"
 #include "./stream.hpp"
 #include "./event.hpp"
@@ -20,25 +22,64 @@ namespace srv_wire_msg = srv_wire::Context;
 using namespace fractos;
 
 
-impl::Context::Context(fractos::wire::endian::uint32_t value, CUdevice device) {
-    //fork();
-    _id = value;
-    _destroyed = false;   
-
-    CUcontext ctx;
-    checkCudaErrors(cuCtxCreate(&ctx, CU_CTX_SCHED_AUTO, device)); //(unsigned int)value)); // 
-    _ctx = ctx;
+std::string
+impl::to_string(const Context& obj)
+{
+    std::stringstream ss;
+    ss << "Context(" << obj.get_remote_cucontext() << ")";
+    return ss.str();
 }
 
-std::shared_ptr<impl::Context> impl::Context::factory(fractos::wire::endian::uint32_t value, CUdevice device){
 
-    auto res = std::shared_ptr<Context>(new Context(value, device));
-    res->_self = res;
-    return res;
+core::future<std::tuple<wire::error_type, CUresult, std::shared_ptr<impl::Context>>>
+impl::make_context(std::shared_ptr<fractos::core::channel> ch,
+                   std::shared_ptr<Device> device,
+                   unsigned int flags)
+{
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+    std::shared_ptr<Context> res;
+
+    CUcontext cucontext;
+    cuerror = cuCtxCreate(&cucontext, flags, device->cudevice);
+    if (cuerror != CUDA_SUCCESS) {
+        return core::make_ready_future(std::make_tuple(error, cuerror, res));
+    }
+
+    res = std::make_shared<Context>();
+    res->cucontext = cucontext;
+    res->device = device;
+    res->self = res;
+
+    return ch->make_request_builder<srv_wire_msg::generic::request>(
+        ch->get_default_endpoint(),
+        [self=res](auto ch, auto args) {
+            self->handle_generic(ch, std::move(args));
+        })
+        .on_channel()
+        .make_request()
+        .then([self=res](auto& fut) {
+            self->_req_generic = fut.get();
+        })
+        .then([error, cuerror, res](auto& fut) mutable {
+            try {
+                fut.get();
+            } catch (const core::generic_error& e) {
+                error = (wire::error_type)e.error;
+            }
+
+            if (error or cuerror) {
+                LOG(FATAL) << "TODO: undo Context and return error";
+            }
+
+            return std::make_tuple(error, cuerror, res);
+        });
 }
 
-impl::Context::~Context() {
-    checkCudaErrors(cuCtxDestroy(_ctx));
+CUcontext
+impl::Context::get_remote_cucontext() const
+{
+    return (CUcontext)this;
 }
 
 std::shared_ptr<impl::Stream>
@@ -67,66 +108,6 @@ impl::Context::erase_stream(std::shared_ptr<Stream> stream)
     CHECK(_stream_map.erase(stream->custream) == 1);
 }
 
-
-
-void impl::Context::context_synchronize() {
-    checkCudaErrors(cuCtxSetCurrent(_ctx));
-    checkCudaErrors(cuCtxSynchronize());
-}
-
-void impl::Context::context_destroy(CUcontext& context) {
-    checkCudaErrors(cuCtxDestroy(context));
-}
-
-
-
-/*
- *  Make handlers for a Context's caps
- */
-core::future<void> impl::Context::register_methods(std::shared_ptr<core::channel> ch)
-{
-    namespace msg_base = ::service::compute::cuda::wire::Context;
-
-    auto self = _self;
-
-
-    return ch->make_request_builder<msg_base::generic::request>(
-        ch->get_default_endpoint(),
-        [self](auto ch, auto args) {
-            self->handle_generic(ch, std::move(args));
-        })
-        .on_channel()
-        .make_request()
-        .then([ch, self](auto& fut) {
-            self->_req_generic = fut.get();
-            return ch->make_request_builder<msg_base::synchronize::request>(
-                ch->get_default_endpoint(), 
-                [self](auto ch, auto args) {
-                    
-                    self->handle_synchronize(std::move(args));
-                })
-                .on_channel()
-                .make_request();
-            })
-        .unwrap()
-        .then([ch, self](auto& fut) {
-            self->_req_synchronize = fut.get();
-            VLOG(fractos::logging::SERVICE) << "SET req_synchronize"; 
-            return ch->make_request_builder<msg_base::destroy::request>(
-                ch->get_default_endpoint(), 
-                [self](auto ch, auto args) {
-                    
-                    self->handle_destroy(std::move(args));
-                })
-                .on_channel()
-                .make_request();
-            })
-        .unwrap()
-        .then([ch, self, this](auto& fut) {
-            VLOG(fractos::logging::SERVICE) << "SET req_destroy context";
-            self->_req_destroy = fut.get();
-        });
-}
 
 void
 impl::Context::handle_generic(auto ch, auto args)
@@ -158,6 +139,8 @@ impl::Context::handle_generic(auto ch, auto args)
     CASE_HANDLE(MEMSET, memset);
     CASE_HANDLE(STREAM_CREATE, stream_create);
     CASE_HANDLE(EVENT_CREATE, event_create);
+    CASE_HANDLE(SYNCHRONIZE, synchronize);
+    CASE_HANDLE(DESTROY, destroy);
     default:
         LOG_OP(method)
             << " [error] invalid opcode";
@@ -182,7 +165,7 @@ impl::Context::handle_get_api_version(auto ch, auto args)
     CHECK_ARGS_EXACT(reqb_cont);
 
     unsigned int version;
-    auto res = cuCtxGetApiVersion(_ctx, &version);
+    auto res = cuCtxGetApiVersion(cucontext, &version);
 
     auto error = wire::ERR_SUCCESS;
     if (res != CUDA_SUCCESS) {
@@ -216,7 +199,7 @@ impl::Context::handle_get_limit(auto ch, auto args)
     auto cuerr = CUDA_SUCCESS;
     size_t value = 0;
 
-    cuerr = cuCtxSetCurrent(_ctx);
+    cuerr = cuCtxSetCurrent(cucontext);
     if (cuerr != CUDA_SUCCESS) {
         goto out;
     }
@@ -249,8 +232,7 @@ impl::Context::handle_mem_alloc(auto ch, auto args)
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT(reqb_cont);
 
-    auto self = this->_self;
-    CHECK(self);
+    auto self = this->self;
     size_t size = args->imms.size.get();
 
     make_memory(ch, self, size)
@@ -286,14 +268,12 @@ impl::Context::handle_mem_get_info(auto ch, auto args)
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT(reqb_cont);
 
-    auto self = this->_self;
-    CHECK(self);
-
+    auto self = this->self;
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
     size_t free = 0, total = 0;
 
-    cuerror = cuCtxSetCurrent(self->_ctx);
+    cuerror = cuCtxSetCurrent(cucontext);
     if (cuerror != CUDA_SUCCESS) {
         goto out;
     }
@@ -337,9 +317,7 @@ impl::Context::handle_memset(auto ch, auto args)
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT(reqb_cont);
 
-    auto self = this->_self;
-    CHECK(self);
-
+    auto self = this->self;
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
     auto addr = (CUdeviceptr)args->imms.addr;
@@ -350,7 +328,7 @@ impl::Context::handle_memset(auto ch, auto args)
 
     if (custream_arg == 0) {
         custream = custream_arg;
-        cuerror = cuCtxSetCurrent(self->_ctx);
+        cuerror = cuCtxSetCurrent(cucontext);
         if (cuerror != CUDA_SUCCESS) {
             goto out;
         }
@@ -435,12 +413,11 @@ impl::Context::handle_stream_create(auto ch, auto args)
 
     CUstream_flags flags = (CUstream_flags)args->imms.flags.get();
 
-    auto self = this->_self;
-    DCHECK(self);
+    auto self = this->self;
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
 
-    auto [cuerr, stream] = impl::make_stream(*this, flags);
+    auto [cuerr, stream] = impl::make_stream(self, flags);
     if (cuerr != CUDA_SUCCESS) {
         goto out_err;
     }
@@ -495,8 +472,7 @@ impl::Context::handle_event_create(auto ch, auto args)
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT(reqb_cont);
 
-    auto self = this->_self;
-    DCHECK(self);
+    auto self = this->self;
     CUevent_flags flags = (CUevent_flags)args->imms.flags.get();
 
     make_event(ch, self, flags)
@@ -536,8 +512,7 @@ impl::Context::handle_module_load_data(auto ch, auto args)
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT(reqb_cont);
 
-    auto self = this->_self;
-    DCHECK(self);
+    auto self = this->self;
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
 
@@ -550,13 +525,11 @@ impl::Context::handle_module_load_data(auto ch, auto args)
         ch->copy(args->caps.contents, copied_mem).get();
     }
 
-    auto mod = std::shared_ptr<Module>(Module::factory(_ctx, contents_buffer, contents_size, self));
+    auto mod = std::shared_ptr<Module>(Module::factory(cucontext, contents_buffer, contents_size, self));
 
     mod->register_methods(ch)
         .then([this, self, ch, args=std::move(args), error, cuerror, mod](auto& fut) {
             fut.get();
-
-            _mod = mod;
 
             LOG_RES(method)
                 << " error=" << wire::to_string(error)
@@ -577,84 +550,87 @@ impl::Context::handle_module_load_data(auto ch, auto args)
         .as_callback();
 }
 
+void
+impl::Context::handle_synchronize(auto ch, auto args)
+{
+    METHOD(synchronize);
+    LOG_REQ(method) << srv::wire::to_string(*args);
 
-void impl::Context::handle_synchronize(auto args) {
-    VLOG(fractos::logging::SERVICE) << "CALL handle synchronize";
-    using msg = ::service::compute::cuda::wire::Context::synchronize;
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
 
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        LOG(ERROR) << "no continuation";
-        return;
+    auto self = this->self;
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+
+    cuerror = cuCtxSetCurrent(cucontext);
+    if (cuerror != CUDA_SUCCESS) {
+        goto out;
     }
 
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
+    cuerror = cuCtxSynchronize();
 
-    context_synchronize();
+out:
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror);
 
-    ch->make_request_builder<msg::response>(args->caps.continuation)
-        .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+    ch->template make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
         .on_channel()
         .invoke()
-        .as_callback();
+        .as_callback_log_ignore_continuation_error();
 }
 
+void
+impl::Context::handle_destroy(auto ch, auto args)
+{
+    METHOD(destroy);
+    LOG_REQ(method) << srv::wire::to_string(*args);
 
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
 
-/*
- *  Destroy a Context, revoke all of its caps
- */
-void impl::Context::handle_destroy(auto args) {
-    VLOG(fractos::logging::SERVICE) << "CALL handle destroy";
-    using msg = ::service::compute::cuda::wire::Context::destroy;
+    auto self = this->self;
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
 
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
-    
-    auto self = this->_self;
-
-    if (not args->has_exactly_args() or _destroyed) {
-        ch->make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-            .on_channel()
-            .invoke()
-            .as_callback();
-
-        return;
+    if (not destroy_maybe()) {
+        error = wire::ERR_OTHER;
+        goto out;
     }
 
-    context_destroy(_ctx);
+    ch->revoke(_req_generic)
+        .then([ch, this, self, args=std::move(args), error](auto& fut) {
+            fut.get();
 
-    VLOG(fractos::logging::SERVICE) << "Revoke destroy";
+            auto cuerror = cuCtxDestroy(cucontext);
 
-    ch->revoke(self->_req_generic)
-        .then([ch, self](auto& fut) {
-            fut.get();
-            return ch->revoke(self->_req_synchronize);
-        })
-        .unwrap()
-        .then([ch, self](auto& fut) {
-            fut.get();
-            VLOG(fractos::logging::SERVICE) << "Revoke _req_synchronize";
-            return ch->revoke(self->_req_destroy);
-        })
-        .unwrap()
-        .then([this, ch, self, args=std::move(args)](auto& fut) {
-            fut.get();
-            VLOG(fractos::logging::SERVICE) << "Virtual context destroyed";
-            this->_destroyed = true;
-            ch->make_request_builder<msg::response>(args->caps.continuation) // response
-                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+            self->self.reset();
+
+            LOG_RES(method)
+                << " error=" << wire::to_string(error)
+                << " cuerror=" << get_CUresult_name(cuerror);
+
+            ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::cuerror, cuerror)
                 .on_channel()
                 .invoke()
-                .as_callback();
+                .as_callback_log_ignore_continuation_error();
         })
-    .as_callback();
+        .as_callback();
+    return;
 
-}
-
-std::string
-impl::to_string(const Context& obj)
-{
-    std::stringstream ss;
-    ss << "Context(" << &obj << ")";
-    return ss.str();
+out:
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror);
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_continuation_error();
 }

@@ -17,11 +17,11 @@ using namespace fractos;
 
 
 std::pair<CUresult, std::shared_ptr<impl::Stream>>
-impl::make_stream(Context& ctx, unsigned int flags)
+impl::make_stream(std::shared_ptr<Context> ctx, unsigned int flags)
 {
     std::shared_ptr<Stream> res;
 
-    auto error = cuCtxSetCurrent(ctx._ctx);
+    auto error = cuCtxSetCurrent(ctx->cucontext);
     if (error != CUDA_SUCCESS) {
         return std::make_pair(error, res);
     }
@@ -37,9 +37,9 @@ impl::make_stream(Context& ctx, unsigned int flags)
     return std::make_pair(error, res);
 }
 
-impl::Stream::Stream(Context& ctx, CUstream stream)
+impl::Stream::Stream(std::shared_ptr<Context> ctx, CUstream stream)
     :custream(stream)
-    ,ctx_ptr(ctx._self)
+    ,ctx_ptr(ctx)
 {
 }
 

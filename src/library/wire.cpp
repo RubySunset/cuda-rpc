@@ -590,7 +590,8 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::synchronize::r
 
     std::stringstream ss;
 
-    print_empty_imms();
+    print_imm_identity(opcode);
+    print_extra_imm_error();
 
     print_cap(continuation);
     print_extra_cap_error();
@@ -606,6 +607,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::synchronize::r
     std::stringstream ss;
 
     print_imm_error(error);
+    print_imm_cuerror(cuerror);
     print_extra_imm_error();
 
     print_empty_caps();
@@ -724,7 +726,8 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::destroy::reque
 
     std::stringstream ss;
 
-    print_empty_imms();
+    print_imm_identity(opcode);
+    print_extra_imm_error();
 
     print_cap(continuation);
     print_extra_cap_error();
@@ -740,6 +743,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::destroy::respo
     std::stringstream ss;
 
     print_imm_error(error);
+    print_imm_cuerror(cuerror);
     print_extra_imm_error();
 
     print_empty_caps();
@@ -870,11 +874,10 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::ctx_create::res
 
     print_imm_error(error);
     print_imm_cuerror(cuerror);
+    print_imm_identity(cucontext);
     print_extra_imm_error();
 
     print_cap(generic);
-    print_cap(synchronize);
-    print_cap(destroy);
     print_extra_cap_error();
 
     return ss.str();

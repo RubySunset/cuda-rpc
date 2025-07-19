@@ -224,9 +224,9 @@ clt::Device::make_context(unsigned int flags)
         .set_imm(&msg::request::imms::flags, flags)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
-        .invoke(resp) // wait for srv_handle
+        .invoke(resp)
         .unwrap()
-        .then_check_response()
+        .then_check_cuda_response()
         .then([this, self, flags](auto& fut) {
             auto [ch, args] = fut.get();
             CHECK_ARGS_EXACT();
@@ -234,9 +234,7 @@ clt::Device::make_context(unsigned int flags)
             return impl::make_context(
                 ch,
                 self,
-                std::move(args->caps.generic),
-                std::move(args->caps.synchronize),
-                std::move(args->caps.destroy));
+                std::move(args->caps.generic));
         });
 }
 

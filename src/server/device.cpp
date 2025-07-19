@@ -304,28 +304,29 @@ impl::Device::handle_ctx_create(auto ch, auto args)
     CHECK_ARGS_EXACT(reqb_cont);
 
     auto self = this->self.lock();
-    auto error = wire::ERR_SUCCESS;
-    auto cuerror = CUDA_SUCCESS;
-
+    CHECK(self);
     unsigned int flags = args->imms.flags;
 
-    auto ctx = impl::Context::factory(flags, cudevice);
+    make_context(ch, self, flags)
+        .then([this, self, ch, args=std::move(args)](auto& fut) {
+            auto [error, cuerror, ctx] = fut.get();
 
-    LOG_RES(method)
-        << " error=" << wire::to_string(error)
-        << " cuerror=" << cudaGetErrorString((cudaError)cuerror)
-        << " ctx=" << to_string(*ctx);
+            CUcontext cucontext = 0;
+            if (not error and not cuerror) {
+                cucontext = ctx->get_remote_cucontext();
+            }
 
-    ctx->register_methods(ch)
-        .then([this, ch, args=std::move(args), self, ctx, error, cuerror](auto& fut) {
-            fut.get();
-            self->ctx = ctx;
+            LOG_RES(method)
+                << " error=" << wire::to_string(error)
+                << " cuerror=" << get_CUresult_name(cuerror)
+                << " cucontext=" << (void*)cucontext
+                << " req_generic=" << core::to_string(ctx->_req_generic);
+
             ch->template make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, error)
                 .set_imm(&msg::response::imms::cuerror, cuerror)
+                .set_imm(&msg::response::imms::cucontext, (uint64_t)cucontext)
                 .set_cap(&msg::response::caps::generic, ctx->_req_generic)
-                .set_cap(&msg::response::caps::synchronize, ctx->_req_synchronize)
-                .set_cap(&msg::response::caps::destroy, ctx->_req_destroy)
                 .on_channel()
                 .invoke()
                 .as_callback();
