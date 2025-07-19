@@ -303,8 +303,7 @@ impl::Device::handle_ctx_create(auto ch, auto args)
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT(reqb_cont);
 
-    auto self = this->self.lock();
-    CHECK(self);
+    auto self = this->self;
     unsigned int flags = args->imms.flags;
 
     make_context(ch, self, flags)
@@ -343,8 +342,7 @@ impl::Device::handle_destroy(auto ch, auto args)
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT(reqb_cont);
 
-    auto self = this->self.lock();
-    CHECK(self);
+    auto self = this->self;
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
 
@@ -367,6 +365,8 @@ impl::Device::handle_destroy(auto ch, auto args)
     ch->revoke(self->_req_generic)
         .then([this, self, ch, args=std::move(args), error, cuerror](auto& fut) {
             fut.get();
+
+            self->self.reset();
 
             LOG_RES(method)
                 << " error=" << wire::to_string(error)

@@ -25,7 +25,7 @@ namespace impl {
 
         CUdevice cudevice;
         std::shared_ptr<Service> service;
-        std::weak_ptr<Device> self;
+        std::shared_ptr<Device> self;
 
         // NOTE: for internal use
     public:
