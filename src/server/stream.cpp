@@ -150,6 +150,44 @@ impl::Stream::handle_synchronize(auto ch, auto args)
         .as_callback();
 }
 
+core::future<std::tuple<wire::error_type, CUresult>>
+impl::Stream::destroy_maybe(auto ch)
+{
+    auto self = this->self.lock();
+    CHECK(self);
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+
+    if (not common::service::SrvBase::destroy_maybe()) {
+        error = wire::ERR_OTHER;
+        return core::make_ready_future(std::make_tuple(error, cuerror));
+    }
+
+    return ch->revoke(self->req_generic)
+        .then([this, self](auto& fut) {
+            fut.get();
+
+            auto error = wire::ERR_SUCCESS;
+            auto cuerror = cuCtxSetCurrent(ctx_ptr->cucontext);
+            if (cuerror != CUDA_SUCCESS) {
+                goto out_inner;
+            }
+
+            cuerror = cuStreamDestroy(custream);
+            if (cuerror != CUDA_SUCCESS) {
+                goto out_inner;
+            }
+
+            out_inner:
+
+            auto ctx_ptr = this->ctx_ptr.lock();
+            CHECK(ctx_ptr);
+            ctx_ptr->erase_stream(self);
+
+            return std::make_tuple(error, cuerror);
+        });
+}
+
 void
 impl::Stream::handle_destroy(auto ch, auto args)
 {
@@ -160,33 +198,11 @@ impl::Stream::handle_destroy(auto ch, auto args)
     CHECK_ARGS_EXACT(reqb_cont);
 
     auto self = this->self.lock();
-    DCHECK(self);
-    auto error = wire::ERR_SUCCESS;
-    auto cuerror = CUDA_SUCCESS;
 
-    if (not destroy_maybe()) {
-        error = wire::ERR_OTHER;
-        LOG_RES(method)
-            << " error=" << wire::to_string(error)
-            << " cuerror=" << get_CUresult_name(cuerror);
-        ch->template make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, error)
-            .set_imm(&msg::response::imms::cuerror, cuerror)
-            .on_channel()
-            .invoke()
-            .as_callback();
-        return;
-    }
+    return destroy_maybe(ch)
+        .then([ch, this, self, args=std::move(args)](auto& fut) {
+            auto [error, cuerror] = fut.get();
 
-    auto ctx_ptr = this->ctx_ptr.lock();
-    CHECK(ctx_ptr);
-    ctx_ptr->erase_stream(self);
-
-    cuerror = cuStreamDestroy(custream);
-
-    ch->revoke(self->req_generic)
-        .then([this, self, ch, args=std::move(args), error, cuerror](auto& fut) {
-            fut.get();
             LOG_RES(method)
                 << " error=" << wire::to_string(error)
                 << " cuerror=" << get_CUresult_name(cuerror);

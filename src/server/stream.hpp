@@ -21,6 +21,9 @@ namespace impl {
         std::weak_ptr<Context> ctx_ptr;
         std::weak_ptr<Stream> self;
 
+        fractos::core::future<std::tuple<fractos::wire::error_type, CUresult>>
+        destroy_maybe(auto ch);
+
     protected:
         void handle_generic(auto ch, auto args);
         void handle_synchronize(auto ch, auto args);
