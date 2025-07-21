@@ -18,8 +18,8 @@ namespace impl {
         CUstream get_remote_custream() const;
 
         const CUstream custream;
-        std::weak_ptr<Context> ctx_ptr;
-        std::weak_ptr<Stream> self;
+        std::shared_ptr<Context> ctx_ptr;
+        std::shared_ptr<Stream> self;
 
         fractos::core::future<std::tuple<fractos::wire::error_type, CUresult>>
         destroy_maybe(auto ch);

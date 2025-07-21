@@ -60,8 +60,7 @@ impl::Stream::register_methods(std::shared_ptr<core::channel> ch)
 {
     namespace msg_base = ::service::compute::cuda::wire::Stream;
 
-    auto self = this->self.lock();
-    CHECK(self);
+    auto self = this->self;
 
     return ch->make_request_builder<srv_wire_msg::generic::request>(
         ch->get_default_endpoint(),
@@ -153,8 +152,7 @@ impl::Stream::handle_synchronize(auto ch, auto args)
 core::future<std::tuple<wire::error_type, CUresult>>
 impl::Stream::destroy_maybe(auto ch)
 {
-    auto self = this->self.lock();
-    CHECK(self);
+    auto self = this->self;
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
 
@@ -180,9 +178,9 @@ impl::Stream::destroy_maybe(auto ch)
 
             out_inner:
 
-            auto ctx_ptr = this->ctx_ptr.lock();
-            CHECK(ctx_ptr);
             ctx_ptr->erase_stream(self);
+            this->ctx_ptr.reset();
+            this->self.reset();
 
             return std::make_tuple(error, cuerror);
         });
@@ -197,7 +195,7 @@ impl::Stream::handle_destroy(auto ch, auto args)
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT(reqb_cont);
 
-    auto self = this->self.lock();
+    auto self = this->self;
 
     return destroy_maybe(ch)
         .then([ch, this, self, args=std::move(args)](auto& fut) {
