@@ -12,13 +12,16 @@ namespace impl {
 
 namespace impl {
 
-    class Event : public fractos::common::service::SrvBase {
+    class Event : protected fractos::common::service::SrvBase {
     public:
         CUevent get_remote_cuevent() const;
 
         CUevent cuevent;
         std::shared_ptr<Context> ctx_ptr;
         std::shared_ptr<Event> self;
+
+        fractos::core::future<std::tuple<fractos::wire::error_type, CUresult>>
+        destroy_maybe(auto ch);
 
         // NOTE: for internal use
     public:

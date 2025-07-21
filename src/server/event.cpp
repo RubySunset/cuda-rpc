@@ -127,29 +127,24 @@ impl::Event::handle_generic(auto ch, auto args)
 }
 
 
-void
-impl::Event::handle_destroy(auto ch, auto args)
+core::future<std::tuple<wire::error_type, CUresult>>
+impl::Event::destroy_maybe(auto ch)
 {
-    METHOD(destroy);
-    LOG_REQ(method) << srv::wire::to_string(*args);
-
-    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_ARGS_EXACT(reqb_cont);
-
     auto self = this->self;
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
 
-    if (not destroy_maybe()) {
+    if (not common::service::SrvBase::destroy_maybe()) {
         error = wire::ERR_OTHER;
-        goto out;
+        return core::make_ready_future(std::make_tuple(error, cuerror));
     }
 
-    ch->revoke(req_generic)
-        .then([ch, this, self, args=std::move(args), error, cuerror](auto& fut) mutable {
+    return ch->revoke(req_generic)
+        .then([ch, this, self](auto& fut) {
             fut.get();
 
-            cuerror = cuCtxSetCurrent(ctx_ptr->cucontext);
+            auto error = wire::ERR_SUCCESS;
+            auto cuerror = cuCtxSetCurrent(ctx_ptr->cucontext);
             if (cuerror != CUDA_SUCCESS) {
                 goto out_inner;
             }
@@ -166,6 +161,25 @@ impl::Event::handle_destroy(auto ch, auto args)
             this->ctx_ptr.reset();
             this->self.reset();
 
+            return std::make_tuple(error, cuerror);
+        });
+}
+
+void
+impl::Event::handle_destroy(auto ch, auto args)
+{
+    METHOD(destroy);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
+
+    auto self = this->self;
+
+    return destroy_maybe(ch)
+        .then([ch, this, self, args=std::move(args)](auto& fut) {
+            auto [error, cuerror] = fut.get();
+
             LOG_RES(method)
                 << " error=" << wire::to_string(error)
                 << " cuerror=" << get_CUresult_name(cuerror);
@@ -177,16 +191,4 @@ impl::Event::handle_destroy(auto ch, auto args)
                 .as_callback_log_ignore_continuation_error();
         })
         .as_callback();
-    return;
-
-out:
-    LOG_RES(method)
-        << " error=" << wire::to_string(error)
-        << " cuerror=" << get_CUresult_name(cuerror);
-    reqb_cont
-        .set_imm(&msg::response::imms::error, error)
-        .set_imm(&msg::response::imms::cuerror, cuerror)
-        .on_channel()
-        .invoke()
-        .as_callback_log_ignore_continuation_error();
 }
