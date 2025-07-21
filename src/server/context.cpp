@@ -616,26 +616,37 @@ impl::Context::handle_destroy(auto ch, auto args)
     }
 
     {
-        decltype(_event_map) events;
-        {
-            auto lock = std::unique_lock(_event_map_mutex);
-            events = _event_map;
-            _event_map.clear();
-        }
+        auto move_into_new = [this](auto& map_from, auto& map_mutex) {
+            std::decay_t<decltype(map_from)> map_to;
+            {
+                auto lock = std::unique_lock(map_mutex);
+                map_to.merge(map_from);
+            }
+            return map_to;
+        };
 
-        std::vector<core::future<std::tuple<wire::error_type, CUresult>>> event_futures;
-        event_futures.reserve(events.size());
-        std::transform(events.begin(), events.end(),
-                       std::inserter(event_futures, std::end(event_futures)),
-                       [ch](auto& event) {
-                           return event.second->destroy_maybe(ch);
-                       });
+        auto call_destroy_maybe = [this, ch](auto& futures_to, auto& map_from) {
+            futures_to.reserve(futures_to.size() + map_from.size());
+            std::transform(map_from.begin(), map_from.end(),
+                           std::inserter(futures_to, std::end(futures_to)),
+                           [ch](auto& elem) {
+                               return elem.second->destroy_maybe(ch);
+                           });
+        };
 
-        core::when_all(std::move(event_futures))
+        std::vector<core::future<std::tuple<wire::error_type, CUresult>>> destroy_futures;
+
+        auto streams = move_into_new(_stream_map, _stream_map_mutex);
+        call_destroy_maybe(destroy_futures, streams);
+
+        auto events = move_into_new(_event_map, _event_map_mutex);
+        call_destroy_maybe(destroy_futures, events);
+
+        core::when_all(std::move(destroy_futures))
             .then([ch, this, self, args=std::move(args)](auto& fut) mutable {
-                auto events = fut.get();
-                for (auto& event : events) {
-                    auto [error, cuerror] = event.get();
+                auto destroyed = fut.get();
+                for (auto& elem : destroyed) {
+                    auto [error, cuerror] = elem.get();
                     CHECK(not error);
                     CHECK(not cuerror);
                 }
