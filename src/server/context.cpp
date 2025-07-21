@@ -465,7 +465,7 @@ impl::Context::handle_stream_create(auto ch, auto args)
 out_err:
     LOG_RES(method)
         << " error=" << wire::to_string(error)
-        << " cuerror=" << cudaGetErrorString((cudaError)cuerror)
+        << " cuerror=" << get_CUresult_name(cuerror)
         << " custream=" << (void*)0;
 
     ch->template make_request_builder<msg::response>(args->caps.continuation)

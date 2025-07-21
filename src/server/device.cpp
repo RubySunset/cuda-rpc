@@ -350,7 +350,7 @@ impl::Device::handle_destroy(auto ch, auto args)
         error = wire::ERR_OTHER;
         LOG_RES(method)
             << " error=" << wire::to_string(error)
-            << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
+            << " cuerror=" << get_CUresult_name(cuerror);
         reqb_cont
             .set_imm(&msg::response::imms::error, error)
             .set_imm(&msg::response::imms::cuerror, cuerror)
@@ -370,7 +370,7 @@ impl::Device::handle_destroy(auto ch, auto args)
 
             LOG_RES(method)
                 << " error=" << wire::to_string(error)
-                << " cuerror=" << cudaGetErrorString((cudaError)cuerror);
+                << " cuerror=" << get_CUresult_name(cuerror);
 
             ch->template make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, error)
