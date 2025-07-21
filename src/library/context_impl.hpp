@@ -19,7 +19,7 @@ namespace impl {
     struct ContextState : public fractos::common::service::ImplState {
         std::weak_ptr<clt::Context> self;
 
-        CUcontext context;
+        CUcontext cucontext;
         std::weak_ptr<clt::Device> device;
 
         fractos::core::cap::request req_generic;
@@ -43,6 +43,7 @@ namespace impl {
     std::shared_ptr<clt::Context>
     make_context(std::shared_ptr<fractos::core::channel> ch,
                  std::shared_ptr<clt::Device> device,
+                 CUcontext cucontext,
                  fractos::core::cap::request req_generic);
 
     std::string to_string(const Context& obj);

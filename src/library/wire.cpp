@@ -874,7 +874,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::ctx_create::res
 
     print_imm_error(error);
     print_imm_cuerror(cuerror);
-    print_imm_identity(cucontext);
+    print_imm_hex(cucontext);
     print_extra_imm_error();
 
     print_cap(generic);

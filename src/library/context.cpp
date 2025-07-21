@@ -30,13 +30,14 @@ template class fractos::common::service::CltBase<clt::Context>;
 std::shared_ptr<clt::Context>
 impl::make_context(std::shared_ptr<fractos::core::channel> ch,
                    std::shared_ptr<clt::Device> device,
+                   CUcontext cucontext,
                    fractos::core::cap::request req_generic)
 {
     auto state = std::make_shared<impl::ContextState>();
     state->device = device;
     state->req_generic = std::move(req_generic);
     state->context_ptr = std::unique_ptr<char[]>(new char[512]);
-    state->context = (CUcontext)state->context_ptr.get();
+    state->cucontext = cucontext;
 
     return impl::Context::make(ch, state);
 }
@@ -68,7 +69,7 @@ CUcontext
 clt::Context::get_context() const
 {
     auto& pimpl = impl::Context::get(*this);
-    return pimpl.state->context;
+    return pimpl.state->cucontext;
 }
 
 core::future<unsigned int>
@@ -503,6 +504,6 @@ std::string
 impl::to_string(const impl::ContextState& obj)
 {
     std::stringstream ss;
-    ss << "cuda::Context(" << &obj << ")";
+    ss << "cuda::Context(" << (void*)obj.cucontext << ")";
     return ss.str();
 }

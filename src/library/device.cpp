@@ -234,6 +234,7 @@ clt::Device::make_context(unsigned int flags)
             return impl::make_context(
                 ch,
                 self,
+                (CUcontext)args->imms.cucontext.get(),
                 std::move(args->caps.generic));
         });
 }
