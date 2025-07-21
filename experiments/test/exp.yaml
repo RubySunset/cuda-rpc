@@ -20,6 +20,7 @@ experiment:
     run-program:
       type: uplane
       command: sleep 2s
+      gdb: False
   - name: manager
     node: *node
     run-program: *run-program-fractos-manager
