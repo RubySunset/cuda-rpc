@@ -615,26 +615,55 @@ impl::Context::handle_destroy(auto ch, auto args)
         goto out;
     }
 
-    ch->revoke(_req_generic)
-        .then([ch, this, self, args=std::move(args), error](auto& fut) {
-            fut.get();
+    {
+        decltype(_event_map) events;
+        {
+            auto lock = std::unique_lock(_event_map_mutex);
+            events = _event_map;
+            _event_map.clear();
+        }
 
-            auto cuerror = cuCtxDestroy(cucontext);
+        std::vector<core::future<std::tuple<wire::error_type, CUresult>>> event_futures;
+        event_futures.reserve(events.size());
+        std::transform(events.begin(), events.end(),
+                       std::inserter(event_futures, std::end(event_futures)),
+                       [ch](auto& event) {
+                           return event.second->destroy_maybe(ch);
+                       });
 
-            self->self.reset();
+        core::when_all(std::move(event_futures))
+            .then([ch, this, self, args=std::move(args)](auto& fut) mutable {
+                auto events = fut.get();
+                for (auto& event : events) {
+                    auto [error, cuerror] = event.get();
+                    CHECK(not error);
+                    CHECK(not cuerror);
+                }
 
-            LOG_RES(method)
-                << " error=" << wire::to_string(error)
-                << " cuerror=" << get_CUresult_name(cuerror);
+                ch->revoke(_req_generic)
+                    .then([ch, this, self, args=std::move(args)](auto& fut) {
+                        fut.get();
 
-            ch->template make_request_builder<msg::response>(args->caps.continuation)
-                .set_imm(&msg::response::imms::error, error)
-                .set_imm(&msg::response::imms::cuerror, cuerror)
-                .on_channel()
-                .invoke()
-                .as_callback_log_ignore_continuation_error();
-        })
-        .as_callback();
+                        auto error = wire::ERR_SUCCESS;
+                        auto cuerror = cuCtxDestroy(cucontext);
+
+                        self->self.reset();
+
+                        LOG_RES(method)
+                            << " error=" << wire::to_string(error)
+                            << " cuerror=" << get_CUresult_name(cuerror);
+
+                        ch->template make_request_builder<msg::response>(args->caps.continuation)
+                            .set_imm(&msg::response::imms::error, error)
+                            .set_imm(&msg::response::imms::cuerror, cuerror)
+                            .on_channel()
+                            .invoke()
+                            .as_callback_log_ignore_continuation_error();
+                    })
+                    .as_callback();
+            })
+            .as_callback();
+    }
     return;
 
 out:
