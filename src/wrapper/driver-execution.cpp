@@ -25,9 +25,14 @@ cuLaunchKernel(CUfunction f,
         return CUDA_ERROR_INVALID_VALUE;
     }
 
+    std::shared_ptr<srv::Stream> stream_ptr; // NOTE: keep the object around
     std::optional<std::reference_wrapper<srv::Stream>> stream_opt;
     if (hStream) {
-        LOG(FATAL) << "not implemented";
+        stream_ptr = state.get_stream(hStream);
+        if (not stream_ptr) {
+            return CUDA_ERROR_INVALID_HANDLE;
+        }
+        stream_opt = *stream_ptr;
     }
 
     CUresult error = CUDA_SUCCESS;
