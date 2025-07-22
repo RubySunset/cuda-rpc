@@ -150,14 +150,14 @@ void
 impl::Service::insert_event(std::shared_ptr<Event> event)
 {
     auto lock = std::unique_lock(_events_mutex);
-    CHECK(_events.insert({event->cuevent, event}).second);
+    CHECK(_events.insert({event->get_remote_cuevent(), event}).second);
 }
 
 void
 impl::Service::erase_event(std::shared_ptr<Event> event)
 {
     auto lock = std::unique_lock(_events_mutex);
-    CHECK(_events.erase(event->cuevent) == 1);
+    CHECK(_events.erase(event->get_remote_cuevent()) == 1);
 }
 
 
