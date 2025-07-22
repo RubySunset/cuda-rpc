@@ -159,24 +159,24 @@ impl::Function::handle_launch(auto ch, auto args)
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
 
+    auto shared_mem = (size_t)args->imms.shared_mem.get();
+    auto custream_arg = (CUstream)args->imms.custream.get();
+
     CUstream custream = 0;
     auto ctx_ptr = this->ctx_ptr.lock();
     CHECK(ctx_ptr);
 
-    {
-        auto custream_arg = (CUstream)args->imms.custream.get();
-        if (custream_arg) {
-            auto stream_ptr = ctx_ptr->get_stream(custream_arg);
-            if (not stream_ptr) {
-                cuerror = CUDA_ERROR_INVALID_HANDLE;
-                goto out;
-            }
-            custream = stream_ptr->custream;
-        } else {
-            cuerror = cuCtxSetCurrent(ctx_ptr->cucontext);
-            if (cuerror != CUDA_SUCCESS) {
-                goto out;
-            }
+    if (custream_arg) {
+        auto stream_ptr = ctx_ptr->get_stream(custream_arg);
+        if (not stream_ptr) {
+            cuerror = CUDA_ERROR_INVALID_HANDLE;
+            goto out;
+        }
+        custream = stream_ptr->custream;
+    } else {
+        cuerror = cuCtxSetCurrent(ctx_ptr->cucontext);
+        if (cuerror != CUDA_SUCCESS) {
+            goto out;
         }
     }
 
@@ -193,7 +193,7 @@ impl::Function::handle_launch(auto ch, auto args)
 
         cuerror = cuLaunchKernel(cufunc, dimGrid.x, dimGrid.y, dimGrid.z,
                                  dimBlock.x, dimBlock.y, dimBlock.z,
-                                 0, custream,
+                                 shared_mem, custream,
                                  (void**)kernel_args.data(), 0);
     }
 

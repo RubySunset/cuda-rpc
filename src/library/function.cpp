@@ -88,6 +88,7 @@ clt::Function::launch(const void** args, dim3 gridDim, dim3 blockDim,
         .set_imm(&msg::request::imms::block_x, (uint64_t)blockDim.x)
         .set_imm(&msg::request::imms::block_y, (uint64_t)blockDim.y)
         .set_imm(&msg::request::imms::block_z, (uint64_t)blockDim.z)
+        .set_imm(&msg::request::imms::shared_mem, sharedMemBytes)
         .set_imm(&msg::request::imms::custream, (uint64_t)custream)
         .set_cap(&msg::request::caps::continuation, resp);
 

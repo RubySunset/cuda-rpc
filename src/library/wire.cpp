@@ -930,7 +930,8 @@ srv::wire::to_string(const core::receive_args<srv::wire::Function::launch::reque
     print_imm_identity(block_x);
     print_imm_identity(block_y);
     print_imm_identity(block_z);
-    print_imm_identity(custream);
+    print_imm_identity(shared_mem);
+    print_imm_hex(custream);
     print_imm_array(kernel_args, obj.imms_size() - sizeof(obj.imms));
 
     print_cap(continuation);

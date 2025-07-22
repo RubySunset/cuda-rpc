@@ -944,6 +944,7 @@ namespace fractos::service::compute::cuda::wire {
                     fractos::wire::endian::uint64_t block_x;
                     fractos::wire::endian::uint64_t block_y;
                     fractos::wire::endian::uint64_t block_z;
+                    fractos::wire::endian::uint64_t shared_mem;
                     fractos::wire::endian::uint64_t custream;
                     char kernel_args[];
                 } __attribute__((packed));
