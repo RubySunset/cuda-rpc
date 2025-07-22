@@ -111,6 +111,7 @@ impl::Event::handle_generic(auto ch, auto args)
         break;
 
     switch (opcode) {
+        CASE_HANDLE(SYNCHRONIZE, synchronize);
     CASE_HANDLE(DESTROY, destroy);
     default:
         LOG_RES(method)
@@ -126,6 +127,32 @@ impl::Event::handle_generic(auto ch, auto args)
 #undef CASE_HANDLE
 }
 
+
+void
+impl::Event::handle_synchronize(auto ch, auto args)
+{
+    METHOD(synchronize);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
+
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+
+    cuerror = cuEventSynchronize(cuevent);
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror);
+
+    ch->template make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
+        .on_channel()
+        .invoke()
+        .as_callback();
+}
 
 core::future<std::tuple<wire::error_type, CUresult>>
 impl::Event::destroy_maybe(auto ch)

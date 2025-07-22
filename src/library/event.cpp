@@ -61,6 +61,30 @@ clt::Event::get_event() const
     return pimpl.state->cuevent;
 }
 
+core::future<void>
+clt::Event::synchronize()
+{
+    METHOD(synchronize);
+    LOG_REQ(method)
+        << " {}";
+
+    auto& pimpl = impl::Event::get(*this);
+    auto self = pimpl.state->self.lock();
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_SYNCHRONIZE)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_cuda_response()
+        .then([](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_ARGS_EXACT();
+        });
+}
+
 
 std::string
 clt::to_string(const Event& obj)

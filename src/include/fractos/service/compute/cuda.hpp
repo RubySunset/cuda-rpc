@@ -342,6 +342,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         public:
             CUevent get_event() const;
 
+            // cuEventSynchronize
+            [[nodiscard]] core::future<void>
+            synchronize();
+
             /**
              * @brief Wrapper for cuEventElapsedTime()
              */
@@ -354,13 +358,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              */
             [[nodiscard]] fractos::core::future<void>
             make_record(Stream& stream);
-
-
-            /**
-             * @brief Wrapper for cuEventSynchronize()
-             */
-            [[nodiscard]] fractos::core::future<void>
-            synchronize();
         };
 
         std::string to_string(const Event& obj);
