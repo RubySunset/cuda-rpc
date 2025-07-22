@@ -247,6 +247,16 @@ void CUDARTAPI __cudaRegisterVar(
     CHECK(state.global->vars.insert(std::make_pair((uintptr_t)hostVar, var_desc)).second);
 }
 
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaGetExportTable(const void **ppExportTable, const CUuuid *pExportTableId)
+{
+    auto& state = get_runtime_state();
+
+    auto error = (cudaError_t)cuGetExportTable(ppExportTable, pExportTableId);
+    return_error(error);
+}
+
 
 static void init_symbols() __attribute__((constructor));
 
