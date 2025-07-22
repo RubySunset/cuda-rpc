@@ -34,3 +34,13 @@ cudaEventDestroy(cudaEvent_t event)
     auto err = cuEventDestroy(event);
     return_error((cudaError_t)err);
 }
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaEventSynchronize(cudaEvent_t event)
+{
+    auto& state = get_runtime_state();
+
+    auto err = cuEventSynchronize(event);
+    return_error((cudaError_t)err);
+}

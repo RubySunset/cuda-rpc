@@ -51,3 +51,24 @@ cuEventDestroy_v2(CUevent hEvent)
 
     return CUDA_SUCCESS;
 }
+
+extern "C" [[gnu::visibility("default")]]
+CUresult CUDAAPI
+cuEventSynchronize(CUevent hEvent)
+{
+    auto& state = get_driver_state();
+
+    auto event_ptr = state.get_event(hEvent);
+    if (not event_ptr) {
+        return CUDA_ERROR_INVALID_HANDLE;
+    }
+
+    CUresult error = CUDA_SUCCESS;
+    try {
+        event_ptr->synchronize().get();
+    } catch (const srv::CudaError& e) {
+        error = e.cuerror;
+    }
+
+    return error;
+}
