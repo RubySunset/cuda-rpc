@@ -159,11 +159,25 @@ impl::Function::handle_launch(auto ch, auto args)
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
 
+    CUstream custream = 0;
     auto ctx_ptr = this->ctx_ptr.lock();
     CHECK(ctx_ptr);
-    cuerror = cuCtxSetCurrent(ctx_ptr->cucontext);
-    if (cuerror != CUDA_SUCCESS) {
-        goto out;
+
+    {
+        auto custream_arg = (CUstream)args->imms.custream.get();
+        if (custream_arg) {
+            auto stream_ptr = ctx_ptr->get_stream(custream_arg);
+            if (not stream_ptr) {
+                cuerror = CUDA_ERROR_INVALID_HANDLE;
+                goto out;
+            }
+            custream = stream_ptr->custream;
+        } else {
+            cuerror = cuCtxSetCurrent(ctx_ptr->cucontext);
+            if (cuerror != CUDA_SUCCESS) {
+                goto out;
+            }
+        }
     }
 
     {
@@ -177,21 +191,10 @@ impl::Function::handle_launch(auto ch, auto args)
             args_ptr += args_size[i];
         }
 
-        auto custream = (CUstream)args->imms.custream.get();
-        if (custream) {
-            LOG_FIRST_N(WARNING, 1) << "TODO: add a proper API to query/get stream_ids";
-            LOG_FIRST_N(WARNING, 1) << "TODO: return error when stream_id is incorrect";
-            auto stream_ptr = ctx_ptr->get_stream(custream);
-            cuerror = cuLaunchKernel(cufunc, dimGrid.x, dimGrid.y, dimGrid.z,
-                                     dimBlock.x, dimBlock.y, dimBlock.z,
-                                     0, stream_ptr->custream,
-                                     (void**)kernel_args.data(), 0);
-        } else {
-            cuerror = cuLaunchKernel(cufunc, dimGrid.x, dimGrid.y, dimGrid.z,
-                                     dimBlock.x, dimBlock.y, dimBlock.z,
-                                     0, 0,
-                                     (void**)kernel_args.data(), 0);
-        }
+        cuerror = cuLaunchKernel(cufunc, dimGrid.x, dimGrid.y, dimGrid.z,
+                                 dimBlock.x, dimBlock.y, dimBlock.z,
+                                 0, custream,
+                                 (void**)kernel_args.data(), 0);
     }
 
 out:
