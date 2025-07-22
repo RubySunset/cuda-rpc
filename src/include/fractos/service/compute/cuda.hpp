@@ -325,7 +325,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             CUstream get_stream() const;
 
             // cuStreamSynchronize
-            [[nodiscard]] fractos::core::future<void>
+            [[nodiscard]] core::future<void>
             synchronize();
         };
 

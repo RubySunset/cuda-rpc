@@ -129,8 +129,7 @@ impl::Stream::handle_synchronize(auto ch, auto args)
     LOG_REQ(method) << srv::wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_IMMS_EXACT(reqb_cont);
-    CHECK_CAPS_EXACT(reqb_cont);
+    CHECK_ARGS_EXACT(reqb_cont);
 
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
