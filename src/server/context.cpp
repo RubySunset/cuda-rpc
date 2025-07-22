@@ -98,28 +98,28 @@ void
 impl::Context::insert_stream(std::shared_ptr<Stream> stream)
 {
     auto lock = std::unique_lock(_stream_map_mutex);
-    CHECK(_stream_map.insert({stream->custream, stream}).second);
+    CHECK(_stream_map.insert({stream->get_remote_custream(), stream}).second);
 }
 
 void
 impl::Context::erase_stream(std::shared_ptr<Stream> stream)
 {
     auto lock = std::unique_lock(_stream_map_mutex);
-    CHECK(_stream_map.erase(stream->custream) == 1);
+    CHECK(_stream_map.erase(stream->get_remote_custream()) == 1);
 }
 
 void
 impl::Context::insert_event(std::shared_ptr<Event> event)
 {
     auto lock = std::unique_lock(_event_map_mutex);
-    CHECK(_event_map.insert({event->cuevent, event}).second);
+    CHECK(_event_map.insert({event->get_remote_cuevent(), event}).second);
 }
 
 void
 impl::Context::erase_event(std::shared_ptr<Event> event)
 {
     auto lock = std::unique_lock(_event_map_mutex);
-    CHECK(_event_map.erase(event->cuevent) == 1);
+    CHECK(_event_map.erase(event->get_remote_cuevent()) == 1);
 }
 
 
