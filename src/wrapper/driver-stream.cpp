@@ -86,3 +86,30 @@ cuStreamSynchronize(CUstream stream)
 
     return error;
 }
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
+cuStreamWaitEvent(CUstream stream, CUevent event, unsigned int flags)
+{
+    auto& state = get_driver_state();
+
+    auto stream_ptr = state.get_stream(stream);
+    if (not stream_ptr) [[unlikely]] {
+        return CUDA_ERROR_INVALID_HANDLE;
+    }
+
+    auto event_ptr = state.get_event(event);
+    if (not event_ptr) [[unlikely]] {
+        return CUDA_ERROR_INVALID_HANDLE;
+    }
+
+    CUresult error = CUDA_SUCCESS;
+    try {
+        stream_ptr->wait_event(*event_ptr, (CUevent_wait_flags)flags)
+            .get();
+    } catch (const srv::CudaError& e) {
+        error = e.cuerror;
+    }
+
+    return error;
+}

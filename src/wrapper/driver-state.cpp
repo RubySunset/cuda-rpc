@@ -318,3 +318,15 @@ DriverState::get_stream_per_thread()
         return *stream;
     }
 }
+
+std::shared_ptr<fractos::service::compute::cuda::Event>
+DriverState::get_event(CUevent event)
+{
+    auto lock = std::shared_lock(events_mutex);
+    auto it = events.find(event);
+    if (it != events.end()) {
+        return it->second;
+    } else {
+        return nullptr;
+    }
+}

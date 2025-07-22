@@ -103,6 +103,8 @@ public:
 
     // event
 
+    std::shared_ptr<fractos::service::compute::cuda::Event> get_event(CUevent event);
+
     std::shared_mutex events_mutex;
     std::unordered_map<CUevent, std::shared_ptr<fractos::service::compute::cuda::Event>> events;
 };

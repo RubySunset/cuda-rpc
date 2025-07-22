@@ -44,3 +44,13 @@ cudaStreamSynchronize(cudaStream_t stream)
     auto err = (cudaError_t)cuStreamSynchronize(stream);
     return_error(err);
 }
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
+cudaStreamWaitEvent(cudaStream_t stream, cudaEvent_t event, unsigned int flags)
+{
+    auto& state = get_runtime_state();
+
+    auto err = (cudaError_t)cuStreamWaitEvent(stream, event, flags);
+    return_error(err);
+}
