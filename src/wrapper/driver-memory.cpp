@@ -129,21 +129,37 @@ do_memcpy(std::pair<pointer_type, CUdeviceptr> src,
     if (mem_src and mem_dst) {
         // D2D
         auto& ch = get_channel();
-        ch.copy(mem_src->get_cap_mem(), mem_dst->get_cap_mem()).get();
+        auto& mem_src_cap = mem_src->get_cap_mem();
+        if (mem_src_cap.get_size() < size) {
+            return CUDA_ERROR_INVALID_VALUE;
+        } else if (mem_src_cap.get_size() > size) {
+            auto src_cap = ch.diminish(mem_src_cap, 0, size, core::cap::PERM_NONE).get();
+            ch.copy(src_cap, mem_dst->get_cap_mem()).get();
+        } else {
+            ch.copy(mem_src_cap, mem_dst->get_cap_mem()).get();
+        }
         return CUDA_SUCCESS;
 
     } else if (mem_src and not mem_dst) {
         // D2H
         auto& ch = get_channel();
-        auto cap_dst = ch.make_memory((void*)dst.second, size).get();
-        ch.copy(mem_src->get_cap_mem(), cap_dst).get();
+        auto dst_cap = ch.make_memory((void*)dst.second, size).get();
+        auto& mem_src_cap = mem_src->get_cap_mem();
+        if (mem_src_cap.get_size() < size) {
+            return CUDA_ERROR_INVALID_VALUE;
+        } else if (mem_src_cap.get_size() > size) {
+            auto src_cap = ch.diminish(mem_src_cap, 0, size, core::cap::PERM_NONE).get();
+            ch.copy(src_cap, dst_cap).get();
+        } else {
+            ch.copy(mem_src_cap, dst_cap).get();
+        }
         return CUDA_SUCCESS;
 
     } else if (not mem_src and mem_dst) {
         // H2D
         auto& ch = get_channel();
-        auto cap_src = ch.make_memory((const void*)src.second, size).get();
-        ch.copy(cap_src, mem_dst->get_cap_mem()).get();
+        auto src_cap = ch.make_memory((const void*)src.second, size).get();
+        ch.copy(src_cap, mem_dst->get_cap_mem()).get();
         LOG_EVERY_N(WARNING, 100) << "TODO: should not wait for H2D copy to finish";
         return CUDA_SUCCESS;
 
