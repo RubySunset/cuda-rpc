@@ -54,6 +54,13 @@ impl::EventState::do_destroy(std::shared_ptr<core::channel>& ch)
         });
 }
 
+CUevent
+clt::Event::get_event() const
+{
+    auto& pimpl = impl::Event::get(*this);
+    return pimpl.state->cuevent;
+}
+
 
 std::string
 clt::to_string(const Event& obj)

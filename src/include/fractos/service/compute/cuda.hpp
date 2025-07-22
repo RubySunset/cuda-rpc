@@ -336,6 +336,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class Event : public common::service::CltBase<Event> {
         public:
+            CUevent get_event() const;
+
             /**
              * @brief Wrapper for cuEventElapsedTime()
              */
