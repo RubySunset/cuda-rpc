@@ -27,6 +27,7 @@ namespace impl {
     protected:
         void handle_generic(auto ch, auto args);
         void handle_synchronize(auto ch, auto args);
+        void handle_wait_event(auto ch, auto args);
         void handle_destroy(auto ch, auto args);
 
         // NOTE: for internal use

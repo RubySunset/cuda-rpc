@@ -327,6 +327,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             // cuStreamSynchronize
             [[nodiscard]] core::future<void>
             synchronize();
+
+            // cuStreamWaitEvent
+            [[nodiscard]] core::future<void>
+            wait_event(Event& event, CUevent_wait_flags flags);
         };
 
         std::string to_string(const Stream& obj);

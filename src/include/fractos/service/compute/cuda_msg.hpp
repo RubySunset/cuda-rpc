@@ -674,6 +674,7 @@ namespace fractos::service::compute::cuda::wire {
     namespace Stream {
         enum generic_opcode : uint64_t {
             OP_SYNCHRONIZE,
+            OP_WAIT_EVENT,
             OP_DESTROY,
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
@@ -703,6 +704,32 @@ namespace fractos::service::compute::cuda::wire {
 
     std::string to_string(const core::receive_args<Stream::synchronize::request>& req);
     std::string to_string(const core::receive_args<Stream::synchronize::response>& resp);
+
+    namespace Stream {
+        struct wait_event {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint64_t cuevent;
+                    fractos::wire::endian::uint8_t flags;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
+                } __attribute__((packed));
+                struct caps {
+                };
+            };
+        };
+    }
+
+    std::string to_string(const core::receive_args<Stream::wait_event::request>& req);
+    std::string to_string(const core::receive_args<Stream::wait_event::response>& resp);
 
     namespace Stream {
         struct destroy {

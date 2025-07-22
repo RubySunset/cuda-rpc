@@ -6,8 +6,11 @@
 #include <pthread.h>
 
 #include "./common.hpp"
+#include "./service.hpp"
 #include "./context.hpp"
+#include "./device.hpp"
 #include "./stream.hpp"
+#include "./event.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
@@ -106,6 +109,7 @@ impl::Stream::handle_generic(auto ch, auto args)
 
     switch (opcode) {
     CASE_HANDLE(SYNCHRONIZE, synchronize);
+    CASE_HANDLE(WAIT_EVENT, wait_event);
     CASE_HANDLE(DESTROY, destroy);
     default:
         LOG_RES(method)
@@ -135,6 +139,43 @@ impl::Stream::handle_synchronize(auto ch, auto args)
     auto cuerror = CUDA_SUCCESS;
 
     cuerror = cuStreamSynchronize(custream);
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror);
+
+    ch->template make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
+        .on_channel()
+        .invoke()
+        .as_callback();
+}
+
+void
+impl::Stream::handle_wait_event(auto ch, auto args)
+{
+    METHOD(wait_event);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
+
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+
+    auto cuevent_arg = (CUevent)args->imms.cuevent.get();
+    auto flags = (CUevent_wait_flags)args->imms.flags.get();
+
+    auto event = ctx_ptr->device->service->get_event(cuevent_arg);
+    if (not event) {
+        cuerror = CUDA_ERROR_INVALID_HANDLE;
+        goto out;
+    }
+
+    cuerror = cuStreamWaitEvent(custream, event->cuevent, flags);
+
+out:
 
     LOG_RES(method)
         << " error=" << wire::to_string(error)

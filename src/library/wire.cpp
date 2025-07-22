@@ -784,6 +784,40 @@ srv::wire::to_string(const core::receive_args<srv::wire::Stream::synchronize::re
 }
 
 std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Stream::wait_event::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(opcode);
+    print_imm_hex(cuevent);
+    print_imm_identity(flags);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Stream::wait_event::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_imm_cuerror(cuerror);
+    print_extra_imm_error();
+
+    print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
 srv::wire::to_string(const core::receive_args<srv::wire::Stream::destroy::request>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
