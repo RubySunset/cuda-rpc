@@ -123,7 +123,7 @@ clt::Module::get_function(const std::string& func_name)
 {
         using msg = ::service::compute::cuda::wire::Module::get_function;
     
-        DVLOG(logging::SERVICE) << "Module::get_function <-";
+        DVLOG(logging::SERVICE) << "Module::get_function <- func_name=" << func_name;
     
         auto& pimpl = impl::Module::get(*this);
         auto self = pimpl.state->self.lock();
