@@ -25,6 +25,7 @@ namespace impl {
 
     protected:
         void handle_generic(auto ch, auto args);
+        void handle_set_attribute(auto ch, auto args);
         void handle_launch(auto ch, auto args);
         void handle_destroy(auto ch, auto args);
 

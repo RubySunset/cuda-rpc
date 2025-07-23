@@ -63,6 +63,33 @@ impl::FunctionState::do_destroy(std::shared_ptr<core::channel>& ch)
 
 
 core::future<void>
+clt::Function::set_attribute(CUfunction_attribute attrib, int value)
+{
+    METHOD(set_attribute);
+    LOG_REQ(method)
+        << " {}";
+
+    auto& pimpl = impl::Function::get(*this);
+    auto self = pimpl.state->self.lock();
+    CHECK(self);
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_SET_ATTRIBUTE)
+        .set_imm(&msg::request::imms::attrib, (uint64_t)attrib)
+        .set_imm(&msg::request::imms::value, (uint64_t)value)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_cuda_response_ptr(self)
+        .then([self](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_ARGS_EXACT();
+        });
+}
+
+core::future<void>
 clt::Function::launch(const void** args, dim3 gridDim, dim3 blockDim,
                       size_t sharedMemBytes,
                       std::optional<std::reference_wrapper<Stream>> stream)

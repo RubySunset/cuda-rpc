@@ -120,17 +120,15 @@ impl::Function::handle_generic(auto ch, auto args)
         return std::unique_ptr<ptr>(reinterpret_cast<ptr*>(args.release()));
     };
 
-#define HANDLE(name) \
-    handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args)))
+#define CASE_HANDLE(NAME, name)                                         \
+    case srv_wire_msg::OP_ ## NAME:                                      \
+        handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args))); \
+        break;
 
     switch (opcode) {
-    case srv_wire_msg::OP_LAUNCH:
-        HANDLE(launch);
-        break;
-    case srv_wire_msg::OP_DESTROY:
-        HANDLE(destroy);
-        break;
-
+    CASE_HANDLE(SET_ATTRIBUTE, set_attribute);
+    CASE_HANDLE(LAUNCH, launch);
+    CASE_HANDLE(DESTROY, destroy);
     default:
         LOG_RES(method)
             << " [error] invalid opcode";
@@ -143,6 +141,35 @@ impl::Function::handle_generic(auto ch, auto args)
     }
 
 #undef HANDLE
+}
+
+void
+impl::Function::handle_set_attribute(auto ch, auto args)
+{
+    METHOD(set_attribute);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
+
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+
+    auto attrib = (CUfunction_attribute)args->imms.attrib.get();
+    auto value = (int)args->imms.value.get();
+
+    cuerror = cuFuncSetAttribute(cufunc, attrib, value);
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror);
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_continuation_error();
 }
 
 void

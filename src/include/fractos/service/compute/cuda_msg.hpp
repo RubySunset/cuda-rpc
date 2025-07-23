@@ -925,6 +925,7 @@ namespace fractos::service::compute::cuda::wire {
     namespace Function {
 
         enum generic_opcode : uint64_t {
+            OP_SET_ATTRIBUTE,
             OP_LAUNCH,
             OP_DESTROY,
             OP_INVALID = std::numeric_limits<uint64_t>::max()
@@ -932,6 +933,31 @@ namespace fractos::service::compute::cuda::wire {
 
         using generic = wire::generic;
     }
+
+    namespace Function {
+        struct set_attribute {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint64_t attrib;
+                    fractos::wire::endian::uint64_t value;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
+    }
+    std::string to_string(const core::receive_args<Function::set_attribute::request>& req);
+    std::string to_string(const core::receive_args<Function::set_attribute::response>& resp);
 
     namespace Function {
         struct launch {
