@@ -26,6 +26,19 @@ __cudaPopCallConfiguration(dim3* gridDim, dim3* blockDim, size_t* sharedMem,
 
 extern "C" [[gnu::visibility("default")]]
 cudaError_t CUDARTAPI
+cudaFuncSetAttribute(const void* func, cudaFuncAttribute attr, int  value)
+{
+    auto& state = get_runtime_state();
+
+    auto [err, cufunc] = state.get_function(func);
+    return_error_maybe(err);
+
+    err = (cudaError_t)cuFuncSetAttribute(cufunc, (CUfunction_attribute)attr, value);
+    return_error(err);
+}
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
 cudaLaunchKernel(const void *func, dim3 gridDim, dim3 blockDim, void **args,
                  size_t sharedMem, cudaStream_t stream)
 {
