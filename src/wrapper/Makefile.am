@@ -14,6 +14,7 @@ lib_LTLIBRARIES += libfractos-service-compute-cuda-wrapper.la
 nodist_libfractos_service_compute_cuda_wrapper_la_SOURCES =
 libfractos_service_compute_cuda_wrapper_la_SOURCES =
 libfractos_service_compute_cuda_wrapper_la_SOURCES += common.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += image.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += ../library/wire.cpp
 
 nodist_libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-default.cpp

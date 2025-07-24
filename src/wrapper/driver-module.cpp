@@ -1,7 +1,8 @@
 #include <cuda.h>
 
-#include <./driver-state.hpp>
-#include <./driver-syms-extern.hpp>
+#include "./image.hpp"
+#include "./driver-state.hpp"
+#include "./driver-syms-extern.hpp"
 
 namespace srv = fractos::service::compute::cuda;
 
@@ -82,20 +83,7 @@ extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuModuleLoadData(CUmodule *module, const void *image)
 {
-    struct nv_fatbin_header {
-        uint8_t magic[8];
-        uint64_t size;
-    };
-
-    static constexpr uint8_t nv_fatbin_magic[8] = {0x50, 0xed, 0x55, 0xba, 0x01, 0x00, 0x10, 0x00};
-
-
     auto& state = get_driver_state();
-
-    // parse descriptor
-
-    auto header = (nv_fatbin_header*)image;
-    CHECK(memcmp(header->magic, nv_fatbin_magic, 8) == 0);
 
     CUcontext ctx;
     auto err = cuCtxGetCurrent(&ctx);
@@ -107,7 +95,9 @@ cuModuleLoadData(CUmodule *module, const void *image)
     auto ctx_ptr = state.get_context(ctx);
     CHECK(ctx_ptr);
 
-    auto image_size = sizeof(nv_fatbin_header) + header->size;
+    // parse descriptor
+
+    auto image_size = get_image_size(image);
 
     // load module into service
 
