@@ -55,3 +55,31 @@ cuLibraryLoadData(CUlibrary* library, const void* code,
 
     return CUDA_SUCCESS;
 }
+
+extern "C" [[gnu::visibility("default")]]
+CUresult CUDAAPI
+cuLibraryGetKernel(CUkernel* pKernel, CUlibrary library, const char* name)
+{
+    auto& state = get_driver_state();
+
+    auto library_desc = state.get_library(library);
+    if (not library_desc) {
+        return CUDA_ERROR_INVALID_HANDLE;
+    }
+
+    std::string name_s(name);
+
+    auto kernel_desc = std::make_shared<DriverState::kernel_desc>();
+    try {
+        kernel_desc->kernel = library_desc->library->get_kernel(name)
+            .get();
+    } catch (const clt::CudaError& e) {
+        return e.cuerror;
+    }
+
+    state.insert_kernel(kernel_desc);
+
+    *pKernel = kernel_desc->kernel->get_kernel();
+
+    return CUDA_SUCCESS;
+}

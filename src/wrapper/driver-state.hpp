@@ -84,10 +84,24 @@ public:
     };
 
     void insert_library(std::shared_ptr<library_desc> library_desc);
+    std::shared_ptr<library_desc> get_library(CUlibrary culibrary);
 
 private:
     std::shared_mutex libraries_mutex;
     std::unordered_map<CUlibrary, std::shared_ptr<library_desc>> libraries;
+public:
+
+    // kernel
+
+    struct kernel_desc {
+        std::shared_ptr<fractos::service::compute::cuda::Kernel> kernel;
+    };
+
+    void insert_kernel(std::shared_ptr<kernel_desc> kernel_desc);
+
+private:
+    std::shared_mutex kernels_mutex;
+    std::unordered_map<CUkernel, std::shared_ptr<kernel_desc>> kernels;
 public:
 
     // memory

@@ -238,6 +238,28 @@ DriverState::insert_library(std::shared_ptr<DriverState::library_desc> desc)
     CHECK(res.second);
 }
 
+std::shared_ptr<DriverState::library_desc>
+DriverState::get_library(CUlibrary library)
+{
+    auto lock = std::shared_lock(libraries_mutex);
+    auto it = libraries.find(library);
+    if (it != libraries.end()) {
+        return it->second;
+    } else {
+        return nullptr;
+    }
+}
+
+
+void
+DriverState::insert_kernel(std::shared_ptr<DriverState::kernel_desc> desc)
+{
+    auto lock = std::unique_lock(kernels_mutex);
+    auto res = kernels.insert(std::make_pair(desc->kernel->get_kernel(), desc));
+    CHECK(res.second);
+}
+
+
 std::shared_ptr<clt::Memory>
 DriverState::get_memory(CUdeviceptr addr)
 {
