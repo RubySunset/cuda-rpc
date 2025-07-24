@@ -77,6 +77,19 @@ public:
     std::shared_mutex functions_mutex;
     std::unordered_map<CUfunction, std::shared_ptr<func_desc>> functions;
 
+    // library
+
+    struct library_desc {
+        std::shared_ptr<fractos::service::compute::cuda::Library> library;
+    };
+
+    void insert_library(std::shared_ptr<library_desc> library_desc);
+
+private:
+    std::shared_mutex libraries_mutex;
+    std::unordered_map<CUlibrary, std::shared_ptr<library_desc>> libraries;
+public:
+
     // memory
 
     std::shared_ptr<fractos::service::compute::cuda::Memory> get_memory(CUdeviceptr addr);

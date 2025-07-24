@@ -229,6 +229,15 @@ DriverState::get_function(CUfunction function)
     }
 }
 
+
+void
+DriverState::insert_library(std::shared_ptr<DriverState::library_desc> desc)
+{
+    auto lock = std::unique_lock(libraries_mutex);
+    auto res = libraries.insert(std::make_pair(desc->library->get_library(), desc));
+    CHECK(res.second);
+}
+
 std::shared_ptr<clt::Memory>
 DriverState::get_memory(CUdeviceptr addr)
 {
