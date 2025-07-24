@@ -20,6 +20,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
     class Context;
     class Module;
     class Function;
+    class Library;
     class Stream;
     class Event;
     class Memory;
@@ -317,6 +318,14 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         };
 
         std::string to_string(const Function& obj);
+
+        // CUlibrary
+        class Library : public common::service::CltBase<Library> {
+        public:
+            CUlibrary get_library() const;
+        };
+
+        std::string to_string(const Library& obj);
 
         /**
          * @brief Wrapper for CUstream operations
