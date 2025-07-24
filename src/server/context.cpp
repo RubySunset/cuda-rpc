@@ -13,6 +13,7 @@
 #include "./stream.hpp"
 #include "./event.hpp"
 #include "./module.hpp"
+#include "./library.hpp"
 #include "./memory.hpp"
 
 
@@ -516,7 +517,6 @@ impl::Context::handle_event_create(auto ch, auto args)
         .as_callback();
 }
 
-
 void
 impl::Context::handle_module_load_data(auto ch, auto args)
 {
@@ -536,6 +536,7 @@ impl::Context::handle_module_load_data(auto ch, auto args)
         // passing explicit MR avoids MR creation and prefetching
         auto& mr = ch->get_default_memory_region();
         auto copied_mem = ch->make_memory(contents_buffer.get(), contents_size, mr).get();
+        LOG_FIRST_N(WARNING, 1) << "TODO: copy contents asynchronously";
         ch->copy(args->caps.contents, copied_mem).get();
     }
 

@@ -212,6 +212,46 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::module_get_loa
     return ss.str();
 }
 
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Service::library_load_data::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(opcode);
+    print_imm_identity(num_jit_options);
+    print_imm_identity(size_jit_values);
+    print_imm_identity(num_lib_options);
+    print_imm_identity(size_lib_values);
+    print_imm_array(data, obj.imms_size() - sizeof(obj.imms));
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_cap(contents);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Service::library_load_data::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_imm_cuerror(cuerror);
+    print_imm_hex(culibrary);
+    print_extra_imm_error();
+
+    print_cap(generic);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
 
 std::string
 srv::wire::to_string(const core::receive_args<srv::wire::Device::get_attribute::request>& obj)

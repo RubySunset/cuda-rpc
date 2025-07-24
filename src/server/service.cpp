@@ -5,8 +5,10 @@
 #include <fractos/wire/error.hpp>
 #include <string>
 
+#include "./common.hpp"
 #include "./service.hpp"
 #include "./device.hpp"
+#include "./library.hpp"
 #include "./event.hpp"
 
 
@@ -224,29 +226,21 @@ impl::Service::handle_generic(auto ch, auto args)
         return std::unique_ptr<ptr>(reinterpret_cast<ptr*>(args.release()));
     };
 
+#define CASE_HANDLE(NAME, name)                                         \
+    case srv_wire_msg::OP_ ## NAME:                                      \
+        handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args))); \
+        break;
+
 #define HANDLE(name) \
     handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args)))
 
     switch (opcode) {
-    case srv::wire::Service::OP_GET_DRIVER_VERSION:
-        HANDLE(get_driver_version);
-        break;
-
-    case srv::wire::Service::OP_INIT:
-        HANDLE(init);
-        break;
-
-    case srv::wire::Service::OP_DEVICE_GET:
-        HANDLE(device_get);
-        break;
-    case srv::wire::Service::OP_DEVICE_GET_COUNT:
-        HANDLE(device_get_count);
-        break;
-
-    case srv::wire::Service::OP_MODULE_GET_LOADING_MODE:
-        HANDLE(module_get_loading_mode);
-        break;
-
+    CASE_HANDLE(GET_DRIVER_VERSION, get_driver_version);
+    CASE_HANDLE(INIT, init);
+    CASE_HANDLE(DEVICE_GET, device_get);
+    CASE_HANDLE(DEVICE_GET_COUNT, device_get_count);
+    CASE_HANDLE(MODULE_GET_LOADING_MODE, module_get_loading_mode);
+    CASE_HANDLE(LIBRARY_LOAD_DATA, library_load_data);
     default:
         LOG_OP(method)
             << " [error] invalid opcode";
@@ -258,7 +252,7 @@ impl::Service::handle_generic(auto ch, auto args)
         break;
     }
 
-#undef HANDLE
+#undef CASE_HANDLE
 }
 
 void
@@ -419,6 +413,116 @@ impl::Service::handle_module_get_loading_mode(auto ch, auto args)
         .on_channel()
         .invoke()
         .as_callback_log_ignore_continuation_error();
+}
+
+void
+impl::Service::handle_library_load_data(auto ch, auto args)
+{
+    METHOD(library_load_data);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_IMMS_ALL(reqb_cont);
+    CHECK_CAPS_EXACT(reqb_cont);
+
+    auto self = this->_self.lock();
+    CHECK(self);
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+
+    auto send_error = [&]() {
+        LOG_RES(method)
+            << " error=" << wire::to_string(error)
+            << " cuerror=" << get_CUresult_name(cuerror);
+
+        ch->template make_request_builder<msg::response>(args->caps.continuation)
+            .set_imm(&msg::response::imms::error, error)
+            .set_imm(&msg::response::imms::cuerror, cuerror)
+            .on_channel()
+            .invoke()
+            .as_callback();
+    };
+
+    auto contents_size = args->caps.contents.get_size();
+    std::shared_ptr<char[]> contents_buffer(new char[contents_size]);
+    {
+        // passing explicit MR avoids MR creation and prefetching
+        auto& mr = ch->get_default_memory_region();
+        auto copied_mem = ch->make_memory(contents_buffer.get(), contents_size, mr).get();
+        LOG_FIRST_N(WARNING, 1) << "TODO: copy contents asynchronously";
+        ch->copy(args->caps.contents, copied_mem).get();
+    }
+
+
+    size_t offset = 0;
+
+
+    auto jit_options_size = sizeof(CUjit_option) * args->imms.num_jit_options;
+    if ((sizeof(args->imms) + offset + jit_options_size) > args->imms_size()) {
+        cuerror = CUDA_ERROR_INVALID_VALUE;
+        send_error();
+        return;
+    }
+    std::vector<CUjit_option> jit_options(
+        (CUjit_option*)&args->imms.data[offset],
+        (CUjit_option*)&args->imms.data[offset + jit_options_size]);
+    offset += jit_options_size;
+
+    std::vector<void*> jit_values;
+    if (args->imms.size_jit_values > 0) {
+        LOG(ERROR) << "!!! not implemented";
+        cuerror = CUDA_ERROR_UNKNOWN;
+        send_error();
+        return;
+    }
+
+
+    auto lib_options_size = sizeof(CUlibraryOption) * args->imms.num_lib_options;
+    if ((sizeof(args->imms) + offset + lib_options_size) > args->imms_size()) {
+        cuerror = CUDA_ERROR_INVALID_VALUE;
+        send_error();
+        return;
+    }
+    std::vector<CUlibraryOption> lib_options(
+        (CUlibraryOption*)&args->imms.data[offset],
+        (CUlibraryOption*)&args->imms.data[offset + lib_options_size]);
+    offset += lib_options_size;
+
+    std::vector<void*> lib_values;
+    if (args->imms.size_lib_values > 0) {
+        LOG(ERROR) << "!!! not implemented";
+        cuerror = CUDA_ERROR_UNKNOWN;
+        send_error();
+        return;
+    }
+
+
+    make_library(ch, contents_buffer,
+                 jit_options, jit_values, lib_options, lib_values)
+        .then([this, self, ch, args=std::move(args)](auto& fut) {
+            auto [error, cuerror, library] = fut.get();
+
+            CUlibrary culibrary = 0;
+            if (not error and not cuerror) {
+                culibrary = library->get_remote_culibrary();
+            }
+
+            LOG_RES(method)
+                << " error=" << wire::to_string(error)
+                << " cuerror=" << get_CUresult_name(cuerror)
+                << " culibrary=" << (void*)culibrary
+                << " req_generic=" << core::to_string(library->req_generic);
+
+            ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::cuerror, cuerror)
+                .set_imm(&msg::response::imms::culibrary, (uint64_t)culibrary)
+                .set_cap(&msg::response::caps::generic, library->req_generic)
+                .on_channel()
+                .invoke()
+                .as_callback();
+        })
+        .as_callback();
 }
 
 

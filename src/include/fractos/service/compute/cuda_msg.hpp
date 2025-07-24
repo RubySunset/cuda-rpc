@@ -62,6 +62,8 @@ namespace fractos::service::compute::cuda::wire {
 
             OP_MODULE_GET_LOADING_MODE,
 
+            OP_LIBRARY_LOAD_DATA,
+
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
 
@@ -193,6 +195,37 @@ namespace fractos::service::compute::cuda::wire {
 
     std::string to_string(const core::receive_args<Service::module_get_loading_mode::request>& req);
     std::string to_string(const core::receive_args<Service::module_get_loading_mode::response>& resp);
+
+    namespace Service {
+        struct library_load_data {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint64_t num_jit_options;
+                    fractos::wire::endian::uint64_t size_jit_values;
+                    fractos::wire::endian::uint64_t num_lib_options;
+                    fractos::wire::endian::uint64_t size_lib_values;
+                    char data[];
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                    fractos::core::cap::memory contents;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
+                    fractos::wire::endian::uint64_t culibrary;
+                } __attribute__ ((packed));
+                struct caps {
+                    fractos::core::cap::request generic;
+                };
+            };
+        };
+    }
+    std::string to_string(const core::receive_args<Service::library_load_data::request>& req);
+    std::string to_string(const core::receive_args<Service::library_load_data::response>& resp);
 
 
     namespace Device {
@@ -618,7 +651,6 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
     }
-
     std::string to_string(const core::receive_args<Context::module_load_data::request>& req);
     std::string to_string(const core::receive_args<Context::module_load_data::response>& resp);
 

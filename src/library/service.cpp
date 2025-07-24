@@ -10,6 +10,7 @@
 #include <./common.hpp>
 #include <service_impl.hpp>
 #include <device_impl.hpp>
+#include "./library_impl.hpp"
 
 
 namespace clt = fractos::service::compute::cuda;
@@ -267,6 +268,89 @@ clt::Service::module_get_loading_mode()
             fractos::wire::error_raise_exception_maybe(args->imms.error);
 
             return static_cast<CUmoduleLoadingMode>(args->imms.mode.get());
+        });
+}
+
+core::future<std::shared_ptr<clt::Library>>
+clt::Service::library_load_data(core::cap::memory& contents,
+                                const std::vector<CUjit_option>& jit_options,
+                                const std::vector<void*>& jit_values,
+                                const std::vector<CUlibraryOption>& lib_options,
+                                const std::vector<void*>& lib_values)
+{
+    METHOD(library_load_data);
+    LOG_REQ(method)
+        << " contents=" << core::to_string(contents)
+        << " jit_options.size=" << jit_options.size()
+        << " jit_values.size=" << jit_values.size()
+        << " lib_options.size=" << lib_options.size()
+        << " lib_values.size=" << lib_values.size();
+
+    auto& pimpl = impl::Service::get(*this);
+    auto self = pimpl.state->self.lock();
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    auto req = pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_LIBRARY_LOAD_DATA)
+        .set_imm(&msg::request::imms::num_jit_options, jit_options.size())
+        .set_imm(&msg::request::imms::num_lib_options, lib_options.size())
+        .set_cap(&msg::request::caps::continuation, resp)
+        .set_cap(&msg::request::caps::contents, contents);
+
+    size_t offset = sizeof(msg::request::imms);
+
+
+    if (jit_options.size() != jit_values.size()) {
+        return core::make_exceptional_future<std::shared_ptr<clt::Library>>(
+            CudaError(CUDA_ERROR_INVALID_VALUE));
+    }
+
+    {
+        auto size = jit_options.size() * sizeof(jit_options[0]);
+        req.set_imm(offset, jit_options.data(), size);
+        offset += size;
+    }
+
+    size_t size_jit_values = 0;
+    for (size_t i = 0; i < jit_options.size(); i++) {
+        auto option = jit_options[i];
+        // auto value = jit_values[i];
+        switch (option) {
+        default:
+            LOG(FATAL) << "CUjit_option not implemented: " << option;
+        }
+    }
+
+
+    {
+        auto size = lib_options.size() * sizeof(lib_options[0]);
+        req.set_imm(offset, lib_options.data(), size);
+        offset += size;
+    }
+
+    // NOTE: forced empty
+    size_t size_lib_values = 0;
+    if (lib_values.size() > 0) {
+        return core::make_exceptional_future<std::shared_ptr<clt::Library>>(
+            CudaError(CUDA_ERROR_INVALID_VALUE));
+    }
+
+
+    return req
+        .set_imm(&msg::request::imms::size_jit_values, size_jit_values)
+        .set_imm(&msg::request::imms::size_lib_values, size_lib_values)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_cuda_response()
+        .then([self](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_ARGS_EXACT();
+
+            return impl::make_library(
+                ch,
+                (CUlibrary)args->imms.culibrary.get(),
+                std::move(args->caps.generic));
         });
 }
 

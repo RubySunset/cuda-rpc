@@ -84,6 +84,15 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             // cuModuleGetLoadingMode
             [[nodiscard]] fractos::core::future<CUmoduleLoadingMode>
             module_get_loading_mode();
+
+
+            // cuLibraryLoadData
+            [[nodiscard]] core::future<std::shared_ptr<Library>>
+            library_load_data(core::cap::memory& contents,
+                              const std::vector<CUjit_option>& jit_options,
+                              const std::vector<void*>& jit_values,
+                              const std::vector<CUlibraryOption>& lib_options,
+                              const std::vector<void*>& lib_values);
         };
 
         std::string to_string(const Service& obj);
@@ -156,7 +165,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Module>>
             module_load(const std::string path);
 
-            // cuModuleLoadData()
+            // cuModuleLoadData
             [[nodiscard]] core::future<std::shared_ptr<Module>>
             module_load_data(core::cap::memory& contents);
 

@@ -10,6 +10,7 @@
 #include <./common.hpp>
 #include <context_impl.hpp>
 #include <module_impl.hpp>
+#include "./library_impl.hpp"
 #include <memory_impl.hpp>
 #include <stream_impl.hpp>
 #include <event_impl.hpp>

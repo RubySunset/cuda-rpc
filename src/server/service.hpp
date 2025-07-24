@@ -44,6 +44,8 @@ namespace impl {
 
         void handle_module_get_loading_mode(auto ch, auto args);
 
+        void handle_library_load_data(auto ch, auto args);
+
     private:
         Service();
 
