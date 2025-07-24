@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "./library_impl.hpp"
+#include "./kernel_impl.hpp"
 
 
 namespace clt = fractos::service::compute::cuda;
@@ -60,6 +61,38 @@ clt::Library::get_library() const
 {
     auto& pimpl = impl::Library::get(*this);
     return pimpl.state->culibrary;
+}
+
+
+core::future<std::shared_ptr<clt::Kernel>>
+clt::Library::get_kernel(const std::string& name)
+{
+    METHOD(get_kernel);
+    LOG_REQ(method)
+        << " name=" << name;
+
+    auto& pimpl = impl::Library::get(*this);
+    auto self = pimpl.state;
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_GET_KERNEL)
+        .set_imm(&msg::request::imms::name_size, name.size())
+        .set_imm(&msg::request::imms::name, name.c_str(), name.size())
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_cuda_response()
+        .then([this, self](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_ARGS_EXACT();
+
+            auto cukernel = (CUkernel)args->imms.cukernel.get();
+
+            return impl::make_kernel(ch, cukernel,
+                                     std::move(args->caps.req_generic));
+        });
 }
 
 

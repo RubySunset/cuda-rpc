@@ -1051,11 +1051,39 @@ namespace fractos::service::compute::cuda::wire {
 
     namespace Library {
         enum generic_opcode : uint64_t {
+            OP_GET_KERNEL,
             OP_DESTROY,
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
         using generic = wire::generic;
     }
+
+    namespace Library {
+        struct get_kernel {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint64_t name_size;
+                    char name[];
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
+                    fractos::wire::endian::uint64_t cukernel;
+                } __attribute__ ((packed));
+                struct caps {
+                    fractos::core::cap::request req_generic;
+                };
+            };
+        };
+    }
+    std::string to_string(const core::receive_args<Library::get_kernel::request>& req);
+    std::string to_string(const core::receive_args<Library::get_kernel::response>& resp);
 
     namespace Library {
         struct destroy {
@@ -1079,6 +1107,38 @@ namespace fractos::service::compute::cuda::wire {
     }
     std::string to_string(const core::receive_args<Library::destroy::request>& req);
     std::string to_string(const core::receive_args<Library::destroy::response>& resp);
+
+
+    namespace Kernel {
+        enum generic_opcode : uint64_t {
+            OP_DESTROY,
+            OP_INVALID = std::numeric_limits<uint64_t>::max()
+        };
+        using generic = wire::generic;
+    }
+
+    namespace Kernel {
+        struct destroy {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
+    }
+    std::string to_string(const core::receive_args<Kernel::destroy::request>& req);
+    std::string to_string(const core::receive_args<Kernel::destroy::response>& resp);
 
 
 

@@ -16,6 +16,7 @@ libfractos_service_compute_cuda_la_SOURCES += error.cpp
 libfractos_service_compute_cuda_la_SOURCES += function.cpp
 libfractos_service_compute_cuda_la_SOURCES += module.cpp
 libfractos_service_compute_cuda_la_SOURCES += library.cpp
+libfractos_service_compute_cuda_la_SOURCES += kernel.cpp
 libfractos_service_compute_cuda_la_SOURCES += stream.cpp
 libfractos_service_compute_cuda_la_SOURCES += event.cpp
 libfractos_service_compute_cuda_la_SOURCES += memory.cpp

@@ -13,40 +13,37 @@
 
 namespace srv = fractos::service::compute::cuda;
 namespace srv_wire = fractos::service::compute::cuda::wire;
-namespace srv_wire_msg = srv_wire::Library;
+namespace srv_wire_msg = srv_wire::Kernel;
 using namespace fractos;
 
 
 std::string
-impl::to_string(const impl::Library& obj)
+impl::to_string(const impl::Kernel& obj)
 {
     std::stringstream ss;
-    ss << "Library(" << (void*)obj.get_remote_culibrary() << ")";
+    ss << "Kernel(" << (void*)obj.get_remote_cukernel() << ")";
     return ss.str();
 }
 
 
-fractos::core::future<std::tuple<wire::error_type, CUresult, std::shared_ptr<impl::Library>>>
-impl::make_library(std::shared_ptr<fractos::core::channel> ch,
-                   std::shared_ptr<char[]>& contents,
-                   const std::vector<CUjit_option>& jit_options, const std::vector<void*>& jit_values,
-                   const std::vector<CUlibraryOption>& lib_options, const std::vector<void*>& lib_values)
+fractos::core::future<std::tuple<wire::error_type, CUresult, std::shared_ptr<impl::Kernel>>>
+impl::make_kernel(std::shared_ptr<fractos::core::channel> ch,
+                  std::shared_ptr<Library> library,
+                  std::string name)
 {
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
-    std::shared_ptr<Library> res;
+    std::shared_ptr<Kernel> res;
 
-    CUlibrary culibrary;
-    cuerror = cuLibraryLoadData(&culibrary, contents.get(),
-                                (CUjit_option*)jit_options.data(), (void**)jit_values.data(), jit_options.size(),
-                                (CUlibraryOption*)lib_options.data(), (void**)lib_values.data(), lib_options.size());
+    CUkernel cukernel = 0;
+    cuerror = cuLibraryGetKernel(&cukernel, library->culibrary, name.c_str());
     if (cuerror != CUDA_SUCCESS) {
         return core::make_ready_future(std::make_tuple(error, cuerror, res));
     }
 
-    res = std::make_shared<Library>();
-    res->culibrary = culibrary;
-    res->contents = contents;
+    res = std::make_shared<Kernel>();
+    res->cukernel = cukernel;
+    res->library = library;
 
     return ch->make_request_builder<srv_wire_msg::generic::request>(
         ch->get_default_endpoint(),
@@ -66,7 +63,7 @@ impl::make_library(std::shared_ptr<fractos::core::channel> ch,
             }
 
             if (error or cuerror) {
-                LOG(FATAL) << "TODO: undo Library and return error";
+                LOG(FATAL) << "TODO: undo object and return error";
             } else {
                 res->self = res;
             }
@@ -76,15 +73,15 @@ impl::make_library(std::shared_ptr<fractos::core::channel> ch,
 }
 
 
-CUlibrary
-impl::Library::get_remote_culibrary() const
+CUkernel
+impl::Kernel::get_remote_cukernel() const
 {
-    return (CUlibrary)this;
+    return (CUkernel)this;
 }
 
 
 void
-impl::Library::handle_generic(auto ch, auto args)
+impl::Kernel::handle_generic(auto ch, auto args)
 {
     METHOD(generic);
     CHECK_CAPS_CONT(msg::request::caps::continuation);
@@ -105,11 +102,10 @@ impl::Library::handle_generic(auto ch, auto args)
         break;
 
     switch (opcode) {
-    CASE_HANDLE(GET_KERNEL, get_kernel);
     CASE_HANDLE(DESTROY, destroy);
     default:
         LOG_RES(method)
-            << " [error] invalid opcode";
+            << " [error] invalid opcode: " << opcode;
         ch->template make_request_builder<msg::response>(args->caps.continuation)
             .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
             .on_channel()
@@ -122,46 +118,8 @@ impl::Library::handle_generic(auto ch, auto args)
 }
 
 
-void
-impl::Library::handle_get_kernel(auto ch, auto args)
-{
-    METHOD(get_kernel);
-    LOG_REQ(method) << srv::wire::to_string(*args);
-
-    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_CAPS_EXACT(reqb_cont);
-    CHECK_IMMS_ALL(reqb_cont);
-    CHECK_ARGS_COND(reqb_cont,
-                    args->imms_size() == (sizeof(msg::request::imms) + args->imms.name_size));
-
-    auto self = this->self;
-    std::string name(args->imms.name, args->imms.name_size);
-
-    make_kernel(ch, self, name)
-        .then([ch, this, self, args=std::move(args)](auto& fut) {
-            auto [error, cuerror, kernel] = fut.get();
-
-            auto cukernel = kernel->get_remote_cukernel();
-
-            LOG_RES(method)
-                << " error=" << wire::to_string(error)
-                << " cuerror=" << get_CUresult_name(cuerror)
-                << " cukernel=" << (void*)cukernel;
-
-            ch->template make_request_builder<msg::response>(args->caps.continuation)
-                .set_imm(&msg::response::imms::error, error)
-                .set_imm(&msg::response::imms::cuerror, cuerror)
-                .set_imm(&msg::response::imms::cukernel, (uint64_t)cukernel)
-                .set_cap(&msg::response::caps::req_generic, kernel->req_generic)
-                .on_channel()
-                .invoke()
-                .as_callback_log_ignore_continuation_error();
-        })
-        .as_callback();
-}
-
 core::future<std::tuple<wire::error_type, CUresult>>
-impl::Library::destroy_maybe(auto ch)
+impl::Kernel::destroy_maybe(auto ch)
 {
     auto self = this->self;
     auto error = wire::ERR_SUCCESS;
@@ -179,13 +137,7 @@ impl::Library::destroy_maybe(auto ch)
             auto error = wire::ERR_SUCCESS;
             auto cuerror = CUDA_SUCCESS;
 
-            cuerror = cuLibraryUnload(culibrary);
-            if (cuerror != CUDA_SUCCESS) {
-                goto out_inner;
-            }
-
-            out_inner:
-
+            this->library.reset();
             this->self.reset();
 
             return std::make_tuple(error, cuerror);
@@ -193,7 +145,7 @@ impl::Library::destroy_maybe(auto ch)
 }
 
 void
-impl::Library::handle_destroy(auto ch, auto args)
+impl::Kernel::handle_destroy(auto ch, auto args)
 {
     METHOD(destroy);
     LOG_REQ(method) << srv::wire::to_string(*args);

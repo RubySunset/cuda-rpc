@@ -21,6 +21,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
     class Module;
     class Function;
     class Library;
+    class Kernel;
     class Stream;
     class Event;
     class Memory;
@@ -328,13 +329,28 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
         std::string to_string(const Function& obj);
 
+
         // CUlibrary
         class Library : public common::service::CltBase<Library> {
         public:
             CUlibrary get_library() const;
+
+            // cuLibraryGetKernel
+            [[nodiscard]] core::future<std::shared_ptr<Kernel>>
+            get_kernel(const std::string& name);
         };
 
         std::string to_string(const Library& obj);
+
+
+        // CUkernel
+        class Kernel : public common::service::CltBase<Kernel> {
+        public:
+            CUkernel get_kernel() const;
+        };
+
+        std::string to_string(const Kernel& obj);
+
 
         /**
          * @brief Wrapper for CUstream operations
