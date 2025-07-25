@@ -34,11 +34,11 @@ cuModuleGetFunction(CUfunction* hfunc, CUmodule hmod, const char *name)
     auto func_desc = std::make_shared<DriverState::func_desc>();
     func_desc->function = mod_desc->module->get_function(name).get();
 
-    CUfunction func = (CUfunction)func_desc.get();
+    auto cufunc = func_desc->function->get_function();
 
     {
         auto funcs_lock = std::unique_lock(mod_desc->functions_mutex);
-        auto res = mod_desc->functions.insert(std::make_pair(func_name, func));
+        auto res = mod_desc->functions.insert(std::make_pair(func_name, cufunc));
         CHECK(res.second);
     }
 
@@ -48,7 +48,7 @@ cuModuleGetFunction(CUfunction* hfunc, CUmodule hmod, const char *name)
         CHECK(res.second);
     }
 
-    *hfunc = func;
+    *hfunc = cufunc;
     return CUDA_SUCCESS;
 }
 

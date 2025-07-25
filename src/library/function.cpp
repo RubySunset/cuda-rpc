@@ -26,11 +26,13 @@ template class fractos::common::service::CltBase<clt::Function>;
 
 std::shared_ptr<clt::Function>
 impl::make_function(std::shared_ptr<fractos::core::channel> ch,
+                    CUfunction cufunction,
                     size_t args_total_size,
                     std::vector<size_t> args_size,
                     fractos::core::cap::request req_generic)
 {
     auto state = std::make_shared<impl::FunctionState>();
+    state->cufunction = cufunction;
     state->args_total_size = args_total_size;
     state->args_size = std::move(args_size);
     state->req_generic = std::move(req_generic);
@@ -57,6 +59,14 @@ impl::FunctionState::do_destroy(std::shared_ptr<core::channel>& ch)
             auto [ch, args] = fut.get();
             CHECK_ARGS_EXACT();
         });
+}
+
+
+CUfunction
+clt::Function::get_function() const
+{
+    auto& pimpl = impl::Function::get(*this);
+    return pimpl.state->cufunction;
 }
 
 

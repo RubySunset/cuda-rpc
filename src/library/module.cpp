@@ -144,6 +144,8 @@ clt::Module::get_function(const std::string& func_name)
                 CHECK(args->imms_size() == args->imms_expected_size() + sizeof(uint64_t) * args->imms.nargs);
                 CHECK(args->has_exactly_caps());
 
+                auto cufunction = (CUfunction)args->imms.cufunction.get();
+
                 DVLOG(logging::SERVICE) << "Context::get_function ->"
                                         << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
                 fractos::wire::error_raise_exception_maybe(args->imms.error);
@@ -158,6 +160,7 @@ clt::Module::get_function(const std::string& func_name)
 
                 return impl::make_function(
                     ch,
+                    cufunction,
                     args_total_size, args_size,
                     std::move(args->caps.generic));
             });

@@ -296,6 +296,8 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
          */
         class Function : public common::service::CltBase<Function> {
         public:
+            CUfunction get_function() const;
+
             // cuFuncSetAttribute
             [[nodiscard]] core::future<void>
             set_attribute(CUfunction_attribute attrib, int value);
