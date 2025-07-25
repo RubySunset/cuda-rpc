@@ -217,6 +217,23 @@ DriverState::get_module(CUmodule module)
     }
 }
 
+
+void
+DriverState::insert_function(std::shared_ptr<DriverState::func_desc> desc)
+{
+    auto lock = std::unique_lock(functions_mutex);
+    auto res = functions.insert(std::make_pair(desc->function->get_function(), desc));
+    CHECK(res.second);
+}
+
+void
+DriverState::erase_function(std::shared_ptr<fractos::service::compute::cuda::Function> ptr)
+{
+    auto lock = std::unique_lock(functions_mutex);
+    auto res = functions.erase(ptr->get_function());
+    LOG_IF(ERROR, res != 1) << "could not find " << fractos::service::compute::cuda::to_string(*ptr);
+}
+
 std::shared_ptr<DriverState::func_desc>
 DriverState::get_function(CUfunction function)
 {

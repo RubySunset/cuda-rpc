@@ -42,11 +42,7 @@ cuModuleGetFunction(CUfunction* hfunc, CUmodule hmod, const char *name)
         CHECK(res.second);
     }
 
-    {
-        auto funcs_lock = std::unique_lock(state.functions_mutex);
-        auto res = state.functions.insert(std::make_pair(func, func_desc));
-        CHECK(res.second);
-    }
+    state.insert_function(func_desc);
 
     *hfunc = cufunc;
     return CUDA_SUCCESS;
@@ -149,13 +145,12 @@ cuModuleUnload(CUmodule hmod)
     }
 
     {
-        auto functions_lock = std::unique_lock(state.functions_mutex);
         auto module_functions_lock = std::unique_lock(mod_desc->functions_mutex);
         for (auto& func: mod_desc->functions) {
-            auto it = state.functions.find(func.second);
-            CHECK(it != state.functions.end());
-            it->second->function->destroy().get();
-            state.functions.erase(it);
+            auto func_desc = state.get_function(func.second);
+            CHECK(func_desc);
+            func_desc->function->destroy().get();
+            state.erase_function(func_desc->function);
         }
     }
 

@@ -72,10 +72,14 @@ public:
         std::shared_ptr<fractos::service::compute::cuda::Function> function;
     };
 
+    void insert_function(std::shared_ptr<func_desc> desc);
+    void erase_function(std::shared_ptr<fractos::service::compute::cuda::Function> ptr);
     std::shared_ptr<func_desc> get_function(CUfunction function);
 
+private:
     std::shared_mutex functions_mutex;
     std::unordered_map<CUfunction, std::shared_ptr<func_desc>> functions;
+public:
 
     // library
 
