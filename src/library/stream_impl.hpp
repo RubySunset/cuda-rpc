@@ -14,7 +14,6 @@ namespace impl {
 
     struct StreamState : public fractos::common::service::ImplState {
         std::weak_ptr<clt::Stream> self;
-        std::shared_ptr<fractos::core::channel> ch;
 
         std::weak_ptr<clt::Context> ctx;
         fractos::core::cap::request req_generic;
