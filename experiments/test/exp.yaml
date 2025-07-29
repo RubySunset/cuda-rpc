@@ -5,7 +5,7 @@ env-cluster-{{cluster}}.inc.yaml
 
 node: &node !node
   selector: node["resources"]["gpu"]
-  index: -1
+  index: 0
 
 
 experiment-info:
