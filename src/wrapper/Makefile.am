@@ -32,6 +32,7 @@ libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-memory.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-stream.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-event.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-execution.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-occupancy.cpp
 
 nodist_libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-default.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-lib.cpp
@@ -41,6 +42,7 @@ libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-error.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-stream.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-event.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-execution.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-occupancy.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-memory.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-entrypoint.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-version.cpp
