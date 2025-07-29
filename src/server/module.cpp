@@ -232,27 +232,26 @@ impl::Module::handle_get_global(auto ch, auto args)
     std::string name(args->imms.name, args->imms.name_size);
 
     auto error = wire::ERR_SUCCESS;
-    auto cuerr = CUDA_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
     CUdeviceptr dptr = 0;
 
-    cuerr = cuCtxSetCurrent(_ctx);
-    if (cuerr != CUDA_SUCCESS) {
+    cuerror = cuCtxSetCurrent(_ctx);
+    if (cuerror != CUDA_SUCCESS) {
         goto out;
     }
 
-    cuerr = cuModuleGetGlobal(&dptr, nullptr, _module, name.c_str());
+    cuerror = cuModuleGetGlobal(&dptr, nullptr, _module, name.c_str());
 
 out:
-    if (cuerr != CUDA_SUCCESS) {
-        error = wire::ERR_OTHER;
-    }
 
     LOG_RES(method)
         << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror)
         << " dptr=" << (void*)dptr;
 
     reqb_cont
         .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
         .set_imm(&msg::response::imms::dptr, dptr)
         .on_channel()
         .invoke()

@@ -127,7 +127,7 @@ clt::Module::get_global(const std::string& name)
         << " name=" << name;
 
     auto& pimpl = impl::Module::get(*this);
-    auto self = pimpl.state;
+    auto self = pimpl.state->self.lock();
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
@@ -138,7 +138,8 @@ clt::Module::get_global(const std::string& name)
         .on_channel()
         .invoke(resp)
         .unwrap()
-        .then([this, self](auto& fut) {
+        .then_check_cuda_response()
+        .then([self](auto& fut) {
             auto [ch, args] = fut.get();
 
             LOG_RES_PTR(method, self)
