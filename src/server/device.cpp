@@ -310,27 +310,34 @@ impl::Device::handle_ctx_create(auto ch, auto args)
         .then([this, self, ch, args=std::move(args)](auto& fut) {
             auto [error, cuerror, ctx] = fut.get();
 
+            auto reqb = ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::cuerror, cuerror);
+
             CUcontext cucontext = 0;
             if (not error and not cuerror) {
                 cucontext = ctx->get_remote_cucontext();
+                reqb
+                    .set_imm(&msg::response::imms::cucontext, (uint64_t)cucontext)
+                    .set_cap(&msg::response::caps::generic, ctx->_req_generic);
+
+                LOG_RES(method)
+                    << " error=" << wire::to_string(error)
+                    << " cuerror=" << get_CUresult_name(cuerror)
+                    << " cucontext=" << (void*)cucontext
+                    << " req_generic=" << core::to_string(ctx->_req_generic);
+            } else {
+                LOG_RES(method)
+                    << " error=" << wire::to_string(error)
+                    << " cuerror=" << get_CUresult_name(cuerror);
             }
 
-            LOG_RES(method)
-                << " error=" << wire::to_string(error)
-                << " cuerror=" << get_CUresult_name(cuerror)
-                << " cucontext=" << (void*)cucontext
-                << " req_generic=" << core::to_string(ctx->_req_generic);
-
-            ch->template make_request_builder<msg::response>(args->caps.continuation)
-                .set_imm(&msg::response::imms::error, error)
-                .set_imm(&msg::response::imms::cuerror, cuerror)
-                .set_imm(&msg::response::imms::cucontext, (uint64_t)cucontext)
-                .set_cap(&msg::response::caps::generic, ctx->_req_generic)
+            reqb
                 .on_channel()
                 .invoke()
-                .as_callback();
-              })
-        .as_callback();
+                .as_callback_log_ignore_continuation_error();
+        })
+        .as_callback_log_ignore_continuation_error();
 }
 
 void
