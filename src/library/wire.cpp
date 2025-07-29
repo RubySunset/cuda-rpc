@@ -685,7 +685,6 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::module_load_da
     print_extra_imm_error();
 
     print_cap(generic);
-    print_cap(get_function);
     print_cap(destroy);
     print_extra_cap_error();
 
@@ -929,6 +928,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Module::get_function::r
 
     std::stringstream ss;
 
+    print_imm_identity(opcode);
     print_imm_identity(name_size);
     print_imm_string(name, name_size);
 

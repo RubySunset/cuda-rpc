@@ -25,8 +25,8 @@ namespace impl {
     protected:
         void handle_generic(auto ch, auto args);
         void handle_get_global(auto ch, auto args);
+        void handle_get_function(auto ch, auto args);
 
-        void handle_get_function(auto args);
         void handle_destroy(auto args);
     
     private:
@@ -39,14 +39,15 @@ namespace impl {
         // TODO: delete
         std::string _name;
         uint64_t _id;
+    public:
         CUcontext _ctx;
         CUmodule _module;
+    private:
         std::weak_ptr<Context> _vctx;
         std::shared_ptr<const char[]> _data;
 
     public:
         fractos::core::cap::request _req_generic;
-        fractos::core::cap::request _req_get_func;
         fractos::core::cap::request _req_destroy;
 
         std::shared_ptr<Function> _func; 

@@ -27,12 +27,10 @@ std::shared_ptr<clt::Module>
 impl::make_module(std::shared_ptr<fractos::core::channel> ch,
                   CUmodule cumodule,
                   fractos::core::cap::request req_generic,
-                  fractos::core::cap::request req_get_func,
                   fractos::core::cap::request req_module_unload)
 {
     auto state = std::make_shared<impl::ModuleState>();
     state->req_generic = std::move(req_generic);
-    state->req_get_func = std::move(req_get_func);
     state->req_module_unload = std::move(req_module_unload);
     state->cumodule = cumodule;
 
@@ -87,7 +85,8 @@ clt::Module::get_function(const std::string& name)
     auto self = pimpl.state->self.lock();
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
-    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_get_func)
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_GET_FUNCTION)
         .set_imm(&msg::request::imms::name_size, name.size())
         .set_imm(offsetof(msg::request::imms, name), name.c_str(), name.size())
         .set_cap(&msg::request::caps::continuation, resp)

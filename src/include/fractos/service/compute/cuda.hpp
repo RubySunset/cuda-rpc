@@ -277,16 +277,13 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         public:
             CUmodule get_module() const;
 
+            // cuModuleGetFunction
+            [[nodiscard]] core::future<std::shared_ptr<Function>>
+            get_function(const std::string& name);
+
             // cuModuleGetGlobal
             [[nodiscard]] core::future<CUdeviceptr>
             get_global(const std::string& file_name);
-
-
-            /**
-             * @brief Wrapper for cuModuleGetFunction()
-             */
-            [[nodiscard]] core::future<std::shared_ptr<Function>>
-            get_function(const std::string& file_name); // The paramsArray is an array of CUexecAffinityParam and the numParams describes the size of the array
         };
 
         std::string to_string(const Module& obj);

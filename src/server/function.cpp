@@ -1,5 +1,6 @@
 #include <cuda_runtime.h>
 #include <fractos/common/service/srv_impl.hpp>
+#include <fractos/core/error.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
@@ -10,6 +11,7 @@
 #include "./common.hpp"
 #include "./context.hpp"
 #include "./stream.hpp"
+#include "./module.hpp"
 #include "./function.hpp"
 
 
@@ -19,86 +21,84 @@ namespace srv_wire_msg = srv_wire::Function;
 using namespace fractos;
 
 
-std::pair<CUresult, std::shared_ptr<impl::Function>>
-impl::make_function(std::shared_ptr<impl::Context> ctx_ptr, CUmodule mod, const std::string name)
+std::string
+impl::to_string(const impl::Function& obj)
 {
+    std::stringstream ss;
+    ss << "Function(" << (void*)obj.get_remote_cufunction() << ")";
+    return ss.str();
+}
+
+
+core::future<std::tuple<wire::error_type, CUresult, std::shared_ptr<impl::Function>>>
+impl::make_function(std::shared_ptr<fractos::core::channel> ch,
+                    std::shared_ptr<Context> ctx, std::shared_ptr<Module> module, const std::string name)
+{
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
     std::shared_ptr<Function> res;
 
-    auto error = cuCtxSetCurrent(ctx_ptr->cucontext);
-    if (error != CUDA_SUCCESS) {
-        return std::make_pair(error, res);
+    cuerror = cuCtxSetCurrent(ctx->cucontext);
+    if (cuerror != CUDA_SUCCESS) {
+        return core::make_ready_future(std::make_tuple(error, cuerror, res));
     }
 
-    CUfunction func;
-    error = cuModuleGetFunction(&func, mod, name.c_str());
-    if (error != CUDA_SUCCESS) {
-        return std::make_pair(error, res);
+    CUfunction cufunction;
+    cuerror = cuModuleGetFunction(&cufunction, module->_module, name.c_str());
+    if (cuerror != CUDA_SUCCESS) {
+        return core::make_ready_future(std::make_tuple(error, cuerror, res));
     }
 
     size_t args_total_size = 0;
     std::vector<size_t> args_size;
     for (size_t i = 0; true; i++) {
         size_t offset, size;
-        error = cuFuncGetParamInfo(func, i, &offset, &size);
-        if (error == CUDA_SUCCESS) {
+        cuerror = cuFuncGetParamInfo(cufunction, i, &offset, &size);
+        if (cuerror == CUDA_SUCCESS) {
             args_total_size += size;
             args_size.push_back(size);
-        } else if (error == CUDA_ERROR_INVALID_VALUE) {
-            error = CUDA_SUCCESS;
+        } else if (cuerror == CUDA_ERROR_INVALID_VALUE) {
+            cuerror = CUDA_SUCCESS;
             break;
         } else {
-            return std::make_pair(error, res);
+            return core::make_ready_future(std::make_tuple(error, cuerror, res));
         }
     }
 
-    res = std::make_shared<Function>(ctx_ptr, func, std::move(args_size), args_total_size);
-    res->self = res;
-    return std::make_pair(error, res);
-}
-
-impl::Function::Function(std::weak_ptr<impl::Context> ctx_ptr, CUfunction func,
-                         std::vector<size_t> args_size, size_t args_total_size)
-    :cufunc(func)
-    ,args_total_size(args_total_size)
-    ,args_size(std::move(args_size))
-    ,ctx_ptr(ctx_ptr)
-{
-}
-
-impl::Function::~Function()
-{
-}
-
-std::string
-impl::to_string(const impl::Function& obj)
-{
-    std::stringstream ss;
-    ss << "Function(" << (void*)obj.get_remote_cufunc() << ")";
-    return ss.str();
-}
-
-core::future<void>
-impl::Function::register_methods(std::shared_ptr<core::channel> ch)
-{
-    auto self = this->self.lock();
-    CHECK(self);
+    res = std::make_shared<Function>();
+    res->cufunction = cufunction;
+    res->args_total_size = args_total_size;
+    res->args_size = args_size;
+    res->ctx = ctx;
 
     return ch->make_request_builder<srv_wire_msg::generic::request>(
         ch->get_default_endpoint(),
-        [self](auto ch, auto args) {
-            self->handle_generic(ch, std::move(args));
+        [res](auto ch, auto args) {
+            res->handle_generic(ch, std::move(args));
         })
         .on_channel()
         .make_request()
-        .then([self, ch](auto& fut) {
-            self->req_generic = fut.get();
-        });
+        .then([res](auto& fut) {
+            res->req_generic = fut.get();
+        })
+        .then([error, cuerror, res](auto& fut) mutable {
+            try {
+                fut.get();
+            } catch (const core::generic_error& e) {
+                error = (wire::error_type)e.error;
+            }
 
+            if (not error and not cuerror) {
+                res->self = res;
+            } // NOTE: no need to undo on error
+
+            return std::make_tuple(error, cuerror, res);
+        });
 }
 
 
 CUfunction
-impl::Function::get_remote_cufunc() const
+impl::Function::get_remote_cufunction() const
 {
     return (CUfunction)this;
 }
@@ -158,7 +158,7 @@ impl::Function::handle_set_attribute(auto ch, auto args)
     auto attrib = (CUfunction_attribute)args->imms.attrib.get();
     auto value = (int)args->imms.value.get();
 
-    cuerror = cuFuncSetAttribute(cufunc, attrib, value);
+    cuerror = cuFuncSetAttribute(cufunction, attrib, value);
 
     LOG_RES(method)
         << " error=" << wire::to_string(error)
@@ -190,18 +190,17 @@ impl::Function::handle_launch(auto ch, auto args)
     auto custream_arg = (CUstream)args->imms.custream.get();
 
     CUstream custream = 0;
-    auto ctx_ptr = this->ctx_ptr.lock();
-    CHECK(ctx_ptr);
+    auto ctx = this->ctx;
 
     if (custream_arg) {
-        auto stream_ptr = ctx_ptr->get_stream(custream_arg);
+        auto stream_ptr = ctx->get_stream(custream_arg);
         if (not stream_ptr) {
             cuerror = CUDA_ERROR_INVALID_HANDLE;
             goto out;
         }
         custream = stream_ptr->custream;
     } else {
-        cuerror = cuCtxSetCurrent(ctx_ptr->cucontext);
+        cuerror = cuCtxSetCurrent(ctx->cucontext);
         if (cuerror != CUDA_SUCCESS) {
             goto out;
         }
@@ -218,7 +217,7 @@ impl::Function::handle_launch(auto ch, auto args)
             args_ptr += args_size[i];
         }
 
-        cuerror = cuLaunchKernel(cufunc, dimGrid.x, dimGrid.y, dimGrid.z,
+        cuerror = cuLaunchKernel(cufunction, dimGrid.x, dimGrid.y, dimGrid.z,
                                  dimBlock.x, dimBlock.y, dimBlock.z,
                                  shared_mem, custream,
                                  (void**)kernel_args.data(), 0);
@@ -237,6 +236,31 @@ out:
         .as_callback_log_ignore_continuation_error();
 }
 
+core::future<std::tuple<wire::error_type, CUresult>>
+impl::Function::destroy_maybe(auto ch)
+{
+    auto self = this->self;
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+
+    if (not common::service::SrvBase::destroy_maybe()) {
+        error = wire::ERR_OTHER;
+        return core::make_ready_future(std::make_tuple(error, cuerror));
+    }
+
+    return ch->revoke(req_generic)
+        .then([ch, this, self](auto& fut) {
+            fut.get();
+
+            auto error = wire::ERR_SUCCESS;
+            auto cuerror = CUDA_SUCCESS;
+
+            this->self.reset();
+
+            return std::make_tuple(error, cuerror);
+        });
+}
+
 void
 impl::Function::handle_destroy(auto ch, auto args)
 {
@@ -247,31 +271,14 @@ impl::Function::handle_destroy(auto ch, auto args)
     CHECK_ARGS_EXACT(reqb_cont);
 
     auto self = this->self;
-    auto error = wire::ERR_SUCCESS;
-    auto cuerror = CUDA_SUCCESS;
 
-    if (not destroy_maybe()) {
-        error = wire::ERR_OTHER;
-        LOG_RES(method)
-            << " error=" << wire::to_string(error)
-            << " cuerror=" << get_CUresult_name(cuerror);
-        reqb_cont
-            .set_imm(&msg::response::imms::error, error)
-            .set_imm(&msg::response::imms::cuerror, cuerror)
-            .on_channel()
-            .invoke()
-            .as_callback_log_ignore_continuation_error();
-        return;
-    }
-
-    ch->revoke(req_generic)
+    return destroy_maybe(ch)
         .then([ch, this, self, args=std::move(args)](auto& fut) {
-            auto error = wire::ERR_SUCCESS;
-            auto cuerror = CUDA_SUCCESS;
+            auto [error, cuerror] = fut.get();
+
             LOG_RES(method)
                 << " error=" << wire::to_string(error)
                 << " cuerror=" << get_CUresult_name(cuerror);
-            fut.get();
             ch->template make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, error)
                 .set_imm(&msg::response::imms::cuerror, cuerror)
@@ -280,5 +287,4 @@ impl::Function::handle_destroy(auto ch, auto args)
                 .as_callback_log_ignore_continuation_error();
         })
         .as_callback();
-
 }

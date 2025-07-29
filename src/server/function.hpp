@@ -9,38 +9,37 @@
 
 namespace impl {
     class Context;
+    class Module;
 }
 
 namespace impl {
 
-    class Function : public fractos::common::service::SrvBase {
+    class Function : protected fractos::common::service::SrvBase {
     public:
-        CUfunction get_remote_cufunc() const;
+        CUfunction get_remote_cufunction() const;
 
-        const CUfunction cufunc;
-        const size_t args_total_size;
-        const std::vector<size_t> args_size;
-        std::weak_ptr<Context> ctx_ptr;
-        std::weak_ptr<Function> self;
+        CUfunction cufunction;
+        size_t args_total_size;
+        std::vector<size_t> args_size;
+        std::shared_ptr<Context> ctx;
+        std::shared_ptr<Function> self;
 
-    protected:
-        void handle_generic(auto ch, auto args);
-        void handle_set_attribute(auto ch, auto args);
-        void handle_launch(auto ch, auto args);
-        void handle_destroy(auto ch, auto args);
+        fractos::core::future<std::tuple<fractos::wire::error_type, CUresult>>
+        destroy_maybe(auto ch);
 
         // NOTE: for internal use
     public:
         fractos::core::cap::request req_generic;
-
-        Function(std::weak_ptr<Context> ctx_ptr, CUfunction func,
-                 std::vector<size_t> args_size, size_t args_total_size);
-        ~Function();
-        fractos::core::future<void> register_methods(std::shared_ptr<fractos::core::channel> ch);
+        void handle_generic(auto ch, auto args);
+    protected:
+        void handle_set_attribute(auto ch, auto args);
+        void handle_launch(auto ch, auto args);
+        void handle_destroy(auto ch, auto args);
     };
 
-    std::pair<CUresult, std::shared_ptr<Function>>
-    make_function(std::shared_ptr<Context> ctx_ptr, CUmodule mod, const std::string name);
+    fractos::core::future<std::tuple<fractos::wire::error_type, CUresult, std::shared_ptr<Function>>>
+    make_function(std::shared_ptr<fractos::core::channel> ch,
+                  std::shared_ptr<Context> ctx, std::shared_ptr<Module> module, const std::string name);
 
     std::string to_string(const Function& obj);
 

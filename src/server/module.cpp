@@ -146,16 +146,18 @@ core::future<void> impl::Module::register_methods(std::shared_ptr<core::channel>
     auto self = _self;
 
 
-    return ch->make_request_builder<msg_base::get_function::request>(
-        ch->get_default_endpoint(), 
+    return ch->make_request_builder<msg_base::generic::request>(
+        ch->get_default_endpoint(),
         [self](auto ch, auto args) {
-            self->handle_get_function(std::move(args));
+            self->handle_generic(ch, std::move(args));
         })
         .on_channel()
         .make_request()
+        .then([self](auto& fut) {
+            self->_req_generic = fut.get();
+        })
         .then([ch, self](auto& fut) {
-            self->_req_get_func = fut.get();
-            VLOG(fractos::logging::SERVICE) << "SET req_get_func"; // virtua
+            fut.get();
             return ch->make_request_builder<msg_base::destroy::request>(
                 ch->get_default_endpoint(), 
                 [self](auto ch, auto args) {
@@ -168,18 +170,6 @@ core::future<void> impl::Module::register_methods(std::shared_ptr<core::channel>
         .unwrap()
         .then([ch, self, this](auto& fut) {
             self->_req_destroy = fut.get();
-
-            return ch->make_request_builder<msg_base::generic::request>(
-                ch->get_default_endpoint(),
-                [self](auto ch, auto args) {
-                    self->handle_generic(ch, std::move(args));
-                })
-                .on_channel()
-                .make_request();
-        })
-        .unwrap()
-        .then([ch, self, this](auto& fut) {
-            self->_req_generic = fut.get();
         });
 }
 
@@ -205,14 +195,14 @@ impl::Module::handle_generic(auto ch, auto args)
         return std::unique_ptr<ptr>(reinterpret_cast<ptr*>(args.release()));
     };
 
-#define HANDLE(name) \
-    handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args)))
-
-    switch (opcode) {
-    case srv::wire::Module::OP_GET_GLOBAL:
-        HANDLE(get_global);
+#define CASE_HANDLE(NAME, name)                                         \
+    case srv_wire_msg::OP_ ## NAME:                                      \
+        handle_ ## name(ch, reinterpreted.template operator()<srv_wire_msg:: name ::request>(std::move(args))); \
         break;
 
+    switch (opcode) {
+    CASE_HANDLE(GET_GLOBAL, get_global);
+    CASE_HANDLE(GET_FUNCTION, get_function);
     default:
         LOG_OP(method)
             << " [error] invalid opcode";
@@ -269,60 +259,25 @@ out:
         .as_callback_log_ignore_continuation_error();
 }
 
-void impl::Module::handle_get_function(auto args) {
-    auto t_start = std::chrono::high_resolution_clock::now();
-    VLOG(fractos::logging::SERVICE) << "CALL handle_get_function";
+void
+impl::Module::handle_get_function(auto ch, auto args)
+{
+    METHOD(get_function);
+    LOG_REQ(method) << srv::wire::to_string(*args);
 
-    using msg = ::service::compute::cuda::wire::Module::get_function;
-    
-    if (not args->has_valid_cap(&msg::request::caps::continuation, core::cap::request_tag)) {
-        LOG(ERROR) << "got request without continuation, ignoring";
-        return;
-    }
-    
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
-    std::string func_name = args->imms.func_name;
-
-    if (not args->has_exactly_args()) { // file_name
-        if (not args->has_exactly_imms()) {
-            if (args->imms_size() == 8 + func_name.size()) {
-                VLOG(fractos::logging::SERVICE) << "got imms length : " << func_name.size(); // char file_name[] in msg
-            } else {
-                LOG(ERROR) << "got error imms";
-                ch->make_request_builder<msg::response>(args->caps.continuation)
-                    .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-                    .set_imm(&msg::response::imms::cuerror, CUDA_SUCCESS)
-                    .on_channel()
-                    .invoke()
-                    .as_callback();
-                return;
-            }
-        }
-        else
-        {
-            LOG(ERROR) << "got error caps";
-            ch->make_request_builder<msg::response>(args->caps.continuation)
-                    .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-                    .set_imm(&msg::response::imms::cuerror, CUDA_SUCCESS)
-                    .on_channel()
-                    .invoke()
-                    .as_callback();
-                return;
-        }
-    }
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_CAPS_EXACT(reqb_cont);
+    CHECK_IMMS_ALL(reqb_cont);
+    CHECK_ARGS_COND(reqb_cont,
+                    args->imms_size() == (sizeof(msg::request::imms) + args->imms.name_size));
 
     auto self = _self;
-    VLOG(fractos::logging::SERVICE) << "function name is: " << func_name;
+    std::string name(args->imms.name, args->imms.name_size);
 
+    make_function(ch, _vctx.lock(), self, name)
+        .then([this, self, ch, args=std::move(args)](auto& fut) {
+            auto [error, cuerror, func] = fut.get();
 
-    // std::shared_ptr<Context> _vctx = _vctx.lock();
-
-    auto [err, func] = make_function(_vctx.lock(), _module, func_name);
-    CHECK(err == CUDA_SUCCESS) << "TODO: return error";
-
-    func->register_methods(ch)
-        .then([this, ch, self, func, args=std::move(args) ](auto& fut) { //, args=std::move(args),  mr_=std::move(mr_)
-            fut.get();
             _func = func;
 
             auto args_size_offset = offsetof(msg::response::imms, arg_size);
@@ -331,27 +286,18 @@ void impl::Module::handle_get_function(auto args) {
                 args_size.push_back(arg);
             }
 
-            ch->make_request_builder<msg::response>(args->caps.continuation)
-                .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
-                .set_imm(&msg::response::imms::cuerror, CUDA_SUCCESS)
-                .set_imm(&msg::response::imms::cufunction, (uint64_t)func->get_remote_cufunc())
+            ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::cuerror, cuerror)
+                .set_imm(&msg::response::imms::cufunction, (uint64_t)func->get_remote_cufunction())
                 .set_imm(&msg::response::imms::nargs, func->args_size.size())
                 .set_imm(args_size_offset, args_size.data(), sizeof(uint64_t) * func->args_size.size())
                 .set_cap(&msg::response::caps::generic, func->req_generic)
                 .on_channel()
                 .invoke()
-                .as_callback();
+                .as_callback_log_ignore_continuation_error();
             })
-        .as_callback();
-    
-    // ch->make_request_builder<msg::response>(args->caps.continuation)
-    //     .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
-    //     .on_channel()
-    //     .invoke()
-    //     .as_callback();
-
-    auto t_usec = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - t_start);
-    LOG(INFO) << "time for get function server: " << t_usec.count() << std::endl;
+        .as_callback_log_ignore_continuation_error();
 }
 
 
@@ -380,14 +326,13 @@ void impl::Module::handle_destroy(auto args) {
 
     DVLOG(logging::SERVICE) << "Revoke destroy";
 
-    ch->revoke(self->_req_get_func)
+    ch->revoke(self->_req_generic)
         .then([ch, self](auto& fut) {
-                  fut.get();
-                  VLOG(fractos::logging::SERVICE) << "Revoke _req_get_func";
-                  return ch->revoke(self->_req_destroy);
+            fut.get();
+            return ch->revoke(self->_req_destroy);
         })
         .unwrap()
-        .then([this, ch, self, args=std::move(args)](auto& fut) {
+        .then([ch, this, self, args=std::move(args)](auto& fut) {
             fut.get();
             DVLOG(fractos::logging::SERVICE) << "cuda module destroyed";
             this->_destroyed = true;

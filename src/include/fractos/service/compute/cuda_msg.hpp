@@ -645,7 +645,6 @@ namespace fractos::service::compute::cuda::wire {
                 } __attribute__ ((packed));
                 struct caps {
                     fractos::core::cap::request generic;
-                    fractos::core::cap::request get_function;
                     fractos::core::cap::request destroy;
                 };
             };
@@ -877,13 +876,11 @@ namespace fractos::service::compute::cuda::wire {
     std::string to_string(const core::receive_args<Memory::destroy::response>& resp);
 
     namespace Module {
-
         enum generic_opcode : uint64_t {
             OP_GET_GLOBAL,
-
+            OP_GET_FUNCTION,
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
-
         using generic = wire::generic;
     }
 
@@ -917,8 +914,9 @@ namespace fractos::service::compute::cuda::wire {
         struct get_function {
             struct request {
                 struct imms {
-                    fractos::wire::endian::uint64_t func_name_size;
-                    char func_name[];
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint64_t name_size;
+                    char name[];
                 } __attribute__((packed));
                 struct caps {
                     fractos::core::cap::request continuation;
