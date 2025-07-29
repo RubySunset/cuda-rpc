@@ -918,15 +918,16 @@ namespace fractos::service::compute::cuda::wire {
             struct request {
                 struct imms {
                     fractos::wire::endian::uint64_t func_name_size;
-                    char func_name[]; // unsigned int
+                    char func_name[];
                 } __attribute__((packed));
                 struct caps {
-                    fractos::core::cap::request continuation; 
+                    fractos::core::cap::request continuation;
                 };
             };
             struct response {
                 struct imms {
                     fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
                     fractos::wire::endian::uint64_t cufunction;
                     fractos::wire::endian::uint64_t nargs;
                     fractos::wire::endian::uint64_t arg_size[];
@@ -936,7 +937,11 @@ namespace fractos::service::compute::cuda::wire {
                 };
             };
         };
+    }
+    std::string to_string(const core::receive_args<Module::get_function::request>& req);
+    std::string to_string(const core::receive_args<Module::get_function::response>& resp);
 
+    namespace Module {
         struct destroy {
             struct request {
                 struct imms {

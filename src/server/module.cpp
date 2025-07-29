@@ -291,6 +291,7 @@ void impl::Module::handle_get_function(auto args) {
                 LOG(ERROR) << "got error imms";
                 ch->make_request_builder<msg::response>(args->caps.continuation)
                     .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+                    .set_imm(&msg::response::imms::cuerror, CUDA_SUCCESS)
                     .on_channel()
                     .invoke()
                     .as_callback();
@@ -302,6 +303,7 @@ void impl::Module::handle_get_function(auto args) {
             LOG(ERROR) << "got error caps";
             ch->make_request_builder<msg::response>(args->caps.continuation)
                     .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+                    .set_imm(&msg::response::imms::cuerror, CUDA_SUCCESS)
                     .on_channel()
                     .invoke()
                     .as_callback();
@@ -331,6 +333,7 @@ void impl::Module::handle_get_function(auto args) {
 
             ch->make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS) // test
+                .set_imm(&msg::response::imms::cuerror, CUDA_SUCCESS)
                 .set_imm(&msg::response::imms::cufunction, (uint64_t)func->get_remote_cufunc())
                 .set_imm(&msg::response::imms::nargs, func->args_size.size())
                 .set_imm(args_size_offset, args_size.data(), sizeof(uint64_t) * func->args_size.size())
