@@ -39,8 +39,6 @@ impl::EventState::do_destroy(std::shared_ptr<core::channel>& ch)
     LOG_REQ(method)
         << " {}";
 
-    auto self = this->self.lock();
-
     auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
     return ch->make_request_builder<msg::request>(req_generic)
         .set_cap(&msg::request::caps::continuation, resp)
@@ -48,7 +46,7 @@ impl::EventState::do_destroy(std::shared_ptr<core::channel>& ch)
         .invoke(resp)
         .unwrap()
         .then_check_cuda_response()
-        .then([self](auto& fut) {
+        .then([](auto& fut) {
             auto [ch, args] = fut.get();
             CHECK_ARGS_EXACT();
         });

@@ -43,8 +43,6 @@ impl::DeviceState::do_destroy(std::shared_ptr<core::channel>& ch)
     LOG_REQ(method)
         << " {}";
 
-    auto self = this->self.lock();
-
     auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
     return ch->make_request_builder<msg::request>(req_generic)
         .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_DESTROY)
@@ -52,8 +50,8 @@ impl::DeviceState::do_destroy(std::shared_ptr<core::channel>& ch)
         .on_channel()
         .invoke(resp)
         .unwrap()
-        .then_check_response_ptr(self)
-        .then([self](auto& fut) {
+        .then_check_response()
+        .then([](auto& fut) {
             auto [ch, args] = fut.get();
             CHECK_ARGS_EXACT();
         });
