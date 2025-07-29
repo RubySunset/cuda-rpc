@@ -41,9 +41,6 @@ impl::MemoryState::do_destroy(std::shared_ptr<core::channel>& ch)
     LOG_REQ(method)
         << " {}";
 
-    auto self = this->self.lock();
-    CHECK(self);
-
     auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
     return ch->make_request_builder<msg::request>(req_generic)
         .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_DESTROY)
@@ -51,7 +48,7 @@ impl::MemoryState::do_destroy(std::shared_ptr<core::channel>& ch)
         .on_channel()
         .invoke(resp)
         .unwrap()
-        .then_check_cuda_response_ptr(self)
+        .then_check_cuda_response()
         .then([](auto& fut) {
             auto [ch, args] = fut.get();
             CHECK_ARGS_EXACT();
