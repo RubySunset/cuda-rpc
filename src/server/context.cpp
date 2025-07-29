@@ -8,6 +8,7 @@
 #include <pthread.h>
 
 #include "./common.hpp"
+#include "./service.hpp"
 #include "./device.hpp"
 #include "./context.hpp"
 #include "./stream.hpp"
@@ -50,7 +51,6 @@ impl::make_context(std::shared_ptr<fractos::core::channel> ch,
     res = std::make_shared<Context>();
     res->cucontext = cucontext;
     res->device = device;
-    res->self = res;
 
     return ch->make_request_builder<srv_wire_msg::generic::request>(
         ch->get_default_endpoint(),
@@ -71,7 +71,11 @@ impl::make_context(std::shared_ptr<fractos::core::channel> ch,
 
             if (error or cuerror) {
                 LOG(FATAL) << "TODO: undo Context and return error";
+            } else {
+                res->self = res;
             }
+
+            res->device->service->insert_context(res);
 
             return std::make_tuple(error, cuerror, res);
         });
@@ -657,7 +661,8 @@ impl::Context::handle_destroy(auto ch, auto args)
                         auto error = wire::ERR_SUCCESS;
                         auto cuerror = cuCtxDestroy(cucontext);
 
-                        self->self.reset();
+                        device->service->erase_context(self);
+                        this->self.reset();
 
                         LOG_RES(method)
                             << " error=" << wire::to_string(error)

@@ -8,6 +8,7 @@
 #include "./common.hpp"
 #include "./service.hpp"
 #include "./device.hpp"
+#include "./context.hpp"
 #include "./library.hpp"
 #include "./event.hpp"
 
@@ -134,6 +135,32 @@ impl::Service::erase_device(std::shared_ptr<Device> dev)
         auto res = _devices.erase(dev->get_remote_cudevice());
         CHECK(res == 1);
     }
+}
+
+std::shared_ptr<impl::Context>
+impl::Service::get_context(CUcontext cucontext)
+{
+    auto lock = std::shared_lock(_contexts_mutex);
+    auto it = _contexts.find(cucontext);
+    if (it != _contexts.end()) {
+        return it->second;
+    } else {
+        return nullptr;
+    }
+}
+
+void
+impl::Service::insert_context(std::shared_ptr<Context> context)
+{
+    auto lock = std::unique_lock(_contexts_mutex);
+    CHECK(_contexts.insert({context->get_remote_cucontext(), context}).second);
+}
+
+void
+impl::Service::erase_context(std::shared_ptr<Context> context)
+{
+    auto lock = std::unique_lock(_contexts_mutex);
+    CHECK(_contexts.erase(context->get_remote_cucontext()) == 1);
 }
 
 std::shared_ptr<impl::Event>

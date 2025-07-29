@@ -6,6 +6,7 @@
 
 namespace impl {
     class Device;
+    class Context;
     class Event;
 }
 
@@ -27,6 +28,10 @@ namespace impl {
         fractos::core::future<std::shared_ptr<Device>> get_or_make_device_ordinal(auto ch, int ordinal);
         std::shared_ptr<Device> get_device(CUdevice device);
         void erase_device(std::shared_ptr<Device> device);
+
+        std::shared_ptr<Context> get_context(CUcontext cucontext);
+        void insert_context(std::shared_ptr<Context> context);
+        void erase_context(std::shared_ptr<Context> context);
 
         std::shared_ptr<Event> get_event(CUevent cuevent);
         void insert_event(std::shared_ptr<Event> event);
@@ -52,6 +57,9 @@ namespace impl {
         std::shared_mutex _devices_mutex;
         std::unordered_map<int, std::shared_ptr<Device>> _ordinal_devices;
         std::unordered_map<CUdevice, std::shared_ptr<Device>> _devices;
+
+        std::shared_mutex _contexts_mutex;
+        std::unordered_map<CUcontext, std::shared_ptr<Context>> _contexts;
 
         std::shared_mutex _events_mutex;
         std::unordered_map<CUevent, std::shared_ptr<Event>> _events;
