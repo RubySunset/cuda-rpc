@@ -7,6 +7,7 @@
 #include <pthread.h>
 
 #include "./common.hpp"
+#include "./service.hpp"
 #include "./library.hpp"
 #include "./kernel.hpp"
 
@@ -28,6 +29,7 @@ impl::to_string(const impl::Kernel& obj)
 
 fractos::core::future<std::tuple<wire::error_type, CUresult, std::shared_ptr<impl::Kernel>>>
 impl::make_kernel(std::shared_ptr<fractos::core::channel> ch,
+                  std::shared_ptr<Service> service,
                   std::shared_ptr<Library> library,
                   std::string name)
 {
@@ -43,6 +45,7 @@ impl::make_kernel(std::shared_ptr<fractos::core::channel> ch,
 
     res = std::make_shared<Kernel>();
     res->cukernel = cukernel;
+    res->service = service;
     res->library = library;
 
     return ch->make_request_builder<srv_wire_msg::generic::request>(

@@ -7,6 +7,7 @@
 
 
 namespace impl {
+    class Service;
     class Library;
 }
 
@@ -17,6 +18,7 @@ namespace impl {
         CUkernel get_remote_cukernel() const;
 
         CUkernel cukernel;
+        std::shared_ptr<Service> service;
         std::shared_ptr<Library> library;
         std::shared_ptr<Kernel> self;
 
@@ -34,6 +36,7 @@ namespace impl {
 
     fractos::core::future<std::tuple<fractos::wire::error_type, CUresult, std::shared_ptr<Kernel>>>
     make_kernel(std::shared_ptr<fractos::core::channel> ch,
+                std::shared_ptr<Service> service,
                 std::shared_ptr<Library> library,
                 std::string name);
 

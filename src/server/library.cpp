@@ -139,7 +139,7 @@ impl::Library::handle_get_kernel(auto ch, auto args)
     auto self = this->self;
     std::string name(args->imms.name, args->imms.name_size);
 
-    make_kernel(ch, self, name)
+    make_kernel(ch, service, self, name)
         .then([ch, this, self, args=std::move(args)](auto& fut) {
             auto [error, cuerror, kernel] = fut.get();
 
