@@ -685,7 +685,6 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::module_load_da
     print_extra_imm_error();
 
     print_cap(generic);
-    print_cap(destroy);
     print_extra_cap_error();
 
     return ss.str();
@@ -951,6 +950,38 @@ srv::wire::to_string(const core::receive_args<srv::wire::Module::get_function::r
     print_imm_identity(nargs);
     print_imm_array(arg_size, obj.imms_size() - sizeof(obj.imms));
     print_imm_array_extra_is_error(obj.imms.nargs.get());
+
+    print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Module::destroy::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(opcode);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Module::destroy::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_imm_cuerror(cuerror);
+    print_extra_imm_error();
 
     print_empty_caps();
 

@@ -457,8 +457,7 @@ clt::Context::module_load_data(core::cap::memory& contents)
             return impl::make_module(
                 ch,
                 (CUmodule)args->imms.cumodule.get(),
-                std::move(args->caps.generic),
-                std::move(args->caps.destroy));
+                std::move(args->caps.generic));
         });
 }
 

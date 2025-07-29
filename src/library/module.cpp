@@ -26,12 +26,10 @@ template class fractos::common::service::CltBase<clt::Module>;
 std::shared_ptr<clt::Module>
 impl::make_module(std::shared_ptr<fractos::core::channel> ch,
                   CUmodule cumodule,
-                  fractos::core::cap::request req_generic,
-                  fractos::core::cap::request req_module_unload)
+                  fractos::core::cap::request req_generic)
 {
     auto state = std::make_shared<impl::ModuleState>();
     state->req_generic = std::move(req_generic);
-    state->req_module_unload = std::move(req_module_unload);
     state->cumodule = cumodule;
 
     return impl::Module::make(ch, state);
@@ -40,28 +38,21 @@ impl::make_module(std::shared_ptr<fractos::core::channel> ch,
 core::future<void>
 impl::ModuleState::do_destroy(std::shared_ptr<core::channel>& ch)
 {
-    using msg = ::service::compute::cuda::wire::Module::destroy;
-
-    DVLOG(logging::SERVICE) << "Module::destroy <-";
+    METHOD(destroy);
+    LOG_REQ(method)
+        << " {}";
 
     auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
-    return ch->make_request_builder<msg::request>(req_module_unload)
+    return ch->make_request_builder<msg::request>(req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_DESTROY)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
-        .invoke(resp) // wait for handle_destroy
+        .invoke(resp)
         .unwrap()
+        .then_check_cuda_response()
         .then([](auto& fut) {
             auto [ch, args] = fut.get();
-
-            if (not args->has_exactly_args()) {
-                // throw core::other_error("invalid response format for Module::destroy");
-                DVLOG(logging::SERVICE) << "Module::destroy ->"
-                                << " error=OTHER args";
-            }
-
-            DVLOG(logging::SERVICE) << "Module::destroy ->"
-                                    << " error=" << fractos::wire::to_string((fractos::wire::error_type)args->imms.error.get());
-            fractos::wire::error_raise_exception_maybe(args->imms.error);
+            CHECK_ARGS_EXACT();
         });
 }
 

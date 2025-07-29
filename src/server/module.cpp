@@ -155,21 +155,6 @@ core::future<void> impl::Module::register_methods(std::shared_ptr<core::channel>
         .make_request()
         .then([self](auto& fut) {
             self->_req_generic = fut.get();
-        })
-        .then([ch, self](auto& fut) {
-            fut.get();
-            return ch->make_request_builder<msg_base::destroy::request>(
-                ch->get_default_endpoint(), 
-                [self](auto ch, auto args) {
-                    
-                    self->handle_destroy(std::move(args));
-                })
-                .on_channel()
-                .make_request();
-            })
-        .unwrap()
-        .then([ch, self, this](auto& fut) {
-            self->_req_destroy = fut.get();
         });
 }
 
@@ -203,6 +188,7 @@ impl::Module::handle_generic(auto ch, auto args)
     switch (opcode) {
     CASE_HANDLE(GET_GLOBAL, get_global);
     CASE_HANDLE(GET_FUNCTION, get_function);
+    CASE_HANDLE(DESTROY, destroy);
     default:
         LOG_OP(method)
             << " [error] invalid opcode";
@@ -300,20 +286,18 @@ impl::Module::handle_get_function(auto ch, auto args)
 }
 
 
-/*
- *  Destroy a Module, revoke all of its caps
- */
-void impl::Module::handle_destroy(auto args) {
+void
+impl::Module::handle_destroy(auto ch, auto args)
+{
     DVLOG(logging::SERVICE) << "CALL handle destroy";
     using msg = ::service::compute::cuda::wire::Module::destroy;
 
-    std::shared_ptr<core::channel> ch = args->caps_raw[0].get_channel();
-    
     auto self = this->_self;
 
     if (not args->has_exactly_args() or _destroyed) {
-        ch->make_request_builder<msg::response>(args->caps.continuation)
+        ch->template make_request_builder<msg::response>(args->caps.continuation)
             .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+            .set_imm(&msg::response::imms::cuerror, CUDA_SUCCESS)
             .on_channel()
             .invoke()
             .as_callback();
@@ -326,22 +310,18 @@ void impl::Module::handle_destroy(auto args) {
     DVLOG(logging::SERVICE) << "Revoke destroy";
 
     ch->revoke(self->_req_generic)
-        .then([ch, self](auto& fut) {
-            fut.get();
-            return ch->revoke(self->_req_destroy);
-        })
-        .unwrap()
         .then([ch, this, self, args=std::move(args)](auto& fut) {
             fut.get();
             DVLOG(fractos::logging::SERVICE) << "cuda module destroyed";
             this->_destroyed = true;
-            ch->make_request_builder<msg::response>(args->caps.continuation) // response
+            ch->template make_request_builder<msg::response>(args->caps.continuation) // response
                 .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+                .set_imm(&msg::response::imms::cuerror, CUDA_SUCCESS)
                 .on_channel()
                 .invoke()
                 .as_callback();
         })
-    .as_callback();
+        .as_callback();
 
 }
 

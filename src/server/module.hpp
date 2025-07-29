@@ -26,8 +26,7 @@ namespace impl {
         void handle_generic(auto ch, auto args);
         void handle_get_global(auto ch, auto args);
         void handle_get_function(auto ch, auto args);
-
-        void handle_destroy(auto args);
+        void handle_destroy(auto ch, auto args);
     
     private:
         void module_unload();  
@@ -48,7 +47,6 @@ namespace impl {
 
     public:
         fractos::core::cap::request _req_generic;
-        fractos::core::cap::request _req_destroy;
 
         std::shared_ptr<Function> _func; 
 
