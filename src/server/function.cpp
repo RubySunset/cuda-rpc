@@ -13,6 +13,7 @@
 #include "./stream.hpp"
 #include "./module.hpp"
 #include "./function.hpp"
+#include "./kernel.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
@@ -31,12 +32,17 @@ impl::to_string(const impl::Function& obj)
 
 
 core::future<std::tuple<wire::error_type, CUresult, std::shared_ptr<impl::Function>>>
-impl::make_function(std::shared_ptr<fractos::core::channel> ch,
-                    std::shared_ptr<Context> ctx, std::shared_ptr<Module> module, const std::string name)
+do_make_function(std::shared_ptr<fractos::core::channel> ch,
+                 std::shared_ptr<impl::Context> ctx,
+                 std::shared_ptr<impl::Module> module, const std::string name_in_module,
+                 std::shared_ptr<impl::Kernel> kernel)
 {
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
-    std::shared_ptr<Function> res;
+    std::shared_ptr<impl::Function> res;
+
+    DCHECK(module or kernel);
+    DCHECK(not module or not kernel);
 
     cuerror = cuCtxSetCurrent(ctx->cucontext);
     if (cuerror != CUDA_SUCCESS) {
@@ -44,9 +50,18 @@ impl::make_function(std::shared_ptr<fractos::core::channel> ch,
     }
 
     CUfunction cufunction;
-    cuerror = cuModuleGetFunction(&cufunction, module->_module, name.c_str());
-    if (cuerror != CUDA_SUCCESS) {
-        return core::make_ready_future(std::make_tuple(error, cuerror, res));
+
+    if (module) {
+        cuerror = cuModuleGetFunction(&cufunction, module->_module, name_in_module.c_str());
+        if (cuerror != CUDA_SUCCESS) {
+            return core::make_ready_future(std::make_tuple(error, cuerror, res));
+        }
+
+    } else {
+        cuerror = cuKernelGetFunction(&cufunction, kernel->cukernel);
+        if (cuerror != CUDA_SUCCESS) {
+            return core::make_ready_future(std::make_tuple(error, cuerror, res));
+        }
     }
 
     size_t args_total_size = 0;
@@ -65,7 +80,7 @@ impl::make_function(std::shared_ptr<fractos::core::channel> ch,
         }
     }
 
-    res = std::make_shared<Function>();
+    res = std::make_shared<impl::Function>();
     res->cufunction = cufunction;
     res->args_total_size = args_total_size;
     res->args_size = args_size;
@@ -94,6 +109,21 @@ impl::make_function(std::shared_ptr<fractos::core::channel> ch,
 
             return std::make_tuple(error, cuerror, res);
         });
+}
+
+
+core::future<std::tuple<wire::error_type, CUresult, std::shared_ptr<impl::Function>>>
+impl::make_function(std::shared_ptr<fractos::core::channel> ch,
+                    std::shared_ptr<Context> ctx, std::shared_ptr<Module> module, const std::string name)
+{
+    return do_make_function(ch, ctx, module, name, nullptr);
+}
+
+core::future<std::tuple<wire::error_type, CUresult, std::shared_ptr<impl::Function>>>
+impl::make_function(std::shared_ptr<fractos::core::channel> ch,
+                    std::shared_ptr<Context> ctx, std::shared_ptr<Kernel> kernel)
+{
+    return do_make_function(ch, ctx, nullptr, "", kernel);
 }
 
 

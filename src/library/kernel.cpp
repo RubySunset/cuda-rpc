@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "./kernel_impl.hpp"
+#include "./function_impl.hpp"
 
 
 namespace clt = fractos::service::compute::cuda;
@@ -61,6 +62,51 @@ clt::Kernel::get_kernel() const
 {
     auto& pimpl = impl::Kernel::get(*this);
     return pimpl.state->cukernel;
+}
+
+
+core::future<std::shared_ptr<clt::Function>>
+clt::Kernel::get_function(Context& ctx)
+{
+    METHOD(get_function);
+    LOG_REQ(method)
+        << " ctx=" << (void*)ctx.get_context();
+
+    auto& pimpl = impl::Kernel::get(*this);
+    auto self = pimpl.state->self.lock();
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_GET_FUNCTION)
+        .set_imm(&msg::request::imms::cucontext, (uint64_t)ctx.get_context())
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_cuda_response()
+        .then([self](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_CAPS_EXACT();
+            CHECK_IMMS_ALL();
+            CHECK_ARGS_COND(
+                args->imms_size() == args->imms_expected_size() + sizeof(uint64_t) * args->imms.nargs);
+
+            auto cufunction = (CUfunction)args->imms.cufunction.get();
+
+            size_t args_total_size = 0;
+            std::vector<size_t> args_size;
+            for (size_t i = 0; i < args->imms.nargs; i++) {
+                auto elem = args->imms.arg_size[i];
+                args_total_size += elem;
+                args_size.push_back(elem);
+            }
+
+            return impl::make_function(
+                ch,
+                cufunction,
+                args_total_size, args_size,
+                std::move(args->caps.generic));
+        });
 }
 
 

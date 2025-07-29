@@ -1120,11 +1120,29 @@ namespace fractos::service::compute::cuda::wire {
 
     namespace Kernel {
         enum generic_opcode : uint64_t {
+            OP_GET_FUNCTION,
             OP_DESTROY,
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
         using generic = wire::generic;
     }
+
+    namespace Kernel {
+        struct get_function {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint64_t cucontext;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            using response = Module::get_function::response;
+        };
+    }
+    std::string to_string(const core::receive_args<Kernel::get_function::request>& req);
+    std::string to_string(const core::receive_args<Kernel::get_function::response>& resp);
 
     namespace Kernel {
         struct destroy {

@@ -267,8 +267,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
         std::string to_string(const Context& obj);
 
-        
-
 
         /** 
          *  @brief :Wrapper for CUmodule operations
@@ -346,6 +344,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         class Kernel : public common::service::CltBase<Kernel> {
         public:
             CUkernel get_kernel() const;
+
+            // cuKernelGetFunction
+            [[nodiscard]] core::future<std::shared_ptr<Function>>
+            get_function(Context& ctx);
         };
 
         std::string to_string(const Kernel& obj);

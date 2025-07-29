@@ -10,6 +10,7 @@
 namespace impl {
     class Context;
     class Module;
+    class Kernel;
 }
 
 namespace impl {
@@ -40,6 +41,10 @@ namespace impl {
     fractos::core::future<std::tuple<fractos::wire::error_type, CUresult, std::shared_ptr<Function>>>
     make_function(std::shared_ptr<fractos::core::channel> ch,
                   std::shared_ptr<Context> ctx, std::shared_ptr<Module> module, const std::string name);
+
+    fractos::core::future<std::tuple<fractos::wire::error_type, CUresult, std::shared_ptr<Function>>>
+    make_function(std::shared_ptr<fractos::core::channel> ch,
+                  std::shared_ptr<Context> ctx, std::shared_ptr<Kernel> kernel);
 
     std::string to_string(const Function& obj);
 

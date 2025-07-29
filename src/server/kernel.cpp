@@ -10,6 +10,7 @@
 #include "./service.hpp"
 #include "./library.hpp"
 #include "./kernel.hpp"
+#include "./function.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
@@ -105,6 +106,7 @@ impl::Kernel::handle_generic(auto ch, auto args)
         break;
 
     switch (opcode) {
+    CASE_HANDLE(GET_FUNCTION, get_function);
     CASE_HANDLE(DESTROY, destroy);
     default:
         LOG_RES(method)
@@ -120,6 +122,85 @@ impl::Kernel::handle_generic(auto ch, auto args)
 #undef CASE_HANDLE
 }
 
+
+void
+impl::Kernel::handle_get_function(auto ch, auto args)
+{
+    METHOD(get_function);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
+
+    auto self = this->self;
+    auto cucontext = (CUcontext)args->imms.cucontext.get();
+
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+
+    auto ctx = service->get_context(cucontext);
+    if (not ctx) {
+        cuerror = CUDA_ERROR_INVALID_HANDLE;
+        goto out;
+    }
+
+    make_function(ch, ctx, self)
+        .then([this, self, ch, args=std::move(args)](auto& fut) {
+            auto [error, cuerror, func] = fut.get();
+
+            auto reqb = ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::cuerror, cuerror);
+
+            if (not error and not cuerror) {
+                auto cufunction = func->get_remote_cufunction();
+
+                auto args_size_offset = offsetof(msg::response::imms, arg_size);
+                std::vector<wire::endian::uint64_t> args_size;
+                for (auto arg: func->args_size) {
+                    args_size.push_back(arg);
+                }
+
+                reqb
+                    .set_imm(&msg::response::imms::cufunction, (uint64_t)cufunction)
+                    .set_imm(&msg::response::imms::nargs, func->args_size.size())
+                    .set_imm(args_size_offset, args_size.data(), sizeof(uint64_t) * func->args_size.size())
+                    .set_cap(&msg::response::caps::generic, func->req_generic);
+
+                LOG_RES(method)
+                    << " error=" << wire::to_string(error)
+                    << " cuerror=" << get_CUresult_name(cuerror)
+                    << " cufunction=" << (void*)cufunction
+                    << " nargs=" << args_size.size()
+                    << " arg_size=<...>"
+                    << " req_generic=" << core::to_string(func->req_generic);
+            } else {
+                LOG_RES(method)
+                    << " error=" << wire::to_string(error)
+                    << " cuerror=" << get_CUresult_name(cuerror);
+            }
+
+
+            reqb
+                .on_channel()
+                .invoke()
+                .as_callback_log_ignore_continuation_error();
+        })
+        .as_callback();
+    return;
+
+out:
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror);
+
+    ch->template make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_continuation_error();
+}
 
 core::future<std::tuple<wire::error_type, CUresult>>
 impl::Kernel::destroy_maybe(auto ch)
