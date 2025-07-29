@@ -102,6 +102,7 @@ public:
     };
 
     void insert_kernel(std::shared_ptr<kernel_desc> kernel_desc);
+    std::shared_ptr<kernel_desc> get_kernel(CUkernel cukernel);
 
 private:
     std::shared_mutex kernels_mutex;

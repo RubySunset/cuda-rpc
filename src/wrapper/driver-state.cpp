@@ -276,6 +276,18 @@ DriverState::insert_kernel(std::shared_ptr<DriverState::kernel_desc> desc)
     CHECK(res.second);
 }
 
+std::shared_ptr<DriverState::kernel_desc>
+DriverState::get_kernel(CUkernel cukernel)
+{
+    auto lock = std::shared_lock(kernels_mutex);
+    auto it = kernels.find(cukernel);
+    if (it != kernels.end()) {
+        return it->second;
+    } else {
+        return nullptr;
+    }
+}
+
 
 std::shared_ptr<clt::Memory>
 DriverState::get_memory(CUdeviceptr addr)
