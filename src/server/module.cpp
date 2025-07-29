@@ -263,26 +263,48 @@ impl::Module::handle_get_function(auto ch, auto args)
         .then([this, self, ch, args=std::move(args)](auto& fut) {
             auto [error, cuerror, func] = fut.get();
 
-            _func = func;
+            auto reqb = ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::cuerror, cuerror);
 
-            auto args_size_offset = offsetof(msg::response::imms, arg_size);
-            std::vector<wire::endian::uint64_t> args_size;
-            for (auto arg: func->args_size) {
-                args_size.push_back(arg);
+            if (not error and not cuerror) {
+                auto cufunction = func->get_remote_cufunction();
+
+                auto args_size_offset = offsetof(msg::response::imms, arg_size);
+                std::vector<wire::endian::uint64_t> args_size;
+                for (auto arg: func->args_size) {
+                    args_size.push_back(arg);
+                }
+
+                LOG(ERROR) << "TODO: delete";
+                _func = func;
+
+                reqb
+                    .set_imm(&msg::response::imms::cufunction, (uint64_t)cufunction)
+                    .set_imm(&msg::response::imms::nargs, func->args_size.size())
+                    .set_imm(args_size_offset, args_size.data(), sizeof(uint64_t) * func->args_size.size())
+                    .set_cap(&msg::response::caps::generic, func->req_generic);
+
+                LOG_RES(method)
+                    << " error=" << wire::to_string(error)
+                    << " cuerror=" << get_CUresult_name(cuerror)
+                    << " cufunction=" << (void*)cufunction
+                    << " nargs=" << args_size.size()
+                    << " arg_size=<...>"
+                    << " req_generic=" << core::to_string(func->req_generic);
+            } else {
+                LOG_RES(method)
+                    << " error=" << wire::to_string(error)
+                    << " cuerror=" << get_CUresult_name(cuerror);
             }
 
-            ch->template make_request_builder<msg::response>(args->caps.continuation)
-                .set_imm(&msg::response::imms::error, error)
-                .set_imm(&msg::response::imms::cuerror, cuerror)
-                .set_imm(&msg::response::imms::cufunction, (uint64_t)func->get_remote_cufunction())
-                .set_imm(&msg::response::imms::nargs, func->args_size.size())
-                .set_imm(args_size_offset, args_size.data(), sizeof(uint64_t) * func->args_size.size())
-                .set_cap(&msg::response::caps::generic, func->req_generic)
+
+            reqb
                 .on_channel()
                 .invoke()
                 .as_callback_log_ignore_continuation_error();
             })
-        .as_callback_log_ignore_continuation_error();
+        .as_callback();
 }
 
 
