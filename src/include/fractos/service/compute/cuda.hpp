@@ -302,6 +302,11 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             launch(const void** args, dim3 gridDim, dim3 blockDim, size_t sharedMem,
                    std::optional<std::reference_wrapper<Stream>> stream);
 
+            // cuOccupancyMaxActiveBlocksPerMultiprocessorWithFlags
+            [[nodiscard]] core::future<int>
+            occupancy_max_active_blocks_per_multiprocessor_with_flags(
+                int block_size, size_t dynamic_mem_size, CUoccupancy_flags flags);
+
             // shorthands with variadic kernel arguments
 
             template<class... Args>

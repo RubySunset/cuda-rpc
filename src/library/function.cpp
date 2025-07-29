@@ -145,6 +145,38 @@ clt::Function::launch(const void** args, dim3 gridDim, dim3 blockDim,
         });
 }
 
+core::future<int>
+clt::Function::occupancy_max_active_blocks_per_multiprocessor_with_flags(
+    int block_size, size_t dynamic_mem_size, CUoccupancy_flags flags)
+{
+    METHOD(occupancy_max_active_blocks_per_multiprocessor_with_flags);
+    LOG_REQ(method)
+        << " block_size=" << block_size
+        << " dynamic_mem_size=" << dynamic_mem_size
+        << " flags=" << flags;
+
+    auto& pimpl = impl::Function::get(*this);
+    auto self = pimpl.state->self.lock();
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_OCCUPANCY_MAX_ACTIVE_BLOCKS_PER_MULTIPROCESSOR_WITH_FLAGS)
+        .set_imm(&msg::request::imms::block_size, block_size)
+        .set_imm(&msg::request::imms::dynamic_mem_size, dynamic_mem_size)
+        .set_imm(&msg::request::imms::flags, flags)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_cuda_response()
+        .then([self](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_ARGS_EXACT();
+
+            return (int)args->imms.num_blocks.get();
+        });
+}
+
 void
 clt::Function::_launch_check_args(const std::vector<size_t>& args_size)
 {
