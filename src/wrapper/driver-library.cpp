@@ -12,6 +12,35 @@ namespace clt = fractos::service::compute::cuda;
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
+cuKernelGetFunction(CUfunction* pFunc, CUkernel kernel)
+{
+    auto& state = get_driver_state();
+
+    auto ctx = state.get_current_context();
+    CHECK(ctx);
+
+    auto kernel_desc = state.get_kernel(kernel);
+    if (not kernel_desc) {
+        return CUDA_ERROR_NOT_FOUND;
+    }
+
+    auto func_desc = std::make_shared<DriverState::func_desc>();
+    try {
+        func_desc->function = kernel_desc->kernel->get_function(*ctx)
+            .get();
+    } catch (const clt::CudaError& e) {
+        return e.cuerror;
+    }
+
+    state.insert_function(func_desc);
+
+    *pFunc = func_desc->function->get_function();
+
+    return CUDA_SUCCESS;
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult CUDAAPI
 cuLibraryLoadData(CUlibrary* library, const void* code,
                   CUjit_option* jitOptions, void** jitOptionsValues, unsigned int numJitOptions,
                   CUlibraryOption* libraryOptions, void** libraryOptionValues, unsigned int  numLibraryOptions) 
