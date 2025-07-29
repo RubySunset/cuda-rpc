@@ -28,6 +28,7 @@ impl::to_string(const impl::Library& obj)
 
 fractos::core::future<std::tuple<wire::error_type, CUresult, std::shared_ptr<impl::Library>>>
 impl::make_library(std::shared_ptr<fractos::core::channel> ch,
+                   std::shared_ptr<Service> service,
                    std::shared_ptr<char[]>& contents,
                    const std::vector<CUjit_option>& jit_options, const std::vector<void*>& jit_values,
                    const std::vector<CUlibraryOption>& lib_options, const std::vector<void*>& lib_values)
@@ -46,6 +47,7 @@ impl::make_library(std::shared_ptr<fractos::core::channel> ch,
 
     res = std::make_shared<Library>();
     res->culibrary = culibrary;
+    res->service = service;
     res->contents = contents;
 
     return ch->make_request_builder<srv_wire_msg::generic::request>(

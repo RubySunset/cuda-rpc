@@ -524,7 +524,7 @@ impl::Service::handle_library_load_data(auto ch, auto args)
     }
 
 
-    make_library(ch, contents_buffer,
+    make_library(ch, self, contents_buffer,
                  jit_options, jit_values, lib_options, lib_values)
         .then([this, self, ch, args=std::move(args)](auto& fut) {
             auto [error, cuerror, library] = fut.get();

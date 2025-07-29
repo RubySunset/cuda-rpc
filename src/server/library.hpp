@@ -7,7 +7,7 @@
 
 
 namespace impl {
-    class Context;
+    class Service;
 }
 
 namespace impl {
@@ -17,6 +17,7 @@ namespace impl {
         CUlibrary get_remote_culibrary() const;
 
         CUlibrary culibrary;
+        std::shared_ptr<Service> service;
         std::shared_ptr<Library> self;
 
         fractos::core::future<std::tuple<fractos::wire::error_type, CUresult>>
@@ -35,6 +36,7 @@ namespace impl {
 
     fractos::core::future<std::tuple<fractos::wire::error_type, CUresult, std::shared_ptr<Library>>>
     make_library(std::shared_ptr<fractos::core::channel> ch,
+                 std::shared_ptr<Service> service,
                  std::shared_ptr<char[]>& contents,
                  const std::vector<CUjit_option>& jit_options, const std::vector<void*>& jit_values,
                  const std::vector<CUlibraryOption>& lib_options, const std::vector<void*>& lib_values);
