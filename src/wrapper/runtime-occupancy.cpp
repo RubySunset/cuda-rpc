@@ -8,6 +8,14 @@
 
 extern "C" [[gnu::visibility("default")]]
 cudaError_t CUDARTAPI
+cudaOccupancyMaxActiveBlocksPerMultiprocessor(int* numBlocks, const void* func, int  blockSize, size_t dynamicSMemSize)
+{
+    return cudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags(
+        numBlocks, func, blockSize, dynamicSMemSize, CU_OCCUPANCY_DEFAULT);
+}
+
+extern "C" [[gnu::visibility("default")]]
+cudaError_t CUDARTAPI
 cudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags(int* numBlocks, const void* func, int  blockSize, size_t dynamicSMemSize, unsigned int flags)
 {
     auto& state = get_runtime_state();

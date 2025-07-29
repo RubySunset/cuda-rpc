@@ -11,6 +11,14 @@ namespace clt = fractos::service::compute::cuda;
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
+cuOccupancyMaxActiveBlocksPerMultiprocessor(int* numBlocks, CUfunction func, int  blockSize, size_t dynamicSMemSize)
+{
+    return cuOccupancyMaxActiveBlocksPerMultiprocessorWithFlags(
+        numBlocks, func, blockSize, dynamicSMemSize, CU_OCCUPANCY_DEFAULT);
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult CUDAAPI
 cuOccupancyMaxActiveBlocksPerMultiprocessorWithFlags(int* numBlocks, CUfunction func, int  blockSize, size_t dynamicSMemSize, unsigned int flags)
 {
     auto& state = get_driver_state();
