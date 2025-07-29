@@ -1098,6 +1098,42 @@ srv::wire::to_string(const core::receive_args<srv::wire::Function::launch::respo
 }
 
 std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Function::occupancy_max_active_blocks_per_multiprocessor_with_flags::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(opcode);
+    print_imm_identity(block_size);
+    print_imm_identity(dynamic_mem_size);
+    print_imm_identity(flags);
+    print_extra_imm_error();
+
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Function::occupancy_max_active_blocks_per_multiprocessor_with_flags::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_imm_cuerror(cuerror);
+    print_imm_identity(num_blocks);
+    print_extra_imm_error();
+
+    print_empty_caps();
+
+    return ss.str();
+}
+
+std::string
 srv::wire::to_string(const core::receive_args<srv::wire::Function::destroy::request>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;

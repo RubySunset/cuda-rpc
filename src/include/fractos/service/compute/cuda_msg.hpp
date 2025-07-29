@@ -968,6 +968,7 @@ namespace fractos::service::compute::cuda::wire {
         enum generic_opcode : uint64_t {
             OP_SET_ATTRIBUTE,
             OP_LAUNCH,
+            OP_OCCUPANCY_MAX_ACTIVE_BLOCKS_PER_MULTIPROCESSOR_WITH_FLAGS,
             OP_DESTROY,
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
@@ -1029,9 +1030,35 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
     }
-
     std::string to_string(const core::receive_args<Function::launch::request>& req);
     std::string to_string(const core::receive_args<Function::launch::response>& resp);
+
+    namespace Function {
+        struct occupancy_max_active_blocks_per_multiprocessor_with_flags {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint64_t block_size;
+                    fractos::wire::endian::uint64_t dynamic_mem_size;
+                    fractos::wire::endian::uint64_t flags;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
+                    fractos::wire::endian::uint64_t num_blocks;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
+    }
+    std::string to_string(const core::receive_args<Function::occupancy_max_active_blocks_per_multiprocessor_with_flags::request>& req);
+    std::string to_string(const core::receive_args<Function::occupancy_max_active_blocks_per_multiprocessor_with_flags::response>& resp);
 
     namespace Function {
         struct destroy {
@@ -1053,7 +1080,6 @@ namespace fractos::service::compute::cuda::wire {
             };
         };
     }
-
     std::string to_string(const core::receive_args<Function::destroy::request>& req);
     std::string to_string(const core::receive_args<Function::destroy::response>& resp);
 

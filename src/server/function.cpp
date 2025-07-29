@@ -158,6 +158,7 @@ impl::Function::handle_generic(auto ch, auto args)
     switch (opcode) {
     CASE_HANDLE(SET_ATTRIBUTE, set_attribute);
     CASE_HANDLE(LAUNCH, launch);
+    CASE_HANDLE(OCCUPANCY_MAX_ACTIVE_BLOCKS_PER_MULTIPROCESSOR_WITH_FLAGS, occupancy_max_active_blocks_per_multiprocessor_with_flags);
     CASE_HANDLE(DESTROY, destroy);
     default:
         LOG_RES(method)
@@ -261,6 +262,40 @@ out:
     reqb_cont
         .set_imm(&msg::response::imms::error, error)
         .set_imm(&msg::response::imms::cuerror, cuerror)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_continuation_error();
+}
+
+void
+impl::Function::handle_occupancy_max_active_blocks_per_multiprocessor_with_flags(auto ch, auto args)
+{
+    METHOD(occupancy_max_active_blocks_per_multiprocessor_with_flags);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
+
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+
+    auto block_size = (int)args->imms.block_size.get();
+    auto dynamic_mem_size = (size_t)args->imms.dynamic_mem_size.get();
+    auto flags = (unsigned int)args->imms.flags.get();
+
+    int num_blocks = 0;
+    cuerror = cuOccupancyMaxActiveBlocksPerMultiprocessorWithFlags(
+        &num_blocks, cufunction, block_size, dynamic_mem_size, flags);
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror)
+        << " num_blocks=" << num_blocks;
+
+    reqb_cont
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
+        .set_imm(&msg::response::imms::num_blocks, num_blocks)
         .on_channel()
         .invoke()
         .as_callback_log_ignore_continuation_error();

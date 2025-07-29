@@ -35,6 +35,7 @@ namespace impl {
     protected:
         void handle_set_attribute(auto ch, auto args);
         void handle_launch(auto ch, auto args);
+        void handle_occupancy_max_active_blocks_per_multiprocessor_with_flags(auto ch, auto args);
         void handle_destroy(auto ch, auto args);
     };
 
