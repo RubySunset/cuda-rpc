@@ -145,6 +145,15 @@ clt::Function::launch(const void** args, dim3 gridDim, dim3 blockDim,
         });
 }
 
+
+core::future<int>
+clt::Function::occupancy_max_active_blocks_per_multiprocessor_with_flags(
+    int block_size, size_t dynamic_mem_size)
+{
+    return occupancy_max_active_blocks_per_multiprocessor_with_flags(
+        block_size, dynamic_mem_size, CU_OCCUPANCY_DEFAULT);
+}
+
 core::future<int>
 clt::Function::occupancy_max_active_blocks_per_multiprocessor_with_flags(
     int block_size, size_t dynamic_mem_size, CUoccupancy_flags flags)
