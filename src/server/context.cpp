@@ -162,7 +162,7 @@ impl::Context::handle_generic(auto ch, auto args)
     CASE_HANDLE(DESTROY, destroy);
     default:
         LOG_OP(method)
-            << " [error] invalid opcode";
+            << " [error] invalid opcode: " << opcode;
         ch->template make_request_builder<msg::response>(args->caps.continuation)
             .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
             .on_channel()
