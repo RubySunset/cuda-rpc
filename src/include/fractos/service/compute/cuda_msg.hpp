@@ -706,6 +706,8 @@ namespace fractos::service::compute::cuda::wire {
             OP_SYNCHRONIZE,
             OP_WAIT_EVENT,
             OP_DESTROY,
+            OP_WAIT_VALUE_32,
+            OP_WRITE_VALUE_32,
             OP_INVALID = std::numeric_limits<uint64_t>::max()
         };
         using generic = wire::generic;
@@ -760,6 +762,58 @@ namespace fractos::service::compute::cuda::wire {
 
     std::string to_string(const core::receive_args<Stream::wait_event::request>& req);
     std::string to_string(const core::receive_args<Stream::wait_event::response>& resp);
+
+    namespace Stream {
+        struct wait_value_32 {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint64_t addr;
+                    fractos::wire::endian::uint32_t value;
+                    fractos::wire::endian::uint32_t flags;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
+                } __attribute__((packed));
+                struct caps {
+                };
+            };
+        };
+    }
+    std::string to_string(const core::receive_args<Stream::wait_value_32::request>& req);
+    std::string to_string(const core::receive_args<Stream::wait_value_32::response>& resp);
+
+    namespace Stream {
+        struct write_value_32 {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint64_t addr;
+                    fractos::wire::endian::uint32_t value;
+                    fractos::wire::endian::uint32_t flags;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
+                } __attribute__((packed));
+                struct caps {
+                };
+            };
+        };
+    }
+    std::string to_string(const core::receive_args<Stream::write_value_32::request>& req);
+    std::string to_string(const core::receive_args<Stream::write_value_32::response>& resp);
 
     namespace Stream {
         struct destroy {

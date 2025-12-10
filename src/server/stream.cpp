@@ -1,3 +1,4 @@
+#include <cuda.h>
 #include <fractos/common/service/srv_impl.hpp>
 #include <fractos/logging.hpp>
 #include <fractos/service/compute/cuda_msg.hpp>
@@ -110,6 +111,8 @@ impl::Stream::handle_generic(auto ch, auto args)
     switch (opcode) {
     CASE_HANDLE(SYNCHRONIZE, synchronize);
     CASE_HANDLE(WAIT_EVENT, wait_event);
+    CASE_HANDLE(WAIT_VALUE_32, wait_value_32);
+    CASE_HANDLE(WRITE_VALUE_32, write_value_32);
     CASE_HANDLE(DESTROY, destroy);
     default:
         LOG_RES(method)
@@ -176,6 +179,64 @@ impl::Stream::handle_wait_event(auto ch, auto args)
     cuerror = cuStreamWaitEvent(custream, event->cuevent, flags);
 
 out:
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror);
+
+    ch->template make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
+        .on_channel()
+        .invoke()
+        .as_callback();
+}
+
+void
+impl::Stream::handle_wait_value_32(auto ch, auto args)
+{
+    METHOD(wait_value_32);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
+
+    auto error = wire::ERR_SUCCESS;
+
+    auto addr = (CUdeviceptr)args->imms.addr.get();
+    auto value = (uint32_t)args->imms.value.get();
+    auto flags = (unsigned int)args->imms.flags.get();
+
+    auto cuerror = cuStreamWaitValue32(custream, addr, value, flags);
+
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror);
+
+    ch->template make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
+        .on_channel()
+        .invoke()
+        .as_callback();
+}
+
+void
+impl::Stream::handle_write_value_32(auto ch, auto args)
+{
+    METHOD(write_value_32);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
+
+    auto error = wire::ERR_SUCCESS;
+
+    auto addr = (CUdeviceptr)args->imms.addr.get();
+    auto value = (uint32_t)args->imms.value.get();
+    auto flags = (unsigned int)args->imms.flags.get();
+
+    auto cuerror = cuStreamWriteValue32(custream, addr, value, flags);
 
     LOG_RES(method)
         << " error=" << wire::to_string(error)

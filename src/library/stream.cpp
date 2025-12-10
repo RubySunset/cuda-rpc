@@ -1,3 +1,4 @@
+#include <cuda.h>
 #include <fractos/common/service/clt_impl.hpp>
 #include <fractos/core/future.hpp>
 #include <fractos/logging.hpp>
@@ -114,6 +115,64 @@ clt::Stream::wait_event(Event& event, CUevent_wait_flags flags)
     return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
         .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_WAIT_EVENT)
         .set_imm(&msg::request::imms::cuevent, (uint64_t)event.get_event())
+        .set_imm(&msg::request::imms::flags, flags)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_cuda_response()
+        .then([](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_ARGS_EXACT();
+        });
+}
+
+core::future<void>
+clt::Stream::wait_value_32(CUdeviceptr addr, uint32_t value, unsigned int flags)
+{
+    METHOD(wait_value_32);
+    LOG_REQ(method)
+        << " addr=" << (void*)addr
+        << " value=" << value
+        << " flags=" << flags;
+
+    auto& pimpl = impl::Stream::get(*this);
+    auto self = pimpl.state->self.lock();
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_WAIT_VALUE_32)
+        .set_imm(&msg::request::imms::addr, addr)
+        .set_imm(&msg::request::imms::value, value)
+        .set_imm(&msg::request::imms::flags, flags)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_cuda_response()
+        .then([](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_ARGS_EXACT();
+        });
+}
+
+core::future<void>
+clt::Stream::write_value_32(CUdeviceptr addr, uint32_t value, unsigned int flags)
+{
+    METHOD(write_value_32);
+    LOG_REQ(method)
+        << " addr=" << (void*)addr
+        << " value=" << value
+        << " flags=" << flags;
+
+    auto& pimpl = impl::Stream::get(*this);
+    auto self = pimpl.state->self.lock();
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_WRITE_VALUE_32)
+        .set_imm(&msg::request::imms::addr, addr)
+        .set_imm(&msg::request::imms::value, value)
         .set_imm(&msg::request::imms::flags, flags)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()

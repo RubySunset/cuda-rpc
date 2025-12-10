@@ -29,6 +29,8 @@ namespace impl {
         void handle_synchronize(auto ch, auto args);
         void handle_wait_event(auto ch, auto args);
         void handle_destroy(auto ch, auto args);
+        void handle_wait_value_32(auto ch, auto args);
+        void handle_write_value_32(auto ch, auto args);
 
         // NOTE: for internal use
     public:

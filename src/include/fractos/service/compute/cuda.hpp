@@ -380,6 +380,14 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             // cuStreamWaitEvent
             [[nodiscard]] core::future<void>
             wait_event(Event& event, CUevent_wait_flags flags);
+
+            // cuStreamWaitValue32
+            [[nodiscard]] core::future<void>
+            wait_value_32(CUdeviceptr addr, uint32_t value, unsigned int flags);
+
+            // cuStreamWriteValue32
+            [[nodiscard]] core::future<void>
+            write_value_32(CUdeviceptr addr, uint32_t value, unsigned int flags);
         };
 
         std::string to_string(const Stream& obj);
