@@ -30,6 +30,7 @@ libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-module.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-library.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-memory.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-stream.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-memop.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-event.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-execution.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += driver-occupancy.cpp
