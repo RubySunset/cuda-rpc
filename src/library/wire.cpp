@@ -1,3 +1,4 @@
+#include <cuda.h>
 #include <cuda_runtime.h>
 #include <fractos/common/service/wire_impl.hpp>
 #include <fractos/core/builder.hpp>
@@ -224,7 +225,8 @@ srv::wire::to_string(const core::receive_args<srv::wire::Service::library_load_d
     print_imm_identity(size_jit_values);
     print_imm_identity(num_lib_options);
     print_imm_identity(size_lib_values);
-    print_imm_array(data, obj.imms_size() - sizeof(obj.imms));
+    auto data_size = (obj.imms.num_jit_options * sizeof(CUjit_option)) + (obj.imms.num_lib_options * sizeof(CUlibraryOption));
+    print_imm_array(data, data_size);
     print_extra_imm_error();
 
     print_cap(continuation);
@@ -410,7 +412,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::get_properties:
     print_imm_error(error);
     print_imm_cuerror(cuerror);
     print_imm_identity(data_size);
-    print_imm_array(data, obj.imms_size() - sizeof(obj.imms));
+    print_imm_array(data, sizeof(cudaDeviceProp));
 
     print_empty_caps();
 
@@ -1018,8 +1020,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Module::get_function::r
     print_imm_cuerror(cuerror);
     print_imm_hex(cufunction);
     print_imm_identity(nargs);
-    print_imm_array(arg_size, obj.imms_size() - sizeof(obj.imms));
-    print_imm_array_extra_is_error(obj.imms.nargs.get() * sizeof(uint64_t));
+    print_imm_array(arg_size, obj.imms.nargs.get() * sizeof(uint64_t));
 
     print_cap(generic);
     print_extra_cap_error();
