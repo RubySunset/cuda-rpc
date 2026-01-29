@@ -43,7 +43,7 @@ impl::make_context(std::shared_ptr<fractos::core::channel> ch,
     std::shared_ptr<Context> res;
 
     CUcontext cucontext;
-    cuerror = cuCtxCreate(&cucontext, flags, device->cudevice);
+    cuerror = cuCtxCreate(&cucontext, NULL, flags, device->cudevice);
     if (cuerror != CUDA_SUCCESS) {
         return core::make_ready_future(std::make_tuple(error, cuerror, res));
     }
