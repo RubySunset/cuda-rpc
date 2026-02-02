@@ -51,6 +51,7 @@ namespace impl {
         void handle_get_api_version(auto ch, auto args);
         void handle_get_limit(auto ch, auto args);
         void handle_module_load_data(auto ch, auto args);
+        void handle_memcpy_async(auto ch, auto args);
         void handle_mem_alloc(auto ch, auto args);
         void handle_mem_get_info(auto ch, auto args);
         void handle_memset(auto ch, auto args);

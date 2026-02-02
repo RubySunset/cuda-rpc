@@ -22,6 +22,7 @@ def run(base_dir, output_dir, src_dir, copy):
             "test-service-init",
             "test-service-memory",
             "test-stream",
+            "test-memcpy",
         ],
     )
     e.params(env="""

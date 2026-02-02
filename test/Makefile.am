@@ -24,3 +24,6 @@ test_service_memory_SOURCES = test-service-memory.cpp
 
 noinst_PROGRAMS += test-stream
 test_stream_SOURCES = test-stream.cpp
+
+noinst_PROGRAMS += test-memcpy
+test_memcpy_SOURCES = test-memcpy.cpp

@@ -4,10 +4,13 @@
 #include <fractos/core/gns.hpp>
 #include <glog/logging.h>
 #include <signal.h>
+#include <csignal>
+#include <thread>
+#include <string>
 
 #include <fractos/service/compute/cuda.hpp>
 
-
+#include "./memcpy_manager.hpp"
 #include "./service.hpp"
 
 using namespace fractos;
@@ -43,6 +46,17 @@ int main(int argc, char *argv[])
 
     auto srv = impl::Service::factory();
 
+    // Start memcpy thread
+    std::thread memcpy_thread([&]{
+        std::string name = "memcpy-thread";
+        if (pthread_setname_np(pthread_self(), name.c_str()) != 0) {
+            LOG(WARNING) << "Failed to set memcpy thread name";
+        }
+        MemcpyManager& man = get_memcpy_manager();
+        man.set_channel(ch);
+        man.run();
+    });
+
     LOG(INFO) << "Create cuda service";
     srv->register_service(ch).get();
 
@@ -68,9 +82,21 @@ int main(int argc, char *argv[])
 
     LOG(INFO) << "channel running";
 
+    std::thread extra_channel_thread([&]{
+        std::string name = "extra-channel-thread";
+        if (pthread_setname_np(pthread_self(), name.c_str()) != 0) {
+            LOG(WARNING) << "Failed to set extra channel thread name";
+        }
+        ch->run_until([srv]() {return srv->exit_requested(); });
+    });
 
     ch->run_until([srv]() {return srv->exit_requested(); });
 
+    LOG(INFO) << "Stopping extra channel thread";
+    extra_channel_thread.join();
+    LOG(INFO) << "Stopping memcpy thread";
+    get_memcpy_manager().stop();
+    memcpy_thread.join();
 
     LOG(INFO) << "================================================== finish cuda service";
 

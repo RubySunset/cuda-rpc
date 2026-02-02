@@ -7,6 +7,7 @@
 #include <fractos/core/channel.hpp>
 #include <fractos/core/gns.hpp>
 #include <fractos/wire/endian.hpp>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -170,6 +171,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Module>>
             module_load_data(core::cap::memory& contents);
 
+
+            // cuMemcpyAsync
+            [[nodiscard]] core::future<void>
+            memcpy_async(core::cap::memory& src, core::cap::memory& dst, std::optional<std::reference_wrapper<Stream>> stream);
 
             // cuMemAlloc
             [[nodiscard]] core::future<std::shared_ptr<Memory>>

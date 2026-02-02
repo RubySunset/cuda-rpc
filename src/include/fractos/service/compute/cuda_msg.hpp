@@ -426,6 +426,7 @@ namespace fractos::service::compute::cuda::wire {
             OP_GET_API_VERSION,
             OP_GET_LIMIT,
             OP_MODULE_LOAD_DATA,
+            OP_MEMCPY_ASYNC,
             OP_MEM_ALLOC,
             OP_MEM_GET_INFO,
             OP_MEMSET,
@@ -651,6 +652,32 @@ namespace fractos::service::compute::cuda::wire {
     }
     std::string to_string(const core::receive_args<Context::module_load_data::request>& req);
     std::string to_string(const core::receive_args<Context::module_load_data::response>& resp);
+
+    namespace Context {
+        struct memcpy_async {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint64_t custream;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                    fractos::core::cap::memory src;
+                    fractos::core::cap::memory dst;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
+    }
+    std::string to_string(const core::receive_args<Context::memcpy_async::request>& req);
+    std::string to_string(const core::receive_args<Context::memcpy_async::response>& resp);
 
     namespace Context {
         struct synchronize {

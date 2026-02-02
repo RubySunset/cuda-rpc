@@ -1,3 +1,4 @@
+#include <cuda.h>
 #include <fractos/common/service/srv_impl.hpp>
 #include <fractos/core/error.hpp>
 #include <fractos/logging.hpp>
@@ -16,6 +17,7 @@
 #include "./module.hpp"
 #include "./library.hpp"
 #include "./memory.hpp"
+#include "./memcpy_manager.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
@@ -153,6 +155,7 @@ impl::Context::handle_generic(auto ch, auto args)
     CASE_HANDLE(GET_API_VERSION, get_api_version);
     CASE_HANDLE(GET_LIMIT, get_limit);
     CASE_HANDLE(MODULE_LOAD_DATA, module_load_data);
+    CASE_HANDLE(MEMCPY_ASYNC, memcpy_async);
     CASE_HANDLE(MEM_ALLOC, mem_alloc);
     CASE_HANDLE(MEM_GET_INFO, mem_get_info);
     CASE_HANDLE(MEMSET, memset);
@@ -565,6 +568,69 @@ impl::Context::handle_module_load_data(auto ch, auto args)
                 .as_callback();
         })
         .as_callback();
+}
+
+
+void impl::Context::handle_memcpy_async(auto ch, auto args) {
+    METHOD(memcpy_async);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
+
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+    auto custream_arg = (CUstream)args->imms.custream.get();
+
+    fractos::core::cap::memory& src = args->caps.src;
+    fractos::core::cap::memory& dst = args->caps.dst;
+
+    std::shared_ptr<Stream> stream_ptr;
+    CUstream custream;
+
+    if (custream_arg == 0) {
+        custream = custream_arg;
+    } else {
+        stream_ptr = get_stream(custream_arg);
+        if (not stream_ptr) {
+            cuerror = CUDA_ERROR_INVALID_HANDLE;
+            goto out;
+        }
+        custream = stream_ptr->custream;
+    }
+
+    cuerror = cuCtxSetCurrent(cucontext);
+    if (cuerror != CUDA_SUCCESS) {
+        goto out;
+    }
+
+    if (src.is_local() && dst.is_local()) {
+        cuerror = cuMemcpyDtoDAsync(
+            (CUdeviceptr)dst.get_addr(),
+            (CUdeviceptr)src.get_addr(),
+            src.get_size(),
+            custream
+        );
+    } else {
+        get_memcpy_manager().enqueue_memcpy_async(
+            cucontext,
+            custream,
+            std::make_shared<fractos::core::cap::memory>(std::move(src)),
+            std::make_shared<fractos::core::cap::memory>(std::move(dst))
+        );
+    }
+
+out:
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror);
+
+    ch->template make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_continuation_error();
 }
 
 void

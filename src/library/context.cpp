@@ -5,12 +5,14 @@
 #include <fractos/service/compute/cuda_msg.hpp>
 #include <fractos/wire/error.hpp>
 #include <fstream>
+#include <cstdint>
 #include <utility>
 
 #include <./common.hpp>
 #include <context_impl.hpp>
 #include <module_impl.hpp>
 #include "./library_impl.hpp"
+#include "fractos/core/types.hpp"
 #include <memory_impl.hpp>
 #include <stream_impl.hpp>
 #include <event_impl.hpp>
@@ -458,6 +460,50 @@ clt::Context::module_load_data(core::cap::memory& contents)
                 ch,
                 (CUmodule)args->imms.cumodule.get(),
                 std::move(args->caps.generic));
+        });
+}
+
+core::future<void>
+clt::Context::memcpy_async(core::cap::memory& src, core::cap::memory& dst, std::optional<std::reference_wrapper<Stream>> stream)
+{
+    CUstream custream = 0;
+    if (stream) {
+        custream = stream->get().get_stream();
+    }
+
+    METHOD(memcpy_async);
+    LOG_REQ(method)
+        << " src=" << core::to_string(src)
+        << " dst=" << core::to_string(dst)
+        << " custream=" << (void*)custream;
+
+    auto& pimpl = impl::Context::get(*this);
+    auto self = pimpl.state->self.lock();
+
+    if (!src.has_all_perms(core::cap::perm_type::PERM_RD)) {
+        LOG(ERROR) << "Cannot read source memory capability for copy";
+        throw core::cap_perm_error();
+    }
+
+    if (!dst.has_all_perms(core::cap::perm_type::PERM_WR)) {
+        LOG(ERROR) << "Cannot write to destination memory capability for copy";
+        throw core::cap_perm_error();
+    }
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_MEMCPY_ASYNC)
+        .set_imm(&msg::request::imms::custream, (uint64_t)custream)
+        .set_cap(&msg::request::caps::src, src)
+        .set_cap(&msg::request::caps::dst, dst)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_cuda_response()
+        .then([self](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_ARGS_EXACT();
         });
 }
 

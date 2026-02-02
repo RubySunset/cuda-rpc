@@ -693,6 +693,39 @@ srv::wire::to_string(const core::receive_args<srv::wire::Context::module_load_da
 }
 
 std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::memcpy_async::request>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_identity(opcode);
+    print_imm_hex(custream);
+    print_extra_imm_error();
+
+    print_cap(src);
+    print_cap(dst);
+    print_cap(continuation);
+    print_extra_cap_error();
+
+    return ss.str();
+}
+
+std::string
+srv::wire::to_string(const core::receive_args<srv::wire::Context::memcpy_async::response>& obj)
+{
+    using msg = std::remove_cvref_t<decltype(obj)>;
+
+    std::stringstream ss;
+
+    print_imm_error(error);
+    print_imm_cuerror(cuerror);
+    print_extra_imm_error();
+
+    return ss.str();
+}
+
+std::string
 srv::wire::to_string(const core::receive_args<srv::wire::Context::stream_create::request>& obj)
 {
     using msg = std::remove_cvref_t<decltype(obj)>;
