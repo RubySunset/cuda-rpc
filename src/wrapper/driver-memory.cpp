@@ -130,9 +130,9 @@ do_memcpy(std::pair<pointer_type, CUdeviceptr> src,
         // D2D
         auto& ch = get_channel();
         auto& mem_src_cap = mem_src->get_cap_mem();
-        if (mem_src_cap.get_size() < size) {
+        if (mem_src->get_size() < size) {
             return CUDA_ERROR_INVALID_VALUE;
-        } else if (mem_src_cap.get_size() > size) {
+        } else if (mem_src->get_size() > size) {
             auto src_cap = ch.diminish(mem_src_cap, 0, size, core::cap::PERM_NONE).get();
             ch.copy(src_cap, mem_dst->get_cap_mem()).get();
         } else {
@@ -145,9 +145,9 @@ do_memcpy(std::pair<pointer_type, CUdeviceptr> src,
         auto& ch = get_channel();
         auto dst_cap = ch.make_memory((void*)dst.second, size).get();
         auto& mem_src_cap = mem_src->get_cap_mem();
-        if (mem_src_cap.get_size() < size) {
+        if (mem_src->get_size() < size) {
             return CUDA_ERROR_INVALID_VALUE;
-        } else if (mem_src_cap.get_size() > size) {
+        } else if (mem_src->get_size() > size) {
             auto src_cap = ch.diminish(mem_src_cap, 0, size, core::cap::PERM_NONE).get();
             ch.copy(src_cap, dst_cap).get();
         } else {

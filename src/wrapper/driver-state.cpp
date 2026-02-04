@@ -307,11 +307,9 @@ DriverState::get_memory(CUdeviceptr addr)
 void
 DriverState::insert_memory(std::shared_ptr<clt::Memory> mem)
 {
-    auto& cap = mem->get_cap_mem();
-    DCHECK(cap.get_addr() == mem->get_deviceptr());
     auto mem_desc = std::make_shared<DriverState::mem_desc>();
-    mem_desc->base = cap.get_addr();
-    mem_desc->size = cap.get_size();
+    mem_desc->base = mem->get_deviceptr();
+    mem_desc->size = mem->get_size();
     mem_desc->mem = mem;
 
     auto lock = std::unique_lock(mems_mutex);

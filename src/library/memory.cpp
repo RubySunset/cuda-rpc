@@ -23,12 +23,15 @@ template class fractos::common::service::CltBase<clt::Memory>;
 std::shared_ptr<clt::Memory>
 impl::make_memory(std::shared_ptr<fractos::core::channel> ch,
                   CUdeviceptr cudeviceptr,
+                  size_t size,
                   core::cap::memory memory,
                   core::cap::request req_generic)
 {
     auto state = std::make_shared<impl::MemoryState>();
     state->cudeviceptr = cudeviceptr;
+    state->size = size;
     state->memory = std::move(memory);
+    DCHECK(state->size == state->memory.get_size());
     state->req_generic = std::move(req_generic);
 
     return impl::Memory::make(ch, state);
@@ -61,6 +64,13 @@ clt::Memory::get_deviceptr()
 {
     auto& pimpl = impl::Memory::get(*this);
     return pimpl.state->cudeviceptr;
+}
+
+size_t
+clt::Memory::get_size()
+{
+    auto& pimpl = impl::Memory::get(*this);
+    return pimpl.state->size;
 }
 
 core::cap::memory&

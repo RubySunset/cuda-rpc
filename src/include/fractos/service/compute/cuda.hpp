@@ -431,6 +431,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         class Memory : public common::service::CltBase<Memory> {
         public:
             CUdeviceptr get_deviceptr();
+            size_t get_size();
             fractos::core::cap::memory& get_cap_mem();
         };
 

@@ -16,6 +16,7 @@ namespace impl {
     struct MemoryState : public fractos::common::service::ImplState {
         std::weak_ptr<clt::Memory> self;
         CUdeviceptr cudeviceptr;
+        size_t size;
         fractos::core::cap::memory memory;
 
         fractos::core::cap::request req_generic;
@@ -29,6 +30,7 @@ namespace impl {
     std::shared_ptr<clt::Memory>
     make_memory(std::shared_ptr<fractos::core::channel> ch,
                 CUdeviceptr cudeviceptr,
+                size_t size,
                 fractos::core::cap::memory memory,
                 fractos::core::cap::request req_generic);
 
