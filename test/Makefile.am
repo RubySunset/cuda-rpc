@@ -16,6 +16,12 @@ noinst_DATA = module.ptx
 module.ptx: module.cu
 	$(NVCC) -ptx $(CPPFLAGS) $$(subst -Werror,-Werror all-warnings,$(CXXFLAGS)) -o $@ $< $(LDFLAGS)
 
+noinst_PROGRAMS += test-cublas-wrapper-simple
+test_cublas_wrapper_simple_SOURCES = test-cublas-wrapper-simple.cpp
+
+noinst_PROGRAMS += test-cublas-wrapper-full
+test_cublas_wrapper_full_SOURCES = test-cublas-wrapper-full.cpp
+
 noinst_PROGRAMS += test-service-init
 test_service_init_SOURCES = test-service-init.cpp
 

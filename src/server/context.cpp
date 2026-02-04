@@ -14,6 +14,7 @@
 #include "./context.hpp"
 #include "./stream.hpp"
 #include "./event.hpp"
+#include "./cublas.hpp"
 #include "./module.hpp"
 #include "./library.hpp"
 #include "./memory.hpp"
@@ -130,6 +131,33 @@ impl::Context::erase_event(std::shared_ptr<Event> event)
 }
 
 
+std::shared_ptr<impl::CublasHandle>
+impl::Context::get_cublas_handle(cublasHandle_t handle)
+{
+    auto lock = std::unique_lock(_cublas_map_mutex);
+    auto it = _cublas_map.find(handle);
+    if (it == _cublas_map.end()) {
+        return nullptr;
+    } else {
+        return it->second;
+    }
+}
+
+void
+impl::Context::insert_cublas_handle(std::shared_ptr<CublasHandle> cublas_handle)
+{
+    auto lock = std::unique_lock(_cublas_map_mutex);
+    CHECK(_cublas_map.insert({cublas_handle->get_remote_handle(), cublas_handle}).second);
+}
+
+void
+impl::Context::erase_cublas_handle(std::shared_ptr<CublasHandle> cublas_handle)
+{
+    auto lock = std::unique_lock(_cublas_map_mutex);
+    CHECK(_cublas_map.erase(cublas_handle->get_remote_handle()) == 1);
+}
+
+
 void
 impl::Context::handle_generic(auto ch, auto args)
 {
@@ -161,6 +189,7 @@ impl::Context::handle_generic(auto ch, auto args)
     CASE_HANDLE(MEMSET, memset);
     CASE_HANDLE(STREAM_CREATE, stream_create);
     CASE_HANDLE(EVENT_CREATE, event_create);
+    CASE_HANDLE(CUBLAS_CREATE, cublas_create);
     CASE_HANDLE(SYNCHRONIZE, synchronize);
     CASE_HANDLE(DESTROY, destroy);
     default:
@@ -523,6 +552,71 @@ impl::Context::handle_event_create(auto ch, auto args)
         })
         .as_callback();
 }
+
+
+void
+impl::Context::handle_cublas_create(auto ch, auto args)
+{
+    METHOD(cublas_create);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
+
+    auto self = this->self;
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+    auto cublas_error = CUBLAS_STATUS_SUCCESS;
+
+    auto [cublas_handle, cublas_err] = impl::make_cublas_handle(self);
+    if (cublas_err != CUBLAS_STATUS_SUCCESS) {
+        goto out_err;
+    }
+
+    insert_cublas_handle(cublas_handle);
+
+    cublas_handle->register_methods(ch)
+        .then([this, self, ch, args=std::move(args), error, cuerror, cublas_error, cublas_handle](auto& fut) {
+            fut.get();
+
+            auto handle = cublas_handle->get_remote_handle();
+
+            LOG_RES(method)
+                << " error=" << wire::to_string(error)
+                << " cuerror=" << get_CUresult_name(cuerror)
+                << " cublas_error=" << cublas_error
+                << " handle=" << (void*)handle;
+
+            ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, error)
+                .set_imm(&msg::response::imms::cuerror, cuerror)
+                .set_imm(&msg::response::imms::cublas_error, cublas_error)
+                .set_imm(&msg::response::imms::handle, (uint64_t)handle)
+                .set_cap(&msg::response::caps::generic, cublas_handle->req_generic)
+                .on_channel()
+                .invoke()
+                .as_callback_log_ignore_continuation_error();
+        })
+        .as_callback();
+
+    return;
+
+out_err:
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror)
+        << " cublas_error=" << cublas_err
+        << " handle=" << (void*)0;
+
+    ch->template make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
+        .set_imm(&msg::response::imms::cublas_error, cublas_err)
+        .on_channel()
+        .invoke()
+        .as_callback_log_ignore_continuation_error();
+}
+
 
 void
 impl::Context::handle_module_load_data(auto ch, auto args)

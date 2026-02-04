@@ -27,5 +27,24 @@ fractos_service_compute_cuda_SOURCES += kernel.cpp
 fractos_service_compute_cuda_SOURCES += memory.cpp
 fractos_service_compute_cuda_SOURCES += function.cpp
 fractos_service_compute_cuda_SOURCES += memcpy_manager.cpp
+fractos_service_compute_cuda_SOURCES += cublas.cpp
 fractos_service_compute_cuda_SOURCES += ../library/error.cpp
 fractos_service_compute_cuda_SOURCES += ../library/wire.cpp
+
+nodist_fractos_service_compute_cuda_SOURCES =
+nodist_fractos_service_compute_cuda_SOURCES += cublas-codegen.cpp
+
+.cublas-codegen-stamp: $(abs_srcdir)/../../bin/cublas-codegen.py
+	uv run --with libclang $(abs_srcdir)/../../bin/cublas-codegen.py \
+		--cublas-header /usr/local/cuda/include/cublas_v2.h \
+		--cublas-manual-file $(abs_srcdir)/../wrapper/cublas-manual.cpp \
+		--wrapper-dir ../wrapper \
+		--server-dir .
+	touch $@
+
+CLEANFILES =
+CLEANFILES += cublas-codgen.cpp .cublas-codegen-stamp
+BUILT_SOURCES =
+BUILT_SOURCES += cublas-codegen.cpp
+
+cublas-codegen.cpp: .cublas-codegen-stamp

@@ -16,6 +16,7 @@
 #include <memory_impl.hpp>
 #include <stream_impl.hpp>
 #include <event_impl.hpp>
+#include <cublas_impl.hpp>
 
 
 namespace clt = fractos::service::compute::cuda;
@@ -398,6 +399,35 @@ clt::Context::event_create(CUevent_flags flags)
             return impl::make_event(
                 ch,
                 (CUevent)args->imms.cuevent.get(),
+                std::move(args->caps.generic));
+        });
+}
+
+core::future<std::shared_ptr<clt::CublasHandle>>
+clt::Context::cublas_create()
+{
+    METHOD(cublas_create);
+
+    auto& pimpl = impl::Context::get(*this);
+    auto self = pimpl.state->self.lock();
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_CUBLAS_CREATE)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_cuda_response()
+        .then_check_cublas_response()
+        .then([this, self](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_ARGS_EXACT();
+
+            return impl::make_cublas_handle(
+                *this,
+                ch,
+                (cublasHandle_t)args->imms.handle.get(),
                 std::move(args->caps.generic));
         });
 }

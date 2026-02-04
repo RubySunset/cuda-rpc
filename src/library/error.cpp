@@ -25,3 +25,16 @@ clt::CudaError::CudaError(CUresult cuerror)
     ,cuerror(cuerror)
 {
 }
+
+static
+const char *
+get_cublas_error(cublasStatus_t status)
+{
+    return cublasGetStatusName(status);
+}
+
+clt::CublasError::CublasError(cublasStatus_t cublas_error)
+    :std::runtime_error(get_cublas_error(cublas_error))
+    ,cublas_error(cublas_error)
+{
+}

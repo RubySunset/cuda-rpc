@@ -29,3 +29,16 @@
         }                                                               \
         return std::make_pair(std::move(ch), std::move(args));          \
     })
+
+#define then_check_cublas_response() then_check_cublas_response_ptr(this)
+
+#define then_check_cublas_response_ptr(_ptr_)                             \
+    then_check_response_ptr(_ptr_)                                      \
+    .then([ptr=_ptr_](auto& fut) {                                      \
+        auto [ch, args] = fut.get();                                    \
+        CHECK_ARGS_COND(args->has_imm(&std::decay_t<decltype(*args)>::base_type::imms::cublas_error)); \
+        if (args->imms.cublas_error) {                                       \
+            throw fractos::service::compute::cuda::CublasError((cublasStatus_t)args->imms.cublas_error.get()); \
+        }                                                               \
+        return std::make_pair(std::move(ch), std::move(args));          \
+    })

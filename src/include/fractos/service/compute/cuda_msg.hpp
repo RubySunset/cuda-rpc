@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cuda.h>
+#include <cublas_v2.h>
 #include <fractos/core/builder.hpp>
 #include <fractos/core/cap.hpp>
 #include <fractos/wire/endian.hpp>
@@ -432,6 +433,7 @@ namespace fractos::service::compute::cuda::wire {
             OP_MEMSET,
             OP_STREAM_CREATE,
             OP_EVENT_CREATE,
+            OP_CUBLAS_CREATE,
             OP_SYNCHRONIZE,
             OP_DESTROY,
             OP_INVALID = std::numeric_limits<uint64_t>::max()
@@ -628,6 +630,32 @@ namespace fractos::service::compute::cuda::wire {
     std::string to_string(const core::receive_args<Context::event_create::response>& resp);
 
     namespace Context {
+        struct cublas_create {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
+                    fractos::wire::endian::uint64_t cublas_error;
+                    fractos::wire::endian::uint64_t handle;
+                } __attribute__ ((packed));
+                struct caps {
+                    fractos::core::cap::request generic;
+                };
+            };
+        };
+    }
+    std::string to_string(const core::receive_args<Context::cublas_create::request>& req);
+    std::string to_string(const core::receive_args<Context::cublas_create::response>& resp);
+
+    namespace Context {
         struct module_load_data {
             struct request {
                 struct imms {
@@ -727,6 +755,65 @@ namespace fractos::service::compute::cuda::wire {
     std::string to_string(const core::receive_args<Context::destroy::request>& req);
     std::string to_string(const core::receive_args<Context::destroy::response>& resp);
 
+    namespace CublasHandle {
+        enum generic_opcode : uint64_t {
+            OP_AUTOGEN_FUNC,
+            OP_DESTROY,
+            OP_INVALID = std::numeric_limits<uint64_t>::max()
+        };
+        using generic = wire::generic;
+    }
+
+    namespace CublasHandle {
+        struct autogen_func {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                    fractos::wire::endian::uint32_t func_id;
+                    fractos::wire::endian::uint64_t custream;
+                    char args[];
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
+                    fractos::wire::endian::uint64_t cublas_error;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
+    }
+    std::string to_string(const core::receive_args<CublasHandle::autogen_func::request>& req);
+    std::string to_string(const core::receive_args<CublasHandle::autogen_func::response>& resp);
+
+    namespace CublasHandle {
+        struct destroy {
+            struct request {
+                struct imms {
+                    fractos::wire::endian::uint64_t opcode;
+                } __attribute__((packed));
+                struct caps {
+                    fractos::core::cap::request continuation;
+                };
+            };
+            struct response {
+                struct imms {
+                    fractos::wire::endian::uint8_t error;
+                    fractos::wire::endian::uint64_t cuerror;
+                    fractos::wire::endian::uint64_t cublas_error;
+                } __attribute__ ((packed));
+                struct caps {
+                };
+            };
+        };
+    }
+    std::string to_string(const core::receive_args<CublasHandle::destroy::request>& req);
+    std::string to_string(const core::receive_args<CublasHandle::destroy::response>& resp);
 
     namespace Stream {
         enum generic_opcode : uint64_t {

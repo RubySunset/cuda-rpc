@@ -1,0 +1,74 @@
+#pragma once
+
+#include <memory>
+#include <mutex>
+#include <unordered_map>
+
+#include <cuda_runtime.h>
+#include <cublas_v2.h>
+#include <glog/logging.h>
+
+#include <fractos/service/compute/cuda.hpp>
+
+#include "./driver-state.hpp"
+#include "./runtime-state.hpp"
+
+
+namespace srv = fractos::service::compute::cuda;
+
+
+class CublasState {
+public:
+    void add_handle(cublasHandle_t handle, std::shared_ptr<srv::CublasHandle> cublas_obj);
+
+    std::shared_ptr<srv::CublasHandle> get_handle(cublasHandle_t handle);
+
+    bool erase_handle(cublasHandle_t handle);
+
+    // Update the stream associated with a cublas handle
+    // (normally done via cublasSetStream)
+    void update_stream(cublasHandle_t handle, std::shared_ptr<srv::Stream> stream_obj);
+
+    // Get the stream associated with a cublas handle
+    // (normally done via cublasGetStream)
+    std::shared_ptr<srv::Stream> get_stream(cublasHandle_t handle);
+
+    bool erase_stream(cublasHandle_t handle);
+private:
+    std::mutex mut;
+    std::unordered_map<cublasHandle_t, std::shared_ptr<srv::CublasHandle>> cublas_handle_map;
+    std::unordered_map<cublasHandle_t, std::shared_ptr<srv::Stream>> stream_map;
+};
+
+
+extern CublasState _cublas_state;
+
+
+#define get_driver_state_return_cublas()                                \
+    ({                                                                  \
+        auto state = _driver_state.load(std::memory_order_consume);     \
+        if (not state) [[unlikely]] {                                   \
+            return CUBLAS_STATUS_NOT_INITIALIZED;                       \
+        }                                                               \
+        std::ref(*state);                                               \
+    }).get()
+
+#define get_runtime_state_return_cublas()                               \
+    ({                                                                  \
+        auto tstate = _runtime_thread_state.get();                      \
+        if (not tstate) [[unlikely]] {                                  \
+            auto err = do_runtime_init();                               \
+            if (err != cudaSuccess) {                                   \
+                return CUBLAS_STATUS_NOT_INITIALIZED;                   \
+            }                                                           \
+            tstate = _runtime_thread_state.get();                       \
+        }                                                               \
+        DCHECK(tstate);                                                 \
+        std::ref(**tstate);                                             \
+    }).get()
+
+#define get_cublas_state()                          \
+    ({                                              \
+        get_runtime_state_return_cublas();          \
+        std::ref(_cublas_state);                    \
+    }).get()

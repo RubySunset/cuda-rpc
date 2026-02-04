@@ -15,6 +15,7 @@ namespace impl {
     class Device;
     class Stream;
     class Event;
+    class CublasHandle;
     class Module;
     class Memory;
 }
@@ -32,6 +33,10 @@ namespace impl {
         void insert_event(std::shared_ptr<Event> event);
         void erase_event(std::shared_ptr<Event> event);
 
+        std::shared_ptr<CublasHandle> get_cublas_handle(cublasHandle_t handle);
+        void insert_cublas_handle(std::shared_ptr<CublasHandle> cublas_handle);
+        void erase_cublas_handle(std::shared_ptr<CublasHandle> cublas_handle);
+
         CUcontext cucontext;
         std::shared_ptr<Device> device;
         std::shared_ptr<Context> self;
@@ -42,6 +47,9 @@ namespace impl {
 
         std::mutex _event_map_mutex;
         std::unordered_map<CUevent, std::shared_ptr<Event>> _event_map;
+
+        std::mutex _cublas_map_mutex;
+        std::unordered_map<cublasHandle_t, std::shared_ptr<CublasHandle>> _cublas_map;
 
         // NOTE: for internal use
     public:
@@ -57,6 +65,7 @@ namespace impl {
         void handle_memset(auto ch, auto args);
         void handle_stream_create(auto ch, auto args);
         void handle_event_create(auto ch, auto args);
+        void handle_cublas_create(auto ch, auto args);
         void handle_synchronize(auto ch, auto args);
         void handle_destroy(auto ch, auto args);
     };

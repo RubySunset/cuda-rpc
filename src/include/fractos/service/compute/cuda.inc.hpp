@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fractos/service/compute/cuda.hpp>
+#include <functional>
 
 namespace fractos::service::compute::cuda {
 
@@ -23,6 +24,24 @@ namespace fractos::service::compute::cuda {
             (process_arg(args), ...);
 
             func._launch_check_args(args_size);
+        }
+
+        template<class... Args>
+        static inline
+        std::vector<size_t>
+        fill_args_ptr_and_size(const void** args_ptr, const Args&... args)
+        {
+            std::vector<size_t> args_size;
+            args_size.resize(sizeof...(Args));
+
+            size_t index = 0;
+            auto process_arg = [&](const auto& arg) {
+                args_size[index] = sizeof(arg);
+                args_ptr[index] = &arg;
+                index++;
+            };
+            (process_arg(args), ...);
+            return args_size;
         }
 
     }
@@ -71,4 +90,15 @@ namespace fractos::service::compute::cuda {
         return launch(args_ptr, gridDim, blockDim, sharedMem, stream);
     }
 
+    template <class... Args>
+    core::future<void>
+    CublasHandle::autogen_func(uint32_t func_id, std::optional<std::reference_wrapper<Stream>> stream, Args&&... args)
+    {
+        const void* args_ptr[sizeof...(args)];
+        std::vector<size_t> args_size;
+        if constexpr (sizeof...(args)) {
+            args_size = detail::fill_args_ptr_and_size(args_ptr, std::forward<Args>(args)...);
+        }
+        return autogen_func(args_ptr, args_size, func_id, stream);
+    }
 }

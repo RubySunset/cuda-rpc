@@ -80,7 +80,7 @@ then
    fi
 
    CUDA_INCLUDE_FLAGS="-I$with_cuda/include"
-   CUDA_LIBS="-L$with_cuda/lib64 -L$with_cuda/lib -lcudart"
+   CUDA_LIBS="-L$with_cuda/lib64 -L$with_cuda/lib -lcudart -lcublas"
    NVCC="$with_cuda/bin/nvcc"
    CUDA_PATH="$with_cuda"
    LIBCUDA=$(readlink -f $CUDA_PATH/targets/*/lib/stubs/libcuda.so)

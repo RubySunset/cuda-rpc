@@ -2,6 +2,7 @@
 
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <cublas_v2.h>
 #include <fractos/common/service/clt_base.hpp>
 #include <fractos/core/future.hpp>
 #include <fractos/core/channel.hpp>
@@ -19,6 +20,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
     class Service;
     class Device;
     class Context;
+    class CublasHandle;
     class Module;
     class Function;
     class Library;
@@ -35,6 +37,11 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
         struct CudaError : public std::runtime_error {
             CudaError(CUresult cuerror);
             const CUresult cuerror;
+        };
+
+        struct CublasError : public std::runtime_error {
+            CublasError(cublasStatus_t cublas_error);
+            const cublasStatus_t cublas_error;
         };
 
 
@@ -226,6 +233,9 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::shared_ptr<Event>>
             event_create(CUevent_flags flags);
 
+            // cublasCreate()
+            [[nodiscard]] core::future<std::shared_ptr<CublasHandle>>
+            cublas_create();
 
             [[deprecated]]
             [[nodiscard]] core::future<std::shared_ptr<Module>>
@@ -272,6 +282,30 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
         std::string to_string(const Context& obj);
 
+        /** 
+         *  @brief Wrapper for CUBLAS API
+         */
+        class CublasHandle : public common::service::CltBase<CublasHandle> {
+        public:
+            std::shared_ptr<Context> get_context() const;
+
+            cublasHandle_t get_handle() const;
+
+            /**
+             * @brief Wrapper for auto-generated CUBLAS API function using variadic args
+             */
+            template <class... Args>
+            [[nodiscard]] core::future<void>
+            autogen_func(uint32_t func_id, std::optional<std::reference_wrapper<Stream>> stream, Args&&... args);
+
+            /**
+             * @brief Wrapper for auto-generated CUBLAS API function using packed args
+             */
+            [[nodiscard]] core::future<void>
+            autogen_func(const void** args_ptr, const std::vector<size_t>& args_size, uint32_t func_id, std::optional<std::reference_wrapper<Stream>> stream);
+        };
+
+        std::string to_string(const CublasHandle& obj);
 
         /** 
          *  @brief :Wrapper for CUmodule operations

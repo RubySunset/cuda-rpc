@@ -321,7 +321,7 @@ std::shared_ptr<clt::Memory>
 DriverState::erase_memory(CUdeviceptr addr)
 {
     auto lock = std::unique_lock(mems_mutex);
-    auto it = mems.find(addr);
+    auto it = mems.upper_bound(addr);
     if (it == mems.end()) {
         return nullptr;
     } else if (it->second->base <= addr and addr < (it->second->base + it->second->size)){

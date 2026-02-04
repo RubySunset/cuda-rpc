@@ -2,6 +2,7 @@ lib_LTLIBRARIES =
 
 AM_CPPFLAGS =
 AM_CPPFLAGS += -I$(srcdir)/../include
+AM_CPPFLAGS += -I$(srcdir)/../../deps/magic_enum/include/magic_enum
 AM_CPPFLAGS += $(PKG_CPPFLAGS)
 AM_CPPFLAGS += $(CUDA_INCLUDE_FLAGS)
 
@@ -48,6 +49,10 @@ libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-memory.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-entrypoint.cpp
 libfractos_service_compute_cuda_wrapper_la_SOURCES += runtime-version.cpp
 
+nodist_libfractos_service_compute_cuda_wrapper_la_SOURCES += cublas-codegen.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += cublas-manual.cpp
+libfractos_service_compute_cuda_wrapper_la_SOURCES += cublas-state.cpp
+
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS =
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS += $(AM_LDFLAGS)
 libfractos_service_compute_cuda_wrapper_la_LDFLAGS += ../library/libfractos-service-compute-cuda.la
@@ -70,6 +75,11 @@ runtime-default.cpp: $(abs_srcdir)/cuda-generate-funcs.sh
 runtime-default.cpp: $(LIBCUDART)
 runtime-default.cpp:
 	$(abs_srcdir)/cuda-generate-funcs.sh runtime $(LIBCUDART) $@
+
+CLEANFILES += cublas-codegen.cpp
+BUILT_SOURCES += cublas-codegen.cpp
+
+cublas-codegen.cpp: ../server/.cublas-codegen-stamp
 
 install-exec-hook: wrapper_dir=$(libdir)/libfractos-service-compute-cuda-wrapper
 install-exec-hook:
