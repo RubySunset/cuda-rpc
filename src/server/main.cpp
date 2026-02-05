@@ -10,7 +10,7 @@
 
 #include <fractos/service/compute/cuda.hpp>
 
-#include "./memcpy_manager.hpp"
+#include "./cuda_host_cb_manager.hpp"
 #include "./service.hpp"
 
 using namespace fractos;
@@ -46,13 +46,13 @@ int main(int argc, char *argv[])
 
     auto srv = impl::Service::factory();
 
-    // Start memcpy thread
-    std::thread memcpy_thread([&]{
-        std::string name = "memcpy-thread";
+    // Start cuda host cb thread
+    std::thread cuda_host_cb_thread([&]{
+        std::string name = "cuda-host-cb-thread";
         if (pthread_setname_np(pthread_self(), name.c_str()) != 0) {
-            LOG(WARNING) << "Failed to set memcpy thread name";
+            LOG(WARNING) << "Failed to set cuda host cb thread name";
         }
-        MemcpyManager& man = get_memcpy_manager();
+        CudaHostCBManager& man = get_cuda_host_cb_manager();
         man.set_channel(ch);
         man.run();
     });
@@ -82,21 +82,11 @@ int main(int argc, char *argv[])
 
     LOG(INFO) << "channel running";
 
-    std::thread extra_channel_thread([&]{
-        std::string name = "extra-channel-thread";
-        if (pthread_setname_np(pthread_self(), name.c_str()) != 0) {
-            LOG(WARNING) << "Failed to set extra channel thread name";
-        }
-        ch->run_until([srv]() {return srv->exit_requested(); });
-    });
-
     ch->run_until([srv]() {return srv->exit_requested(); });
 
-    LOG(INFO) << "Stopping extra channel thread";
-    extra_channel_thread.join();
-    LOG(INFO) << "Stopping memcpy thread";
-    get_memcpy_manager().stop();
-    memcpy_thread.join();
+    LOG(INFO) << "Stopping cuda host cb thread";
+    get_cuda_host_cb_manager().stop();
+    cuda_host_cb_thread.join();
 
     LOG(INFO) << "================================================== finish cuda service";
 

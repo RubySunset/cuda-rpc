@@ -1,4 +1,6 @@
 #include <cuda.h>
+#include <cuda_runtime.h>
+#include <driver_types.h>
 #include <fractos/common/service/srv_impl.hpp>
 #include <fractos/core/error.hpp>
 #include <fractos/logging.hpp>
@@ -18,7 +20,7 @@
 #include "./module.hpp"
 #include "./library.hpp"
 #include "./memory.hpp"
-#include "./memcpy_manager.hpp"
+#include "./cuda_host_cb_manager.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
@@ -706,7 +708,7 @@ void impl::Context::handle_memcpy_async(auto ch, auto args) {
             custream
         );
     } else {
-        get_memcpy_manager().enqueue_memcpy_async(
+        cuerror = get_cuda_host_cb_manager().enqueue_memcpy_async(
             cucontext,
             custream,
             std::make_shared<fractos::core::cap::memory>(std::move(src)),
@@ -736,21 +738,25 @@ impl::Context::handle_synchronize(auto ch, auto args)
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
     CHECK_ARGS_EXACT(reqb_cont);
 
-    auto self = this->self;
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
 
-    cuerror = cuCtxSetCurrent(cucontext);
-    if (cuerror != CUDA_SUCCESS) {
-        goto out;
+    std::vector<CUstream> streams = {(CUstream)0};
+    {
+        std::unique_lock stream_lock(_stream_map_mutex);
+        for (auto& [remote_custream, stream_ptr] : _stream_map) {
+            streams.push_back(stream_ptr->custream);
+        }
     }
+    cuerror = get_cuda_host_cb_manager().ctx_sync(cucontext, streams, std::move(args->caps.continuation));
 
-    cuerror = cuCtxSynchronize();
-
-out:
     LOG_RES(method)
         << " error=" << wire::to_string(error)
         << " cuerror=" << get_CUresult_name(cuerror);
+
+    if (cuerror == CUDA_SUCCESS) {
+        return;
+    }
 
     ch->template make_request_builder<msg::response>(args->caps.continuation)
         .set_imm(&msg::response::imms::error, error)

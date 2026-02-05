@@ -12,6 +12,7 @@
 #include "./device.hpp"
 #include "./stream.hpp"
 #include "./event.hpp"
+#include "./cuda_host_cb_manager.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
@@ -139,13 +140,15 @@ impl::Stream::handle_synchronize(auto ch, auto args)
     CHECK_ARGS_EXACT(reqb_cont);
 
     auto error = wire::ERR_SUCCESS;
-    auto cuerror = CUDA_SUCCESS;
-
-    cuerror = cuStreamSynchronize(custream);
+    CUresult cuerror = get_cuda_host_cb_manager().stream_sync(ctx_ptr->cucontext, custream, std::move(args->caps.continuation));
 
     LOG_RES(method)
         << " error=" << wire::to_string(error)
         << " cuerror=" << get_CUresult_name(cuerror);
+
+    if (cuerror == CUDA_SUCCESS) {
+        return;
+    }
 
     ch->template make_request_builder<msg::response>(args->caps.continuation)
         .set_imm(&msg::response::imms::error, error)
