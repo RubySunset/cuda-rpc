@@ -56,7 +56,7 @@ CudaHostCBManager::run()
             // TODO [ra2520] improve error handling
             auto memcpy_flag = flag_map[ctx][stream].second;
             auto aux_stream = get_aux_stream(ctx);
-            ch->copy(*memcpy_info.src, *memcpy_info.dst).then([task_id, ctx, memcpy_flag, aux_stream](auto& fut){
+            ch->copy(*memcpy_info.src, *memcpy_info.dst).then([src=memcpy_info.src, dst=memcpy_info.dst, task_id, ctx, memcpy_flag, aux_stream](auto& fut){
                 fut.get();
                 cuCtxSetCurrent(ctx);
                 // Write flag to unblock stream once memcpy is done
