@@ -129,17 +129,11 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             // cudaGetDeviceProperties
             core::future<cudaDeviceProp> get_properties() const;
 
-            /**
-             * @brief TODO: transfer vector<CUctxCreateParams> through message
-             * @brief Wrapper for cuCtxCreate_v4()
-             */
+            // cuCtxCreate_v4
             [[nodiscard]] core::future<std::shared_ptr<Context>>
-            make_context(const std::vector<CUctxCreateParams>& paramsArray, unsigned int flags); // The paramsArray is an array of CUexecAffinityParam and the numParams describes the size of the array
+            make_context(const CUctxCreateParams& ctxCreateParams, unsigned int flags);
 
-
-            /**
-             * @brief Wrapper for cuCtxCreate()
-             */
+            // cuCtxCreate_v2
             [[nodiscard]] core::future<std::shared_ptr<Context>>
             make_context(unsigned int flags);
         };

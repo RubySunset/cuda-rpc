@@ -41,14 +41,15 @@ impl::to_string(const Context& obj)
 core::future<std::tuple<wire::error_type, CUresult, std::shared_ptr<impl::Context>>>
 impl::make_context(std::shared_ptr<fractos::core::channel> ch,
                    std::shared_ptr<Device> device,
-                   unsigned int flags)
+                   unsigned int flags,
+                   const CUctxCreateParams& ctxCreateParams)
 {
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
     std::shared_ptr<Context> res;
 
     CUcontext cucontext;
-    cuerror = cuCtxCreate(&cucontext, NULL, flags, device->cudevice);
+    cuerror = cuCtxCreate(&cucontext, &const_cast<CUctxCreateParams&>(ctxCreateParams), flags, device->cudevice);
     if (cuerror != CUDA_SUCCESS) {
         return core::make_ready_future(std::make_tuple(error, cuerror, res));
     }

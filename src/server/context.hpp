@@ -73,7 +73,8 @@ namespace impl {
     fractos::core::future<std::tuple<fractos::wire::error_type, CUresult, std::shared_ptr<Context>>>
     make_context(std::shared_ptr<fractos::core::channel> ch,
                  std::shared_ptr<Device> device,
-                 unsigned int flags);
+                 unsigned int flags,
+                 const CUctxCreateParams& ctxCreateParams);
 
     std::string to_string(const Context& obj);
 }

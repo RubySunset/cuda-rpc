@@ -301,12 +301,15 @@ impl::Device::handle_ctx_create(auto ch, auto args)
     LOG_REQ(method) << srv_wire::to_string(*args);
 
     auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
-    CHECK_ARGS_EXACT(reqb_cont);
+    CHECK_CAPS_EXACT(reqb_cont);
+    CHECK_IMMS_ALL(reqb_cont);
+    CHECK_ARGS_COND(reqb_cont, args->imms_size() == (sizeof(msg::request::imms) + sizeof(CUctxCreateParams)));
 
     auto self = this->self;
     unsigned int flags = args->imms.flags;
+    const CUctxCreateParams& ctxCreateParams = *reinterpret_cast<const CUctxCreateParams*>(args->imms.ctxCreateParams);
 
-    make_context(ch, self, flags)
+    make_context(ch, self, flags, ctxCreateParams)
         .then([this, self, ch, args=std::move(args)](auto& fut) {
             auto [error, cuerror, ctx] = fut.get();
 

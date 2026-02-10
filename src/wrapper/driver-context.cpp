@@ -3,23 +3,55 @@
 #include <./driver-state.hpp>
 #include <./driver-syms-extern.hpp>
 
+namespace srv = fractos::service::compute::cuda;
+
 
 // * context management
 // https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX
 
 extern "C" [[gnu::visibility("default")]]
 CUresult
-cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev)
+cuCtxCreate_v4(CUcontext *pctx, CUctxCreateParams* ctxCreateParams, unsigned int flags, CUdevice dev)
 {
     LOG_FIRST_N(ERROR, 1) << "TODO: deregister per-thread streams when thread exits";
 
     auto& state = get_driver_state();
     auto device = state.get_device(dev);
 
-    auto ctx = device->make_context(flags).get();
+    auto ctx =
+        ctxCreateParams
+        ? device->make_context(*ctxCreateParams, flags).get()
+        : device->make_context(flags).get();
     state.insert_context(ctx);
     *pctx = ctx->get_context();
-    return CUDA_SUCCESS;
+    return cuCtxPushCurrent(*pctx);
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
+cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev)
+{
+    return cuCtxCreate_v4(pctx, nullptr, flags, dev);
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult
+cuCtxDestroy(CUcontext ctx)
+{
+    auto& state = get_driver_state();
+    auto ctx_ptr = state.get_context(ctx);
+    if (not ctx_ptr) [[unlikely]] {
+        return CUDA_ERROR_INVALID_CONTEXT;
+    }
+    if (ctx_ptr->get_context() == state.get_current_context()->get_context()) {
+        state.get_context_stack().pop();
+    }
+    try {
+        ctx_ptr->destroy().get();
+        return CUDA_SUCCESS;
+    } catch (const srv::CudaError& e) {
+        return e.cuerror;
+    }
 }
 
 extern "C" [[gnu::visibility("default")]]
@@ -86,6 +118,7 @@ cuCtxPopCurrent_v2(CUcontext *pctx)
     auto& stack = state.get_context_stack();
     if (not stack.empty()) [[likely]] {
         *pctx = stack.top()->get_context();
+        stack.pop();
         return CUDA_SUCCESS;
     } else {
         return CUDA_ERROR_INVALID_CONTEXT;

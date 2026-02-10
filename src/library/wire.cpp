@@ -1210,6 +1210,7 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::ctx_create::req
 
     print_imm_identity(opcode);
     print_imm_identity(flags);
+    print_imm_array(ctxCreateParams, sizeof(CUctxCreateParams));
     print_extra_imm_error();
 
     print_cap(continuation);

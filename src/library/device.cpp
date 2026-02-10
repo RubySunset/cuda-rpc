@@ -207,7 +207,7 @@ clt::Device::get_properties() const
 }
 
 core::future<std::shared_ptr<clt::Context>>
-clt::Device::make_context(unsigned int flags)
+clt::Device::make_context(const CUctxCreateParams& ctxCreateParams, unsigned int flags)
 {
     METHOD(ctx_create);
     LOG_REQ(method)
@@ -220,6 +220,7 @@ clt::Device::make_context(unsigned int flags)
     return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
         .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_CTX_CREATE)
         .set_imm(&msg::request::imms::flags, flags)
+        .set_imm(&msg::request::imms::ctxCreateParams, &ctxCreateParams, sizeof(CUctxCreateParams))
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp)
@@ -237,6 +238,12 @@ clt::Device::make_context(unsigned int flags)
         });
 }
 
+core::future<std::shared_ptr<clt::Context>>
+clt::Device::make_context(unsigned int flags)
+{
+    CUctxCreateParams ctxCreateParams = {};
+    return make_context(ctxCreateParams, flags);
+}
 
 std::string
 clt::to_string(const clt::Device& obj)

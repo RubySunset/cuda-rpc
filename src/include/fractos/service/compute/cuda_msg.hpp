@@ -376,6 +376,7 @@ namespace fractos::service::compute::cuda::wire {
                 struct imms {
                     fractos::wire::endian::uint64_t opcode;
                     fractos::wire::endian::uint32_t flags;
+                    char ctxCreateParams[];
                 } __attribute__((packed));
                 struct caps {
                     fractos::core::cap::request continuation;
