@@ -10,6 +10,7 @@
 #include <./common.hpp>
 #include <device_impl.hpp>
 #include <context_impl.hpp>
+#include <stream_impl.hpp>
 
 
 namespace clt = fractos::service::compute::cuda;
@@ -230,11 +231,22 @@ clt::Device::make_context(const CUctxCreateParams& ctxCreateParams, unsigned int
             auto [ch, args] = fut.get();
             CHECK_ARGS_EXACT();
 
-            return impl::make_context(
+            auto context = impl::make_context(
                 ch,
                 self,
                 (CUcontext)args->imms.cucontext.get(),
-                std::move(args->caps.generic));
+                std::move(args->caps.generic_ctx));
+
+            auto legacy_default_stream = impl::make_stream(
+                *context,
+                ch,
+                (CUstream)args->imms.legacy_default_custream.get(),
+                std::move(args->caps.generic_legacy_default_stream));
+
+            auto& pimpl = impl::Context::get(*context);
+            pimpl.state->legacy_default_stream = legacy_default_stream;
+
+            return context;
         });
 }
 

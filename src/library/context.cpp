@@ -10,13 +10,8 @@
 
 #include <./common.hpp>
 #include <context_impl.hpp>
-#include <module_impl.hpp>
 #include "./library_impl.hpp"
 #include "fractos/core/types.hpp"
-#include <memory_impl.hpp>
-#include <stream_impl.hpp>
-#include <event_impl.hpp>
-#include <cublas_impl.hpp>
 
 
 namespace clt = fractos::service::compute::cuda;
@@ -29,6 +24,17 @@ using namespace fractos;
 #include <fractos/common/service/clt_base.inc.hpp>
 #undef IMPL_CLASS
 template class fractos::common::service::CltBase<clt::Context>;
+
+// Declare that other CltBase specializations are instantiated elsewhere
+extern template class fractos::common::service::CltBase<clt::Stream>;
+extern template class fractos::common::service::CltBase<clt::Event>;
+
+// Include other impl headers after IMPL_CLASS section to avoid template instantiation conflicts
+#include <module_impl.hpp>
+#include <memory_impl.hpp>
+#include <stream_impl.hpp>
+#include <event_impl.hpp>
+#include <cublas_impl.hpp>
 
 
 std::shared_ptr<clt::Context>
@@ -204,12 +210,9 @@ impl::ContextState::memset(std::shared_ptr<core::channel> ch,
                            CUdeviceptr addr,
                            uint64_t row_elems, uint64_t row_pad, uint64_t row_count,
                            uint64_t value, uint8_t value_bytes,
-                           std::optional<std::reference_wrapper<clt::Stream>> stream)
+                           clt::Stream& stream)
 {
-    CUstream custream = 0;
-    if (stream) {
-        custream = stream->get().get_stream();
-    }
+    CUstream custream = stream.get_stream();
 
     METHOD(memset);
     LOG_REQ(method)
@@ -238,31 +241,10 @@ impl::ContextState::memset(std::shared_ptr<core::channel> ch,
         .invoke(resp)
         .unwrap()
         .then_check_cuda_response()
-        .then([this, self, stream](auto& fut) {
+        .then([this, self](auto& fut) {
             auto [ch, args] = fut.get();
             CHECK_ARGS_EXACT();
         });
-}
-
-core::future<void>
-clt::Context::memset(CUdeviceptr addr, uint8_t val, size_t width)
-{
-    auto& pimpl = impl::Context::get(*this);
-    return pimpl.state->memset(pimpl.ch, addr, width, 0, 0, val, 1, {});
-}
-
-core::future<void>
-clt::Context::memset(CUdeviceptr addr, uint16_t val, size_t width)
-{
-    auto& pimpl = impl::Context::get(*this);
-    return pimpl.state->memset(pimpl.ch, addr, width, 0, 0, val, 2, {});
-}
-
-core::future<void>
-clt::Context::memset(CUdeviceptr addr, uint32_t val, size_t width)
-{
-    auto& pimpl = impl::Context::get(*this);
-    return pimpl.state->memset(pimpl.ch, addr, width, 0, 0, val, 4, {});
 }
 
 core::future<void>
@@ -284,27 +266,6 @@ clt::Context::memset(CUdeviceptr addr, uint32_t val, size_t width, Stream& strea
 {
     auto& pimpl = impl::Context::get(*this);
     return pimpl.state->memset(pimpl.ch, addr, width, 0, 0, val, 4, stream);
-}
-
-core::future<void>
-clt::Context::memset(CUdeviceptr addr, size_t pitch, uint8_t val, size_t width, size_t height)
-{
-    auto& pimpl = impl::Context::get(*this);
-    return pimpl.state->memset(pimpl.ch, addr, width, pitch, height, val, 1, {});
-}
-
-core::future<void>
-clt::Context::memset(CUdeviceptr addr, size_t pitch, uint16_t val, size_t width, size_t height)
-{
-    auto& pimpl = impl::Context::get(*this);
-    return pimpl.state->memset(pimpl.ch, addr, width, pitch, height, val, 2, {});
-}
-
-core::future<void>
-clt::Context::memset(CUdeviceptr addr, size_t pitch, uint32_t val, size_t width, size_t height)
-{
-    auto& pimpl = impl::Context::get(*this);
-    return pimpl.state->memset(pimpl.ch, addr, width, pitch, height, val, 4, {});
 }
 
 core::future<void>
@@ -366,6 +327,12 @@ clt::Context::stream_create(CUstream_flags flags)
         });
 }
 
+std::shared_ptr<clt::Stream>
+clt::Context::get_legacy_default_stream()
+{
+    auto& pimpl = impl::Context::get(*this);
+    return pimpl.state->legacy_default_stream;
+}
 
 core::future<std::shared_ptr<clt::Event>>
 clt::Context::make_event(fractos::wire::endian::uint32_t flags)
@@ -495,12 +462,9 @@ clt::Context::module_load_data(core::cap::memory& contents)
 }
 
 core::future<void>
-clt::Context::memcpy_async(core::cap::memory& src, core::cap::memory& dst, std::optional<std::reference_wrapper<Stream>> stream)
+clt::Context::memcpy_async(core::cap::memory& src, core::cap::memory& dst, Stream& stream)
 {
-    CUstream custream = 0;
-    if (stream) {
-        custream = stream->get().get_stream();
-    }
+    CUstream custream = stream.get_stream();
 
     METHOD(memcpy_async);
     LOG_REQ(method)

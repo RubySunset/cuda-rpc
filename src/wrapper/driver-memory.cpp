@@ -107,24 +107,16 @@ do_memcpy(std::pair<pointer_type, CUdeviceptr> src,
         break;
     }
 
-    if (stream_arg) {
-        auto stream_ptr = state.get_stream(stream_arg);
-        if (not stream_ptr) {
-            return CUDA_ERROR_INVALID_HANDLE;
-        }
-        auto ctx_ptr = stream_ptr->get_context();
-        if (not ctx_ptr) {
-            return CUDA_ERROR_INVALID_HANDLE;
-        }
-
-        stream_ptr->synchronize().get();
-        LOG_EVERY_N(WARNING, 100) << "TODO: enqueue cuMemcpyAync to remote service";
-    } else {
-        auto ctx_ptr = state.get_current_context();
-        CHECK(ctx_ptr);
-
-        ctx_ptr->synchronize().get();
+    auto stream_ptr = state.get_stream(stream_arg);
+    if (not stream_ptr) {
+        return CUDA_ERROR_INVALID_HANDLE;
     }
+    auto ctx_ptr = stream_ptr->get_context();
+    if (not ctx_ptr) {
+        return CUDA_ERROR_INVALID_HANDLE;
+    }
+    stream_ptr->synchronize().get();
+    LOG_EVERY_N(WARNING, 100) << "TODO: enqueue cuMemcpyAync to remote service";
 
     if (mem_src and mem_dst) {
         // D2D
@@ -238,43 +230,26 @@ do_memset(CUdeviceptr addr,
     auto& state = get_driver_state();
 
     std::shared_ptr<service::compute::cuda::Context> ctx_ptr;
-    std::shared_ptr<service::compute::cuda::Stream> stream_ptr;
-    if (stream_arg) {
-        stream_ptr = state.get_stream(stream_arg);
-        if (not stream_ptr) {
-            return CUDA_ERROR_INVALID_HANDLE;
-        }
-        ctx_ptr = stream_ptr->get_context();
-        if (not ctx_ptr) {
-            return CUDA_ERROR_INVALID_HANDLE;
-        }
-    } else {
-        ctx_ptr = state.get_current_context();
-        CHECK(ctx_ptr);
+    std::shared_ptr<service::compute::cuda::Stream> stream_ptr = state.get_stream(stream_arg);
+
+    if (not stream_ptr) {
+        return CUDA_ERROR_INVALID_HANDLE;
+    }
+    ctx_ptr = stream_ptr->get_context();
+    if (not ctx_ptr) {
+        return CUDA_ERROR_INVALID_HANDLE;
     }
 
     try {
         switch (value_bytes) {
         case 1:
-            if (stream_ptr) {
-                ctx_ptr->memset(addr, row_pad, (uint8_t)(value & 0xff), row_elems, row_count, *stream_ptr).get();
-            } else {
-                ctx_ptr->memset(addr, row_pad, (uint8_t)(value & 0xff), row_elems, row_count).get();
-            }
+            ctx_ptr->memset(addr, row_pad, (uint8_t)(value & 0xff), row_elems, row_count, *stream_ptr).get();
             break;
         case 2:
-            if (stream_ptr) {
-                ctx_ptr->memset(addr, row_pad, (uint16_t)(value & 0xffff), row_elems, row_count, *stream_ptr).get();
-            } else {
-                ctx_ptr->memset(addr, row_pad, (uint16_t)(value & 0xffff), row_elems, row_count).get();
-            }
+            ctx_ptr->memset(addr, row_pad, (uint16_t)(value & 0xffff), row_elems, row_count, *stream_ptr).get();
             break;
         case 4:
-            if (stream_ptr) {
-                ctx_ptr->memset(addr, row_pad, (uint32_t)(value & 0xffffffff), row_elems, row_count, *stream_ptr).get();
-            } else {
-                ctx_ptr->memset(addr, row_pad, (uint32_t)(value & 0xffffffff), row_elems, row_count).get();
-            }
+            ctx_ptr->memset(addr, row_pad, (uint32_t)(value & 0xffffffff), row_elems, row_count, *stream_ptr).get();
             break;
         default:
             LOG(FATAL) << "unexpected value_bytes=" << value_bytes;

@@ -46,7 +46,7 @@ main(int argc, char *argv[])
 
     {
         ch->copy(cpu_mem, gpu_mem1->get_cap_mem()).get();
-        sum_array->launch({1,1,1}, {1,1,1}, gpu_mem1->get_deviceptr(), buffer_size, gpu_mem2->get_deviceptr()).get();
+        sum_array->launch(*ctx->get_legacy_default_stream().get(), {1,1,1}, {1,1,1}, gpu_mem1->get_deviceptr(), buffer_size, gpu_mem2->get_deviceptr()).get();
         ctx->synchronize().get();
 
         auto expected = std::accumulate(buffer.begin(), buffer.end(), 0);
@@ -62,7 +62,7 @@ main(int argc, char *argv[])
                                     (buffer_size - offset2) * sizeof(buffer[0]),
                                     core::cap::PERM_NONE).get();
         ch->copy(tmp_mem, gpu_mem1->get_cap_mem()).get();
-        sum_array->launch({1,1,1}, {1,1,1}, gpu_mem1->get_deviceptr(), buffer_size - offset1-offset2, gpu_mem2->get_deviceptr()).get();
+        sum_array->launch(*ctx->get_legacy_default_stream().get(), {1,1,1}, {1,1,1}, gpu_mem1->get_deviceptr(), buffer_size - offset1-offset2, gpu_mem2->get_deviceptr()).get();
         ctx->synchronize().get();
 
         auto expected = std::accumulate(buffer.begin() + offset1, buffer.end() - offset2, 0);

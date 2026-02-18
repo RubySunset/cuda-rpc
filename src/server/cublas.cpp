@@ -149,6 +149,12 @@ impl::CublasHandle::handle_autogen_func(auto ch, auto args)
     auto custream_arg = (CUstream)args->imms.custream.get();
     const char* args_ptr = args->imms.args;
 
+    auto stream_ptr = ctx_ptr->get_stream(custream_arg);
+    if (not stream_ptr) {
+        cuerror = CUDA_ERROR_INVALID_HANDLE;
+        goto out;
+    }
+    cublasSetStream(cublas_handle, stream_ptr->custream);
     cuerror = cuCtxSetCurrent(ctx_ptr->cucontext);
     if (cuerror != CUDA_SUCCESS) {
         // Transform CUDA driver error into CUBLAS error
@@ -156,15 +162,6 @@ impl::CublasHandle::handle_autogen_func(auto ch, auto args)
         cuerror = CUDA_SUCCESS;
         cublas_error = CUBLAS_STATUS_NOT_INITIALIZED;
         goto out;
-    }
-
-    if (custream_arg) {
-        auto stream_ptr = ctx_ptr->get_stream(custream_arg);
-        if (!stream_ptr) {
-            cuerror = CUDA_ERROR_INVALID_HANDLE;
-            goto out;
-        }
-        cublasSetStream(cublas_handle, stream_ptr->custream);
     }
 
     if (!route_autogen_func(func_id, args_ptr, cublas_handle, &cublas_error)) {

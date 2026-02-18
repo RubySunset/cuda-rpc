@@ -70,7 +70,7 @@ namespace impl {
         void handle_destroy(auto ch, auto args);
     };
 
-    fractos::core::future<std::tuple<fractos::wire::error_type, CUresult, std::shared_ptr<Context>>>
+    fractos::core::future<std::tuple<fractos::wire::error_type, CUresult, std::shared_ptr<Context>, std::shared_ptr<Stream>>>
     make_context(std::shared_ptr<fractos::core::channel> ch,
                  std::shared_ptr<Device> device,
                  unsigned int flags,

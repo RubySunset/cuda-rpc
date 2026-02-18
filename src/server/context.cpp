@@ -8,6 +8,7 @@
 #include <fractos/wire/error.hpp>
 #include <fstream>
 #include <glog/logging.h>
+#include <memory>
 #include <pthread.h>
 
 #include "./common.hpp"
@@ -38,7 +39,7 @@ impl::to_string(const Context& obj)
 }
 
 
-core::future<std::tuple<wire::error_type, CUresult, std::shared_ptr<impl::Context>>>
+core::future<std::tuple<wire::error_type, CUresult, std::shared_ptr<impl::Context>, std::shared_ptr<impl::Stream>>>
 impl::make_context(std::shared_ptr<fractos::core::channel> ch,
                    std::shared_ptr<Device> device,
                    unsigned int flags,
@@ -47,16 +48,20 @@ impl::make_context(std::shared_ptr<fractos::core::channel> ch,
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
     std::shared_ptr<Context> res;
+    std::shared_ptr<Stream> legacy_default_stream;
 
     CUcontext cucontext;
     cuerror = cuCtxCreate(&cucontext, &const_cast<CUctxCreateParams&>(ctxCreateParams), flags, device->cudevice);
     if (cuerror != CUDA_SUCCESS) {
-        return core::make_ready_future(std::make_tuple(error, cuerror, res));
+        return core::make_ready_future(std::make_tuple(error, cuerror, res, legacy_default_stream));
     }
 
     res = std::make_shared<Context>();
     res->cucontext = cucontext;
     res->device = device;
+
+    legacy_default_stream = impl::make_legacy_default_stream(res);
+    res->insert_stream(legacy_default_stream);
 
     return ch->make_request_builder<srv_wire_msg::generic::request>(
         ch->get_default_endpoint(),
@@ -68,7 +73,7 @@ impl::make_context(std::shared_ptr<fractos::core::channel> ch,
         .then([self=res](auto& fut) {
             self->_req_generic = fut.get();
         })
-        .then([error, cuerror, res](auto& fut) mutable {
+        .then([error, cuerror, res, ch, legacy_default_stream](auto& fut) mutable {
             try {
                 fut.get();
             } catch (const core::generic_error& e) {
@@ -82,8 +87,9 @@ impl::make_context(std::shared_ptr<fractos::core::channel> ch,
             }
 
             res->device->service->insert_context(res);
+            legacy_default_stream->register_methods(ch).get();
 
-            return std::make_tuple(error, cuerror, res);
+            return std::make_tuple(error, cuerror, res, legacy_default_stream);
         });
 }
 
@@ -377,22 +383,16 @@ impl::Context::handle_memset(auto ch, auto args)
     auto addr = (CUdeviceptr)args->imms.addr;
     auto custream_arg = (CUstream)args->imms.custream.get();
 
-    std::shared_ptr<Stream> stream_ptr;
     CUstream custream;
-
-    if (custream_arg == 0) {
-        custream = custream_arg;
-        cuerror = cuCtxSetCurrent(cucontext);
-        if (cuerror != CUDA_SUCCESS) {
-            goto out;
-        }
-    } else {
-        stream_ptr = get_stream(custream_arg);
-        if (not stream_ptr) {
-            cuerror = CUDA_ERROR_INVALID_HANDLE;
-            goto out;
-        }
-        custream = stream_ptr->custream;
+    auto stream_ptr = get_stream(custream_arg);
+    if (not stream_ptr) {
+        cuerror = CUDA_ERROR_INVALID_HANDLE;
+        goto out;
+    }
+    custream = stream_ptr->custream;
+    cuerror = cuCtxSetCurrent(cucontext);
+    if (cuerror != CUDA_SUCCESS) {
+        goto out;
     }
 
     switch ((unsigned int)args->imms.value_bytes) {
@@ -682,20 +682,13 @@ void impl::Context::handle_memcpy_async(auto ch, auto args) {
     fractos::core::cap::memory& src = args->caps.src;
     fractos::core::cap::memory& dst = args->caps.dst;
 
-    std::shared_ptr<Stream> stream_ptr;
     CUstream custream;
-
-    if (custream_arg == 0) {
-        custream = custream_arg;
-    } else {
-        stream_ptr = get_stream(custream_arg);
-        if (not stream_ptr) {
-            cuerror = CUDA_ERROR_INVALID_HANDLE;
-            goto out;
-        }
-        custream = stream_ptr->custream;
+    auto stream_ptr = get_stream(custream_arg);
+    if (not stream_ptr) {
+        cuerror = CUDA_ERROR_INVALID_HANDLE;
+        goto out;
     }
-
+    custream = stream_ptr->custream;
     cuerror = cuCtxSetCurrent(cucontext);
     if (cuerror != CUDA_SUCCESS) {
         goto out;

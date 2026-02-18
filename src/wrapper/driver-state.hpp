@@ -128,6 +128,8 @@ public:
     // stream
 
     std::shared_ptr<fractos::service::compute::cuda::Stream> get_stream(CUstream stream);
+    std::shared_ptr<fractos::service::compute::cuda::Stream> get_default_stream();
+    std::shared_ptr<fractos::service::compute::cuda::Stream> get_legacy_default_stream();
     std::shared_ptr<fractos::service::compute::cuda::Stream> get_stream_per_thread();
 
     std::shared_mutex streams_mutex;

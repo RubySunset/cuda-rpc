@@ -1229,9 +1229,11 @@ srv::wire::to_string(const core::receive_args<srv::wire::Device::ctx_create::res
     print_imm_error(error);
     print_imm_cuerror(cuerror);
     print_imm_hex(cucontext);
+    print_imm_hex(legacy_default_custream);
     print_extra_imm_error();
 
-    print_cap(generic);
+    print_cap(generic_ctx);
+    print_cap(generic_legacy_default_stream);
     print_extra_cap_error();
 
     return ss.str();

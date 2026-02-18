@@ -21,6 +21,7 @@ namespace impl {
 
         CUcontext cucontext;
         std::weak_ptr<clt::Device> device;
+        std::shared_ptr<clt::Stream> legacy_default_stream;
 
         fractos::core::cap::request req_generic;
 
@@ -35,7 +36,7 @@ namespace impl {
                CUdeviceptr addr,
                uint64_t row_elems, uint64_t row_pad, uint64_t row_count,
                uint64_t value, uint8_t value_bytes,
-               std::optional<std::reference_wrapper<clt::Stream>> stream);
+               clt::Stream& stream);
     };
 
     using Context = fractos::common::service::ImplWrapper<clt::Context, impl::ContextState>;

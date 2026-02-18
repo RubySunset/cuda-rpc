@@ -11,11 +11,12 @@
 using namespace fractos;
 
 
-void reset_buffers(auto& cpu1, auto& cpu2, auto& gpu1, auto& gpu2, int n_bytes, auto ctx) {
+void reset_buffers(auto& cpu1, auto& cpu2, auto& gpu1, auto& gpu2, int n_bytes, auto ctx, auto stream) {
     std::memset((void*)cpu1.get_addr(), 0, n_bytes);
     std::memset((void*)cpu2.get_addr(), 0, n_bytes);
-    ctx->memset(gpu1->get_deviceptr(), (uint8_t)0, n_bytes).get();
-    ctx->memset(gpu2->get_deviceptr(), (uint8_t)0, n_bytes).get();
+    ctx->memset(gpu1->get_deviceptr(), (uint8_t)0, n_bytes, *stream).get();
+    ctx->memset(gpu2->get_deviceptr(), (uint8_t)0, n_bytes, *stream).get();
+    ctx->synchronize().get();
 }
 
 void fill_cpu_buffer(int* cpu_buf, int n_ints, int offset = 0) {
@@ -46,6 +47,7 @@ main(int argc, char *argv[])
 
     auto ctx = dev->make_context(0).get();
     auto stream = ctx->stream_create(static_cast<CUstream_flags>(1)).get();
+    auto legacy_default_stream = ctx->get_legacy_default_stream().get();
 
     // Set up memory buffer sizes
     int n_bytes = 1 << 12;
@@ -63,7 +65,7 @@ main(int argc, char *argv[])
 
     {
         LOG(INFO) << "Testing basic memcpy...";
-        reset_buffers(cpu_mem1, cpu_mem2, gpu_mem1, gpu_mem2, n_bytes, ctx);
+        reset_buffers(cpu_mem1, cpu_mem2, gpu_mem1, gpu_mem2, n_bytes, ctx, legacy_default_stream);
         fill_cpu_buffer(cpu_buf1, n_ints);
         ctx->memcpy_async(cpu_mem1, gpu_mem1->get_cap_mem(), *stream).get();
         ctx->synchronize().get();
@@ -77,12 +79,12 @@ main(int argc, char *argv[])
 
     {
         LOG(INFO) << "Testing memcpy in stream...";
-        reset_buffers(cpu_mem1, cpu_mem2, gpu_mem1, gpu_mem2, n_bytes, ctx);
+        reset_buffers(cpu_mem1, cpu_mem2, gpu_mem1, gpu_mem2, n_bytes, ctx, legacy_default_stream);
         fill_cpu_buffer(cpu_buf1, n_ints);
 
         // Block stream
         auto gpu_flag = ctx->mem_alloc(256).get();
-        ctx->memset(gpu_flag->get_deviceptr(), (uint8_t)0, 256).get();
+        ctx->memset(gpu_flag->get_deviceptr(), (uint8_t)0, 256, *legacy_default_stream).get();
         ctx->synchronize().get();
         auto aux_stream = ctx->stream_create(static_cast<CUstream_flags>(1)).get();
         stream->wait_value_32(gpu_flag->get_deviceptr(), 1, 0).get();
@@ -107,7 +109,7 @@ main(int argc, char *argv[])
 
     {
         LOG(INFO) << "Testing parallel memcpy...";
-        reset_buffers(cpu_mem1, cpu_mem2, gpu_mem1, gpu_mem2, n_bytes, ctx);
+        reset_buffers(cpu_mem1, cpu_mem2, gpu_mem1, gpu_mem2, n_bytes, ctx, legacy_default_stream);
         fill_cpu_buffer(cpu_buf1, n_ints);
         fill_cpu_buffer(cpu_buf2, n_ints, 512);
 
@@ -116,7 +118,7 @@ main(int argc, char *argv[])
 
         // Block streams
         auto gpu_flag = ctx->mem_alloc(256).get();
-        ctx->memset(gpu_flag->get_deviceptr(), (uint8_t)0, 256).get();
+        ctx->memset(gpu_flag->get_deviceptr(), (uint8_t)0, 256, *legacy_default_stream).get();
         ctx->synchronize().get();
         auto aux_stream = ctx->stream_create(static_cast<CUstream_flags>(1)).get();
         stream->wait_value_32(gpu_flag->get_deviceptr(), 1, 0).get();

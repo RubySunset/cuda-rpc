@@ -103,7 +103,7 @@ clt::CublasHandle::get_handle() const
 }
 
 core::future<void>
-clt::CublasHandle::autogen_func(const void** args_ptr, const std::vector<size_t>& args_size, uint32_t func_id, std::optional<std::reference_wrapper<Stream>> stream)
+clt::CublasHandle::autogen_func(const void** args_ptr, const std::vector<size_t>& args_size, uint32_t func_id, Stream& stream)
 {
     METHOD(autogen_func);
     LOG_REQ(method)
@@ -112,10 +112,7 @@ clt::CublasHandle::autogen_func(const void** args_ptr, const std::vector<size_t>
     auto& pimpl = impl::CublasHandle::get(*this);
     auto self = pimpl.state->self.lock();
 
-    CUstream custream = 0;
-    if (stream) {
-        custream = stream->get().get_stream();
-    }
+    CUstream custream = stream.get_stream();
 
     auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
     auto req = pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)

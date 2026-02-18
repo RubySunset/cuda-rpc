@@ -1,3 +1,4 @@
+#include <cuda.h>
 #include <fractos/core/controller_config.hpp>
 #include <fractos/core/gns.hpp>
 #include <fractos/core/process.hpp>
@@ -336,7 +337,11 @@ DriverState::erase_memory(CUdeviceptr addr)
 std::shared_ptr<fractos::service::compute::cuda::Stream>
 DriverState::get_stream(CUstream stream)
 {
-    if (stream == CU_STREAM_PER_THREAD) {
+    if (stream == 0) {
+        return get_default_stream();
+    } else if (stream == CU_STREAM_LEGACY) {
+        return get_legacy_default_stream();
+    } else if (stream == CU_STREAM_PER_THREAD) {
         return get_stream_per_thread();
     }
 
@@ -347,6 +352,20 @@ DriverState::get_stream(CUstream stream)
     } else {
         return nullptr;
     }
+}
+
+std::shared_ptr<fractos::service::compute::cuda::Stream>
+DriverState::get_default_stream()
+{
+    LOG_EVERY_N(WARNING, 100) << "TODO: default stream should be either legacy or per-thread stream depending on compile-time options";
+    return get_stream_per_thread();
+}
+
+std::shared_ptr<fractos::service::compute::cuda::Stream>
+DriverState::get_legacy_default_stream()
+{
+    auto ctx = get_current_context();
+    return ctx->get_legacy_default_stream();
 }
 
 std::shared_ptr<fractos::service::compute::cuda::Stream>

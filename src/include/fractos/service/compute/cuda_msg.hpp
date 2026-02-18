@@ -387,9 +387,11 @@ namespace fractos::service::compute::cuda::wire {
                     fractos::wire::endian::uint8_t error;
                     fractos::wire::endian::uint64_t cuerror;
                     fractos::wire::endian::uint64_t cucontext;
+                    fractos::wire::endian::uint64_t legacy_default_custream;
                 } __attribute__ ((packed));
                 struct caps {
-                    fractos::core::cap::request generic;
+                    fractos::core::cap::request generic_ctx;
+                    fractos::core::cap::request generic_legacy_default_stream;
                 };
             };
         };

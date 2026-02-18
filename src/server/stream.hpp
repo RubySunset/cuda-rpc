@@ -20,6 +20,7 @@ namespace impl {
         const CUstream custream;
         std::shared_ptr<Context> ctx_ptr;
         std::shared_ptr<Stream> self;
+        bool is_legacy_default = false;
 
         fractos::core::future<std::tuple<fractos::wire::error_type, CUresult>>
         destroy_maybe(auto ch);
@@ -42,6 +43,7 @@ namespace impl {
     };
 
     std::pair<CUresult, std::shared_ptr<Stream>> make_stream(std::shared_ptr<Context> ctx, unsigned int flags);
+    std::shared_ptr<Stream> make_legacy_default_stream(std::shared_ptr<Context> ctx);
 
     std::string to_string(const Stream& obj);
 

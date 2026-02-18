@@ -310,13 +310,13 @@ class CodeBuilder:
 
     def gen_func_end(self, func_name: str) -> None:
         self.wrapper_code.append(f"""
-            auto stream_ptr = cublas_state.get_stream(handle);
-            std::optional<std::reference_wrapper<clt::Stream>> stream_wrapper =
-                (stream_ptr == nullptr) ?
-                std::optional<std::reference_wrapper<clt::Stream>>{{}} :
-                *stream_ptr;
+            auto cublas_stream = cublas_state.get_stream(handle);
+            auto& stream =
+                cublas_stream ?
+                *cublas_stream :
+                *driver_state.get_default_stream();
             try {{
-                cublas_ptr->autogen_func({self.func_counter}, stream_wrapper, {", ".join(self.rpc_client_args)}).get();
+                cublas_ptr->autogen_func({self.func_counter}, stream, {", ".join(self.rpc_client_args)}).get();
                 return CUBLAS_STATUS_SUCCESS;
             }} catch (const srv::CublasError& e) {{
                 return e.cublas_error;

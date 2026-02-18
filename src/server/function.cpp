@@ -220,21 +220,18 @@ impl::Function::handle_launch(auto ch, auto args)
     auto shared_mem = (size_t)args->imms.shared_mem.get();
     auto custream_arg = (CUstream)args->imms.custream.get();
 
-    CUstream custream = 0;
     auto ctx = this->ctx;
 
-    if (custream_arg) {
-        auto stream_ptr = ctx->get_stream(custream_arg);
-        if (not stream_ptr) {
-            cuerror = CUDA_ERROR_INVALID_HANDLE;
-            goto out;
-        }
-        custream = stream_ptr->custream;
-    } else {
-        cuerror = cuCtxSetCurrent(ctx->cucontext);
-        if (cuerror != CUDA_SUCCESS) {
-            goto out;
-        }
+    CUstream custream;
+    auto stream_ptr = ctx->get_stream(custream_arg);
+    if (not stream_ptr) {
+        cuerror = CUDA_ERROR_INVALID_HANDLE;
+        goto out;
+    }
+    custream = stream_ptr->custream;
+    cuerror = cuCtxSetCurrent(ctx->cucontext);
+    if (cuerror != CUDA_SUCCESS) {
+        goto out;
     }
 
     {

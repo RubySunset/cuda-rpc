@@ -42,6 +42,15 @@ impl::make_stream(std::shared_ptr<Context> ctx, unsigned int flags)
     return std::make_pair(error, res);
 }
 
+std::shared_ptr<impl::Stream>
+impl::make_legacy_default_stream(std::shared_ptr<Context> ctx)
+{
+    std::shared_ptr<Stream> res = std::make_shared<Stream>(ctx, CU_STREAM_LEGACY);
+    res->self = res;
+    res->is_legacy_default = true;
+    return res;
+}
+
 impl::Stream::Stream(std::shared_ptr<Context> ctx, CUstream stream)
     :custream(stream)
     ,ctx_ptr(ctx)
@@ -270,7 +279,13 @@ impl::Stream::destroy_maybe(auto ch)
             fut.get();
 
             auto error = wire::ERR_SUCCESS;
-            auto cuerror = cuCtxSetCurrent(ctx_ptr->cucontext);
+            auto cuerror = CUDA_SUCCESS;
+
+            if (this->is_legacy_default) {
+                goto out_inner;
+            }
+
+            cuerror = cuCtxSetCurrent(ctx_ptr->cucontext);
             if (cuerror != CUDA_SUCCESS) {
                 goto out_inner;
             }

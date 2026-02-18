@@ -11,6 +11,7 @@
 #include "./service.hpp"
 #include "./device.hpp"
 #include "./context.hpp"
+#include "./stream.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
@@ -311,24 +312,30 @@ impl::Device::handle_ctx_create(auto ch, auto args)
 
     make_context(ch, self, flags, ctxCreateParams)
         .then([this, self, ch, args=std::move(args)](auto& fut) {
-            auto [error, cuerror, ctx] = fut.get();
+            auto [error, cuerror, ctx, legacy_default_stream] = fut.get();
 
             auto reqb = ch->template make_request_builder<msg::response>(args->caps.continuation)
                 .set_imm(&msg::response::imms::error, error)
                 .set_imm(&msg::response::imms::cuerror, cuerror);
 
             CUcontext cucontext = 0;
+            CUstream custream = 0;
             if (not error and not cuerror) {
                 cucontext = ctx->get_remote_cucontext();
+                custream = legacy_default_stream->get_remote_custream();
                 reqb
                     .set_imm(&msg::response::imms::cucontext, (uint64_t)cucontext)
-                    .set_cap(&msg::response::caps::generic, ctx->_req_generic);
+                    .set_imm(&msg::response::imms::legacy_default_custream, (uint64_t)custream)
+                    .set_cap(&msg::response::caps::generic_ctx, ctx->_req_generic)
+                    .set_cap(&msg::response::caps::generic_legacy_default_stream, legacy_default_stream->req_generic);
 
                 LOG_RES(method)
                     << " error=" << wire::to_string(error)
                     << " cuerror=" << get_CUresult_name(cuerror)
                     << " cucontext=" << (void*)cucontext
-                    << " req_generic=" << core::to_string(ctx->_req_generic);
+                    << " custream=" << (void*)custream
+                    << " generic_ctx=" << core::to_string(ctx->_req_generic)
+                    << " generic_legacy_default_stream=" << core::to_string(legacy_default_stream->req_generic);
             } else {
                 LOG_RES(method)
                     << " error=" << wire::to_string(error)

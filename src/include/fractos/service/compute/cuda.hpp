@@ -175,7 +175,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
 
             // cuMemcpyAsync
             [[nodiscard]] core::future<void>
-            memcpy_async(core::cap::memory& src, core::cap::memory& dst, std::optional<std::reference_wrapper<Stream>> stream);
+            memcpy_async(core::cap::memory& src, core::cap::memory& dst, Stream& stream);
 
             // cuMemAlloc
             [[nodiscard]] core::future<std::shared_ptr<Memory>>
@@ -185,14 +185,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             [[nodiscard]] core::future<std::pair<size_t, size_t>>
             mem_get_info() const;
 
-            // cuMemsetD{8,16,32}
-            [[nodiscard]] core::future<void>
-            memset(CUdeviceptr addr, uint8_t val, size_t width);
-            [[nodiscard]] core::future<void>
-            memset(CUdeviceptr addr, uint16_t val, size_t width);
-            [[nodiscard]] core::future<void>
-            memset(CUdeviceptr addr, uint32_t val, size_t width);
-
             // cuMemsetD{8,16,32}Async
             [[nodiscard]] core::future<void>
             memset(CUdeviceptr addr, uint8_t val, size_t width, Stream& stream);
@@ -200,14 +192,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             memset(CUdeviceptr addr, uint16_t val, size_t width, Stream& stream);
             [[nodiscard]] core::future<void>
             memset(CUdeviceptr addr, uint32_t val, size_t width, Stream& stream);
-
-            // cuMemsetD2D{8,16,32}
-            [[nodiscard]] core::future<void>
-            memset(CUdeviceptr addr, size_t pitch, uint8_t val, size_t width, size_t height);
-            [[nodiscard]] core::future<void>
-            memset(CUdeviceptr addr, size_t pitch, uint16_t val, size_t width, size_t height);
-            [[nodiscard]] core::future<void>
-            memset(CUdeviceptr addr, size_t pitch, uint32_t val, size_t width, size_t height);
 
             // cuMemsetD2D{8,16,32}Async
             [[nodiscard]] core::future<void>
@@ -221,6 +205,10 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             // cuStreamCreate()
             [[nodiscard]] core::future<std::shared_ptr<Stream>>
             stream_create(CUstream_flags flags);
+
+            // Get a pointer to the per-context legacy default stream
+            std::shared_ptr<Stream>
+            get_legacy_default_stream();
 
 
             // cuEventCreate()
@@ -290,13 +278,13 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              */
             template <class... Args>
             [[nodiscard]] core::future<void>
-            autogen_func(uint32_t func_id, std::optional<std::reference_wrapper<Stream>> stream, Args&&... args);
+            autogen_func(uint32_t func_id, Stream& stream, Args&&... args);
 
             /**
              * @brief Wrapper for auto-generated CUBLAS API function using packed args
              */
             [[nodiscard]] core::future<void>
-            autogen_func(const void** args_ptr, const std::vector<size_t>& args_size, uint32_t func_id, std::optional<std::reference_wrapper<Stream>> stream);
+            autogen_func(const void** args_ptr, const std::vector<size_t>& args_size, uint32_t func_id, Stream& stream);
         };
 
         std::string to_string(const CublasHandle& obj);
@@ -333,7 +321,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
             // cuLaunchKernel
             [[nodiscard]] core::future<void>
             launch(const void** args, dim3 gridDim, dim3 blockDim, size_t sharedMem,
-                   std::optional<std::reference_wrapper<Stream>> stream);
+                   Stream& stream);
 
             // cuOccupancyMaxActiveBlocksPerMultiprocessor
             [[nodiscard]] core::future<int>
@@ -346,14 +334,6 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
                 int block_size, size_t dynamic_mem_size, CUoccupancy_flags flags);
 
             // shorthands with variadic kernel arguments
-
-            template<class... Args>
-            [[nodiscard]] core::future<void>
-            launch(dim3 gridDim, dim3 blockDim, Args&&... args);
-
-            template<class... Args>
-            [[nodiscard]] core::future<void>
-            launch(size_t sharedMem, dim3 gridDim, dim3 blockDim, Args&&... args);
 
             template<class... Args>
             [[nodiscard]] core::future<void>

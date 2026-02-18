@@ -48,28 +48,6 @@ namespace fractos::service::compute::cuda {
 
     template<class... Args>
     core::future<void>
-    Function::launch(dim3 gridDim, dim3 blockDim, Args&&... args_)
-    {
-        const void* args_ptr[sizeof...(args_)];
-        if constexpr (sizeof...(args_)) {
-            detail::fill_args_ptr(*this, args_ptr, std::forward<Args>(args_)...);
-        }
-        return launch(args_ptr, gridDim, blockDim, 0, {});
-    }
-
-    template<class... Args>
-    core::future<void>
-    Function::launch(size_t sharedMem, dim3 gridDim, dim3 blockDim, Args&&... args_)
-    {
-        const void* args_ptr[sizeof...(args_)];
-        if constexpr (sizeof...(args_)) {
-            detail::fill_args_ptr(*this, args_ptr, std::forward<Args>(args_)...);
-        }
-        return launch(args_ptr, gridDim, blockDim, sharedMem, {});
-    }
-
-    template<class... Args>
-    core::future<void>
     Function::launch(Stream& stream, dim3 gridDim, dim3 blockDim, Args&&... args_)
     {
         const void* args_ptr[sizeof...(args_)];
@@ -92,7 +70,7 @@ namespace fractos::service::compute::cuda {
 
     template <class... Args>
     core::future<void>
-    CublasHandle::autogen_func(uint32_t func_id, std::optional<std::reference_wrapper<Stream>> stream, Args&&... args)
+    CublasHandle::autogen_func(uint32_t func_id, Stream& stream, Args&&... args)
     {
         const void* args_ptr[sizeof...(args)];
         std::vector<size_t> args_size;
