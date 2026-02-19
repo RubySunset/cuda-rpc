@@ -79,56 +79,57 @@ CUresult
 do_memcpy(std::pair<pointer_type, CUdeviceptr> src,
           std::pair<pointer_type, CUdeviceptr> dst,
           size_t size,
-          CUstream stream_arg)
+          CUstream stream_arg,
+          bool is_sync)
 {
     auto& state = get_driver_state();
 
-    std::shared_ptr<srv::Memory> mem_src, mem_dst;
-    switch (src.first) {
-    case A:
-    case D:
-        mem_src = state.get_memory(src.second);
-        if (not mem_src) {
-            return CUDA_ERROR_INVALID_VALUE;
-        }
-        break;
-    case H:
-        break;
-    }
-    switch (dst.first) {
-    case A:
-    case D:
-        mem_dst = state.get_memory(dst.second);
-        if (not mem_dst) {
-            return CUDA_ERROR_INVALID_VALUE;
-        }
-        break;
-    case H:
-        break;
+    auto invalid_mem_kind = [&](std::shared_ptr<srv::Memory>& mem, pointer_type kind) {
+        return (mem and kind == H) || (not mem and kind == D);
+    };
+
+    auto mem_src = state.get_memory(src.second);
+    auto mem_dst = state.get_memory(dst.second);
+    if (invalid_mem_kind(mem_src, src.first) or invalid_mem_kind(mem_dst, dst.first)) {
+        return CUDA_ERROR_INVALID_VALUE;
     }
 
+    auto ctx_ptr = state.get_current_context();
+    if (not ctx_ptr) [[unlikely]] {
+        return CUDA_ERROR_INVALID_CONTEXT;
+    }
     auto stream_ptr = state.get_stream(stream_arg);
     if (not stream_ptr) {
         return CUDA_ERROR_INVALID_HANDLE;
     }
-    auto ctx_ptr = stream_ptr->get_context();
-    if (not ctx_ptr) {
-        return CUDA_ERROR_INVALID_HANDLE;
-    }
-    stream_ptr->synchronize().get();
-    LOG_EVERY_N(WARNING, 100) << "TODO: enqueue cuMemcpyAync to remote service";
+
+    auto capture_mem_until_sync = [&](auto& vec){
+        stream_ptr->synchronize()
+        .then([moved_vec=std::move(vec)](auto& fut){
+            fut.get();
+        })
+        .as_callback();
+    };
+
+    std::vector<core::cap::memory> captured_mem;
+
+    // See below for sync/async memcpy semantics:
+    // https://docs.nvidia.com/cuda/cuda-driver-api/api-sync-behavior.html
 
     if (mem_src and mem_dst) {
         // D2D
+        // Is always async, regardless of which API is used
         auto& ch = get_channel();
         auto& mem_src_cap = mem_src->get_cap_mem();
         if (mem_src->get_size() < size) {
             return CUDA_ERROR_INVALID_VALUE;
         } else if (mem_src->get_size() > size) {
             auto src_cap = ch.diminish(mem_src_cap, 0, size, core::cap::PERM_NONE).get();
-            ch.copy(src_cap, mem_dst->get_cap_mem()).get();
+            ctx_ptr->memcpy_async(src_cap, mem_dst->get_cap_mem(), *stream_ptr).get();
+            captured_mem.push_back(std::move(src_cap));
+            capture_mem_until_sync(captured_mem);
         } else {
-            ch.copy(mem_src_cap, mem_dst->get_cap_mem()).get();
+            ctx_ptr->memcpy_async(mem_src_cap, mem_dst->get_cap_mem(), *stream_ptr).get();
         }
         return CUDA_SUCCESS;
 
@@ -141,23 +142,40 @@ do_memcpy(std::pair<pointer_type, CUdeviceptr> src,
             return CUDA_ERROR_INVALID_VALUE;
         } else if (mem_src->get_size() > size) {
             auto src_cap = ch.diminish(mem_src_cap, 0, size, core::cap::PERM_NONE).get();
-            ch.copy(src_cap, dst_cap).get();
+            ctx_ptr->memcpy_async(src_cap, dst_cap, *stream_ptr).get();
+            captured_mem.push_back(std::move(src_cap));
         } else {
-            ch.copy(mem_src_cap, dst_cap).get();
+            ctx_ptr->memcpy_async(mem_src_cap, dst_cap, *stream_ptr).get();
         }
-        return CUDA_SUCCESS;
+        if (is_sync) {
+            return cuStreamSynchronize(stream_arg);
+        } else {
+            captured_mem.push_back(std::move(dst_cap));
+            capture_mem_until_sync(captured_mem);
+            return CUDA_SUCCESS;
+        }
 
     } else if (not mem_src and mem_dst) {
         // H2D
         auto& ch = get_channel();
         auto src_cap = ch.make_memory((const void*)src.second, size).get();
-        ch.copy(src_cap, mem_dst->get_cap_mem()).get();
-        LOG_EVERY_N(WARNING, 100) << "TODO: should not wait for H2D copy to finish";
-        return CUDA_SUCCESS;
+        ctx_ptr->memcpy_async(src_cap, mem_dst->get_cap_mem(), *stream_ptr).get();
+        if (is_sync) {
+            return cuStreamSynchronize(stream_arg);
+        } else {
+            captured_mem.push_back(std::move(src_cap));
+            capture_mem_until_sync(captured_mem);
+            return CUDA_SUCCESS;
+        }
 
     } else {
         // H2H
+        // Is always sync, regardless of which API is used
         DCHECK(not mem_src and not mem_dst);
+        CUresult cuerror = cuStreamSynchronize(stream_arg);
+        if (cuerror != CUDA_SUCCESS) {
+            return cuerror;
+        }
         memcpy((void*)dst.second, (const void*)src.second, size);
         return CUDA_SUCCESS;
     }
@@ -167,56 +185,56 @@ extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuMemcpy(CUdeviceptr dst, CUdeviceptr src, size_t ByteCount)
 {
-    return do_memcpy(std::make_pair(A, src), std::make_pair(A, dst), ByteCount, 0);
+    return do_memcpy(std::make_pair(A, src), std::make_pair(A, dst), ByteCount, 0, true);
 }
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuMemcpyAsync(CUdeviceptr dst, CUdeviceptr src, size_t ByteCount, CUstream hStream)
 {
-    return do_memcpy(std::make_pair(A, src), std::make_pair(A, dst), ByteCount, hStream);
+    return do_memcpy(std::make_pair(A, src), std::make_pair(A, dst), ByteCount, hStream, false);
 }
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuMemcpyDtoD_v2(CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t ByteCount)
 {
-    return do_memcpy(std::make_pair(D, srcDevice), std::make_pair(D, dstDevice), ByteCount, 0);
+    return do_memcpy(std::make_pair(D, srcDevice), std::make_pair(D, dstDevice), ByteCount, 0, true);
 }
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuMemcpyDtoDAsync_v2(CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream)
 {
-    return do_memcpy(std::make_pair(D, srcDevice), std::make_pair(D, dstDevice), ByteCount, hStream);
+    return do_memcpy(std::make_pair(D, srcDevice), std::make_pair(D, dstDevice), ByteCount, hStream, false);
 }
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuMemcpyDtoH_v2(void* dstHost, CUdeviceptr srcDevice, size_t ByteCount)
 {
-    return do_memcpy(std::make_pair(D, srcDevice), std::make_pair(H, (CUdeviceptr)dstHost), ByteCount, 0);
+    return do_memcpy(std::make_pair(D, srcDevice), std::make_pair(H, (CUdeviceptr)dstHost), ByteCount, 0, true);
 }
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuMemcpyDtoHAsync_v2(void* dstHost, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream)
 {
-    return do_memcpy(std::make_pair(D, srcDevice), std::make_pair(H, (CUdeviceptr)dstHost), ByteCount, hStream);
+    return do_memcpy(std::make_pair(D, srcDevice), std::make_pair(H, (CUdeviceptr)dstHost), ByteCount, hStream, false);
 }
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuMemcpyHtoD_v2(CUdeviceptr dstDevice, const void* srcHost, size_t ByteCount)
 {
-    return do_memcpy(std::make_pair(H, (CUdeviceptr)srcHost), std::make_pair(D, dstDevice), ByteCount, 0);
+    return do_memcpy(std::make_pair(H, (CUdeviceptr)srcHost), std::make_pair(D, dstDevice), ByteCount, 0, true);
 }
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuMemcpyHtoDAsync_v2(CUdeviceptr dstDevice, const void* srcHost, size_t ByteCount, CUstream hStream)
 {
-    return do_memcpy(std::make_pair(H, (CUdeviceptr)srcHost), std::make_pair(D, dstDevice), ByteCount, hStream);
+    return do_memcpy(std::make_pair(H, (CUdeviceptr)srcHost), std::make_pair(D, dstDevice), ByteCount, hStream, false);
 }
 
 

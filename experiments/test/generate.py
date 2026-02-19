@@ -23,6 +23,7 @@ def run(base_dir, output_dir, src_dir, copy):
             "test-service-memory",
             "test-stream",
             "test-memcpy",
+            "test-memcpy-wrapper",
             "test-cublas-wrapper-simple",
             "test-cublas-wrapper-full",
         ],

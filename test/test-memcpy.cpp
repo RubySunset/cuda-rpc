@@ -73,7 +73,7 @@ main(int argc, char *argv[])
         ctx->synchronize().get();
 
         for (int i = 0; i < n_ints; i++) {
-            CHECK(cpu_buf1[i] == i);
+            CHECK(cpu_buf2[i] == i);
         }
     }
 

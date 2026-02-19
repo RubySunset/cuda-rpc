@@ -33,3 +33,6 @@ test_stream_SOURCES = test-stream.cpp
 
 noinst_PROGRAMS += test-memcpy
 test_memcpy_SOURCES = test-memcpy.cpp
+
+noinst_PROGRAMS += test-memcpy-wrapper
+test_memcpy_wrapper_SOURCES = test-memcpy-wrapper.cpp
