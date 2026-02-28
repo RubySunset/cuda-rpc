@@ -49,6 +49,8 @@ experiment:
     node: *node
     run-program:
       type: uplane
+      env:
+        LD_PRELOAD: ${DIST}/lib/libfractos-service-compute-cuda-wrapper.so
+        CUDA_MPS_PIPE_DIRECTORY: /dev/null
       command: ${DIST}/bin/{{test}}
       timeout: 300
-      {{env}}

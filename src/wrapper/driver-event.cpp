@@ -72,3 +72,28 @@ cuEventSynchronize(CUevent hEvent)
 
     return error;
 }
+
+extern "C" [[gnu::visibility("default")]]
+CUresult CUDAAPI
+cuEventRecord(CUevent hEvent, CUstream hStream)
+{
+    auto& state = get_driver_state();
+
+    auto event_ptr = state.get_event(hEvent);
+    if (not event_ptr) {
+        return CUDA_ERROR_INVALID_HANDLE;
+    }
+    auto stream_ptr = state.get_stream(hStream);
+    if (not stream_ptr) {
+        return CUDA_ERROR_INVALID_HANDLE;
+    }
+
+    CUresult error = CUDA_SUCCESS;
+    try {
+        event_ptr->record(*stream_ptr).get();
+    } catch (const srv::CudaError& e) {
+        error = e.cuerror;
+    }
+
+    return error;
+}

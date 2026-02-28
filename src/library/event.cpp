@@ -84,6 +84,34 @@ clt::Event::synchronize()
 }
 
 
+core::future<void>
+clt::Event::record(Stream& stream)
+{
+    CUstream custream = stream.get_stream();
+
+    METHOD(record);
+    LOG_REQ(method)
+        << " custream=" << (void*)custream;
+
+    auto& pimpl = impl::Event::get(*this);
+    auto self = pimpl.state->self.lock();
+
+    auto resp = pimpl.ch->make_response_builder<msg::response>(pimpl.ch->get_default_endpoint());
+    return pimpl.ch->make_request_builder<msg::request>(pimpl.state->req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_RECORD)
+        .set_imm(&msg::request::imms::custream, (uint64_t)custream)
+        .set_cap(&msg::request::caps::continuation, resp)
+        .on_channel()
+        .invoke(resp)
+        .unwrap()
+        .then_check_cuda_response()
+        .then([](auto& fut) {
+            auto [ch, args] = fut.get();
+            CHECK_ARGS_EXACT();
+        });
+}
+
+
 std::string
 clt::to_string(const Event& obj)
 {

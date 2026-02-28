@@ -427,7 +427,7 @@ namespace fractos::service::compute { namespace [[gnu::visibility("default")]] c
              * @brief Wrapper for cuEventRecord()
              */
             [[nodiscard]] fractos::core::future<void>
-            make_record(Stream& stream);
+            record(Stream& stream);
         };
 
         std::string to_string(const Event& obj);

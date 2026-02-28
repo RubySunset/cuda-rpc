@@ -11,6 +11,7 @@
 #include "./device.hpp"
 #include "./context.hpp"
 #include "./event.hpp"
+#include "./stream.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
@@ -112,16 +113,17 @@ impl::Event::handle_generic(auto ch, auto args)
 
     switch (opcode) {
         CASE_HANDLE(SYNCHRONIZE, synchronize);
-    CASE_HANDLE(DESTROY, destroy);
-    default:
-        LOG_RES(method)
-            << " [error] invalid opcode";
-        ch->template make_request_builder<msg::response>(args->caps.continuation)
-            .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
-            .on_channel()
-            .invoke()
-            .as_callback_log_ignore_continuation_error();
-        break;
+        CASE_HANDLE(RECORD, record);
+        CASE_HANDLE(DESTROY, destroy);
+        default:
+            LOG_RES(method)
+                << " [error] invalid opcode";
+            ch->template make_request_builder<msg::response>(args->caps.continuation)
+                .set_imm(&msg::response::imms::error, wire::ERR_OTHER)
+                .on_channel()
+                .invoke()
+                .as_callback_log_ignore_continuation_error();
+            break;
     }
 
 #undef CASE_HANDLE
@@ -142,6 +144,47 @@ impl::Event::handle_synchronize(auto ch, auto args)
 
     cuerror = cuEventSynchronize(cuevent);
 
+    LOG_RES(method)
+        << " error=" << wire::to_string(error)
+        << " cuerror=" << get_CUresult_name(cuerror);
+
+    ch->template make_request_builder<msg::response>(args->caps.continuation)
+        .set_imm(&msg::response::imms::error, error)
+        .set_imm(&msg::response::imms::cuerror, cuerror)
+        .on_channel()
+        .invoke()
+        .as_callback();
+}
+
+void
+impl::Event::handle_record(auto ch, auto args)
+{
+    METHOD(record);
+    LOG_REQ(method) << srv::wire::to_string(*args);
+
+    auto reqb_cont = ch->template make_request_builder<msg::response>(args->caps.continuation);
+    CHECK_ARGS_EXACT(reqb_cont);
+
+    auto error = wire::ERR_SUCCESS;
+    auto cuerror = CUDA_SUCCESS;
+
+    auto custream_arg = (CUstream)args->imms.custream.get();
+
+    CUstream custream;
+    auto stream_ptr = this->ctx_ptr->get_stream(custream_arg);
+    if (not stream_ptr) {
+        cuerror = CUDA_ERROR_INVALID_HANDLE;
+        goto out;
+    }
+    custream = stream_ptr->custream;
+    cuerror = cuCtxSetCurrent(this->ctx_ptr->cucontext);
+    if (cuerror != CUDA_SUCCESS) {
+        goto out;
+    }
+
+    cuerror = cuEventRecord(cuevent, custream);
+
+out:
     LOG_RES(method)
         << " error=" << wire::to_string(error)
         << " cuerror=" << get_CUresult_name(cuerror);

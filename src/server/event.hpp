@@ -30,6 +30,7 @@ namespace impl {
         void handle_generic(auto ch, auto args);
     protected:
         void handle_synchronize(auto ch, auto args);
+        void handle_record(auto ch, auto args);
         void handle_destroy(auto ch, auto args);
     };
 

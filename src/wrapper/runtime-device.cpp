@@ -4,9 +4,22 @@
 
 #include <./driver-state.hpp>
 #include <./runtime-syms-extern.hpp>
+#include <driver_types.h>
 
 
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html
+
+// extern "C" [[gnu::visibility("default")]]
+// cudaError_t CUDARTAPI
+// cudaGetDeviceProperties(cudaDeviceProp* prop, int device)
+// {
+//     auto& state = get_runtime_state();
+//
+//     auto device_ptr = state.get_device_ordinal(device);
+//     auto tempProp = device_ptr->get_properties().get();
+//     *prop = tempProp;
+//     return_error(cudaSuccess);
+// }
 
 extern "C" [[gnu::visibility("default")]]
 cudaError_t CUDARTAPI
@@ -52,7 +65,7 @@ cudaGetDeviceCount(int *count)
 
 extern "C" [[gnu::visibility("default")]]
 cudaError_t CUDARTAPI
-cudaGetDeviceProperties_v2(cudaDeviceProp* prop, int  device)
+cudaGetDeviceProperties(cudaDeviceProp* prop, int  device)
 {
     auto error = cudaSuccess;
 
