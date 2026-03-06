@@ -116,7 +116,7 @@ main(int argc, char *argv[])
             }
             case FRACTOS:
             {
-                conn->fun->launch({256, 1, 1}, {256, 1, 1})
+                conn->fun->launch(*conn->ctx->get_legacy_default_stream(), {256, 1, 1}, {256, 1, 1})
                     .then([conn, &finish_experiment, start_time](auto& fut) {
                         conn->ctx->synchronize()
                             .then([&finish_experiment, start_time](auto& fut) {
