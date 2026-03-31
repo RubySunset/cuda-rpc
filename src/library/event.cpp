@@ -41,6 +41,7 @@ impl::EventState::do_destroy(std::shared_ptr<core::channel>& ch)
 
     auto resp = ch->make_response_builder<msg::response>(ch->get_default_endpoint());
     return ch->make_request_builder<msg::request>(req_generic)
+        .set_imm(&msg::request::imms::opcode, srv_wire_msg::OP_DESTROY)
         .set_cap(&msg::request::caps::continuation, resp)
         .on_channel()
         .invoke(resp)

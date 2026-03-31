@@ -11,6 +11,8 @@
         return cuerror;                                           \
     }
 
+#define FORCE_SYNC
+
 
 CudaHostCBManager::~CudaHostCBManager()
 {
@@ -39,6 +41,7 @@ CudaHostCBManager::run()
     while (!stop_flag.load()) {
         // Wait for a task to be ready
         task_buf_cv.wait(task_buf_lock);
+#ifndef FORCE_SYNC
         // Process ready memcpy
         for (unsigned long task_id : task_buf) {
             MemcpyInfo memcpy_info;
@@ -99,7 +102,36 @@ CudaHostCBManager::run()
                 ctx_cont_map.erase(task_id);
             }
         }
+        // Process ready events
+        {
+            std::unique_lock<std::mutex> event_lock{event_mutex};
+            for (unsigned long task_id : task_buf) {
+                auto event_ready_it = event_ready.find(task_id);
+                if (event_ready_it == event_ready.end()) {
+                    continue;
+                }
+                event_ready_it->second = true;
+                auto event_cont_it = event_cont_map.find(task_id);
+                if (event_cont_it == event_cont_map.end()) {
+                    continue;
+                }
+                auto& cont = event_cont_it->second;
+                using msg = fractos::service::compute::cuda::wire::Event::synchronize;
+                ch->template make_request_builder<msg::response>(cont)
+                    .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+                    .set_imm(&msg::response::imms::cuerror, CUDA_SUCCESS)
+                    .on_channel()
+                    .invoke()
+                    .as_callback();
+                // auto event = id_to_event[task_id];
+                // event_to_id.erase(event);
+                // id_to_event.erase(task_id);
+                // event_ready.erase(task_id);
+                // event_cont_map.erase(task_id);
+            }
+        }
         task_buf.clear();
+#endif
     }
 }
 
@@ -114,6 +146,10 @@ CUresult
 CudaHostCBManager::enqueue_memcpy_async(CUcontext ctx, CUstream stream, std::shared_ptr<fractos::core::cap::memory> src, std::shared_ptr<fractos::core::cap::memory> dst)
 {
     CU_CHECK(cuCtxSetCurrent(ctx));
+#ifdef FORCE_SYNC
+    CU_CHECK(cuStreamSynchronize(stream));
+    ch->copy(*src, *dst).get();
+#else
     unsigned long curr_task_id = next_task_id.fetch_add(1, std::memory_order::relaxed);
 
     {
@@ -148,13 +184,24 @@ CudaHostCBManager::enqueue_memcpy_async(CUcontext ctx, CUstream stream, std::sha
     // Unblock stream - now CUDA host function can be called
     auto aux_stream = get_aux_stream(ctx);
     CU_CHECK(cuStreamWriteValue32(aux_stream, flag_map[ctx][stream].first, 1, 0));
-
+#endif
     return CUDA_SUCCESS;
 }
 
 CUresult
 CudaHostCBManager::stream_sync(CUcontext ctx, CUstream stream, core::cap::request continuation)
 {
+#ifdef FORCE_SYNC
+    CU_CHECK(cuCtxSetCurrent(ctx));
+    CU_CHECK(cuStreamSynchronize(stream));
+    using msg = fractos::service::compute::cuda::wire::Stream::synchronize;
+    ch->template make_request_builder<msg::response>(continuation)
+        .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+        .set_imm(&msg::response::imms::cuerror, CUDA_SUCCESS)
+        .on_channel()
+        .invoke()
+        .as_callback();
+#else
     unsigned long curr_task_id = next_task_id.fetch_add(1, std::memory_order::relaxed);
     {
         std::unique_lock<std::mutex> stream_cont_lock{stream_cont_mutex};
@@ -164,13 +211,24 @@ CudaHostCBManager::stream_sync(CUcontext ctx, CUstream stream, core::cap::reques
     // Enqueue host callback on stream
     CU_CHECK(cuCtxSetCurrent(ctx));
     CU_CHECK(cuLaunchHostFunc(stream, notify_task_ready, reinterpret_cast<void*>(curr_task_id)));
-
+#endif
     return CUDA_SUCCESS;
 }
 
 CUresult
 CudaHostCBManager::ctx_sync(CUcontext ctx, std::vector<CUstream>& streams, core::cap::request continuation)
 {
+#ifdef FORCE_SYNC
+    CU_CHECK(cuCtxSetCurrent(ctx));
+    CU_CHECK(cuCtxSynchronize());
+    using msg = fractos::service::compute::cuda::wire::Context::synchronize;
+    ch->template make_request_builder<msg::response>(continuation)
+        .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+        .set_imm(&msg::response::imms::cuerror, CUDA_SUCCESS)
+        .on_channel()
+        .invoke()
+        .as_callback();
+#else
     unsigned long curr_task_id = next_task_id.fetch_add(1, std::memory_order::relaxed);
     {
         std::unique_lock<std::mutex> ctx_info_lock{ctx_info_mutex};
@@ -186,7 +244,76 @@ CudaHostCBManager::ctx_sync(CUcontext ctx, std::vector<CUstream>& streams, core:
     // TODO [ra2520] if any of the host functions fail to launch, the context sync will never be completed
     // since the count of completed streams will be less than required. This is fine for correctness but
     // does leave some stale data that isn't cleaned up properly.
+#endif
+    return CUDA_SUCCESS;
+}
 
+CUresult
+CudaHostCBManager::event_create(CUevent event)
+{
+#ifndef FORCE_SYNC
+    unsigned long curr_task_id = next_task_id.fetch_add(1, std::memory_order::relaxed);
+    {
+        std::unique_lock<std::mutex> event_lock{event_mutex};
+        event_to_id[event] = curr_task_id;
+        id_to_event[curr_task_id] = event;
+        event_ready[curr_task_id] = true;
+    }
+#endif
+    return CUDA_SUCCESS;
+}
+
+CUresult
+CudaHostCBManager::event_record(CUstream stream, CUevent event)
+{
+#ifdef FORCE_SYNC
+    CU_CHECK(cuEventRecord(event, stream));
+#else
+    unsigned long curr_task_id = next_task_id.fetch_add(1, std::memory_order::relaxed);
+    {
+        std::unique_lock<std::mutex> event_lock{event_mutex};
+        event_to_id[event] = curr_task_id;
+        id_to_event[curr_task_id] = event;
+        event_ready[curr_task_id] = false;
+    }
+
+    // Enqueue host callback on stream
+    // CU_CHECK(cuCtxSetCurrent(ctx));
+    CU_CHECK(cuLaunchHostFunc(stream, notify_task_ready, reinterpret_cast<void*>(curr_task_id)));
+#endif
+    return CUDA_SUCCESS;
+}
+
+CUresult
+CudaHostCBManager::event_sync(CUevent event, core::cap::request continuation)
+{
+#ifdef FORCE_SYNC
+    CU_CHECK(cuEventSynchronize(event));
+    using msg = fractos::service::compute::cuda::wire::Event::synchronize;
+    ch->template make_request_builder<msg::response>(continuation)
+        .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+        .set_imm(&msg::response::imms::cuerror, CUDA_SUCCESS)
+        .on_channel()
+        .invoke()
+        .as_callback();
+#else
+    std::unique_lock<std::mutex> event_lock{event_mutex};
+    auto id = event_to_id[event];
+    if (event_ready[id]) {
+        using msg = fractos::service::compute::cuda::wire::Event::synchronize;
+        ch->template make_request_builder<msg::response>(continuation)
+            .set_imm(&msg::response::imms::error, wire::ERR_SUCCESS)
+            .set_imm(&msg::response::imms::cuerror, CUDA_SUCCESS)
+            .on_channel()
+            .invoke()
+            .as_callback();
+        // event_to_id.erase(event);
+        // id_to_event.erase(id);
+        // event_ready.erase(id);
+    } else {
+        event_cont_map[id] = std::move(continuation);
+    }
+#endif
     return CUDA_SUCCESS;
 }
 

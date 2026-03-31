@@ -1,3 +1,4 @@
+#include <cuda.h>
 #include <fractos/common/service/srv_impl.hpp>
 #include <fractos/core/error.hpp>
 #include <fractos/logging.hpp>
@@ -12,6 +13,7 @@
 #include "./context.hpp"
 #include "./event.hpp"
 #include "./stream.hpp"
+#include "cuda_host_cb_manager.hpp"
 
 
 namespace srv = fractos::service::compute::cuda;
@@ -47,6 +49,7 @@ impl::make_event(std::shared_ptr<fractos::core::channel> ch,
     if (cuerror != CUDA_SUCCESS) {
         return core::make_ready_future(std::make_tuple(error, cuerror, res));
     }
+    get_cuda_host_cb_manager().event_create(cuevent);
 
     res = std::make_shared<Event>();
     res->cuevent = cuevent;
@@ -142,11 +145,18 @@ impl::Event::handle_synchronize(auto ch, auto args)
     auto error = wire::ERR_SUCCESS;
     auto cuerror = CUDA_SUCCESS;
 
-    cuerror = cuEventSynchronize(cuevent);
+    cuerror = get_cuda_host_cb_manager().event_sync(
+        cuevent,
+        std::move(args->caps.continuation)
+    );
 
     LOG_RES(method)
         << " error=" << wire::to_string(error)
         << " cuerror=" << get_CUresult_name(cuerror);
+
+    if (cuerror == CUDA_SUCCESS) {
+        return;
+    }
 
     ch->template make_request_builder<msg::response>(args->caps.continuation)
         .set_imm(&msg::response::imms::error, error)
@@ -182,7 +192,10 @@ impl::Event::handle_record(auto ch, auto args)
         goto out;
     }
 
-    cuerror = cuEventRecord(cuevent, custream);
+    cuerror = get_cuda_host_cb_manager().event_record(
+        custream,
+        cuevent
+    );
 
 out:
     LOG_RES(method)

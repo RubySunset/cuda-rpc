@@ -60,6 +60,10 @@ public:
 
     // Invoke the provided FractOS response when all streams are ready, in which case the context is ready
     CUresult ctx_sync(CUcontext ctx, std::vector<CUstream>& streams, core::cap::request continuation);
+
+    CUresult event_create(CUevent event);
+    CUresult event_record(CUstream stream, CUevent event);
+    CUresult event_sync(CUevent event, core::cap::request continuation);
 private:
     friend void CUDA_CB notify_task_ready(void* userData);
     friend void CUDA_CB update_remaining_streams(void* userData); 
@@ -93,6 +97,13 @@ private:
     std::mutex ctx_info_mutex;
     std::unordered_map<unsigned long, core::cap::request> ctx_cont_map;
     std::unordered_map<unsigned long, std::atomic<unsigned>> num_remaining_streams_map;
+
+    // Event sync-specific
+    std::mutex event_mutex;
+    std::unordered_map<CUevent, unsigned long> event_to_id;
+    std::unordered_map<unsigned long, CUevent> id_to_event;
+    std::unordered_map<unsigned long, bool> event_ready;
+    std::unordered_map<unsigned long, core::cap::request> event_cont_map;
 };
 
 inline
