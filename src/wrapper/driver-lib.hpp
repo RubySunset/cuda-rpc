@@ -24,11 +24,6 @@
     constexpr size_t DEVICE_MAP_BASE = 0x7fffb0000000 - DEVICE_MAP_SIZE;
 #endif
 
-struct cuda_function_t {
-    char const* name;
-    void* ptr;
-};
-
 struct DriverLibSyms {
 #define SYM(name) decltype(&name) ptr_ ## name;
 #include "./driver-syms.hpp"

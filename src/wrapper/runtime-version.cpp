@@ -2,7 +2,6 @@
 #include <glog/logging.h>
 
 #include <./runtime-state.hpp>
-// #include <./runtime-syms-extern.hpp>
 
 // * version management
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART____VERSION.html

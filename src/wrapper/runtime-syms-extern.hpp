@@ -37,7 +37,3 @@ extern "C" cudaError_t CUDARTAPI __cudaPopCallConfiguration(
     size_t       *sharedMem,
     void         *stream
     );
-
-#define SYM(name) extern decltype(&name) ptr_ ## name;
-#include "./runtime-syms.hpp"
-#undef SYM
