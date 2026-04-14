@@ -2,7 +2,6 @@
 #include <cuda_runtime.h>
 
 #include <./runtime-state.hpp>
-#include <./runtime-syms-extern.hpp>
 
 // * driver entry point access
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DRIVER__ENTRY__POINT.html

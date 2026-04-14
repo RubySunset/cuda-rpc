@@ -4,7 +4,6 @@
 #include <driver_types.h>
 
 #include "./runtime-state.hpp"
-#include "./runtime-syms-extern.hpp"
 
 
 // * memory management

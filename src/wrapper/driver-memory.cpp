@@ -1,9 +1,12 @@
+#include <cstdint>
 #include <cuda.h>
+#include <fractos/logging.hpp>
+#include <fractos/common/logging.hpp>
 #include <fractos/service/compute/cuda.hpp>
 #include <glog/logging.h>
+#include <stdexcept>
 
-#include "./driver-state.hpp"
-#include "./driver-syms-extern.hpp"
+#include "driver-lib.hpp"
 #include "driver-state.hpp"
 
 using namespace fractos;
@@ -25,6 +28,10 @@ cuMemAlloc(CUdeviceptr* devPtr, size_t size)
         mem_ptr = ctx_ptr->mem_alloc(size).get();
     } catch (const srv::CudaError& e) {
         return e.cuerror;
+    }
+
+    if (mem_ptr->get_deviceptr() < DEVICE_MAP_BASE or (mem_ptr->get_deviceptr() + size) > (DEVICE_MAP_BASE + DEVICE_MAP_SIZE)) {
+        throw std::runtime_error("Device memory was allocated outside of bounds of reserved memory");
     }
 
     *devPtr = mem_ptr->get_deviceptr();

@@ -1,7 +1,6 @@
 #include <cuda.h>
 
 #include <./driver-state.hpp>
-#include <./driver-syms-extern.hpp>
 
 
 // * device management

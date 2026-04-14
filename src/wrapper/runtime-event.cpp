@@ -3,7 +3,6 @@
 #include <glog/logging.h>
 
 #include <./runtime-state.hpp>
-#include <./runtime-syms-extern.hpp>
 
 
 // * event management

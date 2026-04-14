@@ -20,6 +20,29 @@ cuInit(unsigned int flags)
         return CUDA_SUCCESS;
     }
 
+    // allow env to override load path
+    auto lib = get_env("FRACTOS_SERVICE_COMPUTE_LIBCUDA", "libcuda.so");
+
+    void* libcuda_handle = dlopen(lib.c_str(), RTLD_LAZY);
+    CHECK(libcuda_handle) << "--reason--> " << dlerror();
+
+    char info[1024];
+    CHECK(dlinfo(libcuda_handle, RTLD_DI_ORIGIN, info) == 0);
+    LOG(INFO) << "opened backend cuda library in "
+              << info << "/" << lib.substr(lib.find_last_of("/\\") + 1);
+
+    auto do_load_sym = [&](auto name) {
+        LOG(INFO) << "Loading " << name << "...";
+        auto ptr = dlsym(libcuda_handle, name);
+        LOG(INFO) << "ptr == " << ptr;
+        CHECK(ptr) << "--reason--> " << dlerror();
+        return ptr;
+    };
+
+#define SYM(name) get_driver_lib_syms().ptr_ ## name = (decltype(get_driver_lib_syms().ptr_ ## name))do_load_sym(#name);
+#include "./driver-syms.hpp"
+#undef SYM
+
     auto ch = get_channel_ptr();
     auto gns = fractos::core::gns::make_service();
 

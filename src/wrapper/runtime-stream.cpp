@@ -3,7 +3,7 @@
 #include <glog/logging.h>
 
 #include <./runtime-state.hpp>
-#include <./runtime-syms-extern.hpp>
+// #include <./runtime-syms-extern.hpp>
 
 
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__STREAM.html

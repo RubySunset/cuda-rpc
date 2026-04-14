@@ -2,7 +2,6 @@
 
 #include "./image.hpp"
 #include "./driver-state.hpp"
-#include "./driver-syms-extern.hpp"
 
 namespace srv = fractos::service::compute::cuda;
 
