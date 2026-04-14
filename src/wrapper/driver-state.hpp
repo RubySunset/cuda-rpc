@@ -143,12 +143,19 @@ public:
     std::unordered_map<CUevent, std::shared_ptr<fractos::service::compute::cuda::Event>> events;
 };
 
-extern std::mutex _driver_state_mutex;
-extern std::atomic<std::shared_ptr<DriverState>> _driver_state;
+inline std::mutex& get_driver_state_mutex() {
+    static std::mutex mut;
+    return mut;
+}
+
+inline std::atomic<std::shared_ptr<DriverState>>& get_driver_state_ptr() {
+    static std::atomic<std::shared_ptr<DriverState>> storage;
+    return storage;
+}
 
 #define get_driver_state()                                              \
     ({                                                                  \
-        auto state = _driver_state.load(std::memory_order_consume);     \
+        auto state = get_driver_state_ptr().load(); \
         if (not state) [[unlikely]] {                                   \
             return CUDA_ERROR_NOT_INITIALIZED;                          \
         }                                                               \
@@ -157,7 +164,7 @@ extern std::atomic<std::shared_ptr<DriverState>> _driver_state;
 
 #define get_driver_state_unsafe()                                       \
     ({                                                                  \
-        auto state = _driver_state.load(std::memory_order_consume);     \
+        auto state = get_driver_state_ptr().load(); \
         DCHECK(state);                                                  \
         std::ref(*state);                                               \
     }).get()

@@ -41,12 +41,15 @@ private:
 };
 
 
-extern CublasState _cublas_state;
+inline CublasState& get_cublas_state_instance() {
+    static CublasState instance;
+    return instance;
+}
 
 
 #define get_driver_state_return_cublas()                                \
     ({                                                                  \
-        auto state = _driver_state.load(std::memory_order_consume);     \
+        auto state = get_driver_state_ptr().load(); \
         if (not state) [[unlikely]] {                                   \
             return CUBLAS_STATUS_NOT_INITIALIZED;                       \
         }                                                               \
@@ -55,20 +58,20 @@ extern CublasState _cublas_state;
 
 #define get_runtime_state_return_cublas()                               \
     ({                                                                  \
-        auto tstate = _runtime_thread_state.get();                      \
+        auto tstate = get_runtime_thread_state_ptr();                   \
         if (not tstate) [[unlikely]] {                                  \
             auto err = do_runtime_init();                               \
             if (err != cudaSuccess) {                                   \
                 return CUBLAS_STATUS_NOT_INITIALIZED;                   \
             }                                                           \
-            tstate = _runtime_thread_state.get();                       \
+            tstate = get_runtime_thread_state_ptr();                    \
         }                                                               \
         DCHECK(tstate);                                                 \
-        std::ref(**tstate);                                             \
+        std::ref(*tstate);                                             \
     }).get()
 
 #define get_cublas_state()                          \
     ({                                              \
         get_runtime_state_return_cublas();          \
-        std::ref(_cublas_state);                    \
+        std::ref(get_cublas_state_instance());      \
     }).get()

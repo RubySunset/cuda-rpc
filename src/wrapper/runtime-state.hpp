@@ -59,9 +59,9 @@ struct RuntimeThreadState {
     std::pair<cudaError_t, CUdeviceptr> get_variable(const void* address);
 };
 
-extern std::mutex _runtime_state_mutex;
-extern std::atomic<std::shared_ptr<RuntimeState>> _runtime_state;
-extern boost::thread_specific_ptr<std::shared_ptr<RuntimeThreadState>> _runtime_thread_state;
+std::mutex& get_runtime_state_mutex();
+std::atomic<std::shared_ptr<RuntimeState>>& get_runtime_state_storage();
+std::shared_ptr<RuntimeThreadState>& get_runtime_thread_state_ptr();
 
 cudaError_t do_runtime_init();
 
@@ -69,38 +69,37 @@ cudaError_t do_runtime_init();
     ({                                                                  \
         cudaError_t err = cudaSuccess;                                  \
         std::shared_ptr<RuntimeThreadState> state;                      \
-        auto tstate = _runtime_thread_state.get();                      \
+        auto tstate = get_runtime_thread_state_ptr();                   \
         if (not tstate) [[unlikely]] {                                  \
             err = do_runtime_init();                                    \
             if (err == cudaSuccess) {                                   \
-                DCHECK(_runtime_thread_state.get());                    \
-                state = *_runtime_thread_state.get();                   \
+                DCHECK(get_runtime_thread_state_ptr());                 \
+                state = get_runtime_thread_state_ptr();                \
             }                                                           \
         } else {                                                        \
-            state = *tstate;                                            \
+            state = tstate;                                            \
         }                                                               \
         std::make_pair(err, state);                                     \
     })
 
 #define get_runtime_state()                                             \
     ({                                                                  \
-        auto tstate = _runtime_thread_state.get();                      \
+        auto tstate = get_runtime_thread_state_ptr();                   \
         if (not tstate) [[unlikely]] {                                  \
             auto err = do_runtime_init();                               \
             if (err != cudaSuccess) {                                   \
                 return err;                                             \
             }                                                           \
-            tstate = _runtime_thread_state.get();                       \
+            tstate = get_runtime_thread_state_ptr();                    \
         }                                                               \
         DCHECK(tstate);                                                 \
-        std::ref(**tstate);                                             \
+        std::ref(*tstate);                                             \
     }).get()
 
 #define get_runtime_state_unsafe()                                      \
     ({                                                                  \
-        auto tstate = _runtime_thread_state.get();                      \
+        auto tstate = get_runtime_thread_state_ptr();                   \
         DCHECK(tstate);                                                 \
-        DCHECK(*tstate);                                                \
         std::ref(*tstate);                                              \
     }).get()
 

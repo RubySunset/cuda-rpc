@@ -52,6 +52,3 @@ CublasState::erase_stream(cublasHandle_t handle)
     std::unique_lock lock(mut);
     return stream_map.erase(handle);
 }
-
-
-CublasState _cublas_state;

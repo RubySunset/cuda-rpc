@@ -1,7 +1,6 @@
 #include <cuda.h>
 
-#include <./driver-state.hpp>
-#include <./driver-syms-extern.hpp>
+#include <driver-lib.hpp>
 
 
 // * error handling
@@ -11,12 +10,12 @@ extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuGetErrorName(CUresult error, const char **pStr)
 {
-    return (*ptr_cuGetErrorName)(error, pStr);
+    return (*get_driver_lib_syms().ptr_cuGetErrorName)(error, pStr);
 }
 
 extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuGetErrorString(CUresult error, const char **pStr)
 {
-    return (*ptr_cuGetErrorString)(error, pStr);
+    return (*get_driver_lib_syms().ptr_cuGetErrorString)(error, pStr);
 }

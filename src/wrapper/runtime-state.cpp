@@ -6,9 +6,23 @@
 #include "./runtime-state.hpp"
 
 
-std::mutex _runtime_state_mutex;
-std::atomic<std::shared_ptr<RuntimeState>> _runtime_state;
-boost::thread_specific_ptr<std::shared_ptr<RuntimeThreadState>> _runtime_thread_state;
+std::mutex& get_runtime_state_mutex()
+{
+    static std::mutex mutex;
+    return mutex;
+}
+
+std::atomic<std::shared_ptr<RuntimeState>>& get_runtime_state_ptr()
+{
+    static std::atomic<std::shared_ptr<RuntimeState>> state;
+    return state;
+}
+
+std::shared_ptr<RuntimeThreadState>& get_runtime_thread_state_ptr()
+{
+    thread_local std::shared_ptr<RuntimeThreadState> ptr;
+    return ptr;
+}
 
 
 cudaError_t
@@ -18,7 +32,7 @@ do_runtime_init()
 
     auto tstate = std::make_shared<RuntimeThreadState>();
 
-    auto state = _runtime_state.load();
+    auto state = get_runtime_state_ptr().load();
     if (state) {
         goto done_state;
     }
@@ -26,9 +40,9 @@ do_runtime_init()
     // initialize global state
 
     {
-        auto runtime_state_lock = std::unique_lock(_runtime_state_mutex);
+        auto runtime_state_lock = std::unique_lock(get_runtime_state_mutex());
 
-        state = _runtime_state.load();
+        state = get_runtime_state_ptr().load();
         if (state) {
             goto done_state;
         }
@@ -60,7 +74,7 @@ do_runtime_init()
             }
         }
 
-        _runtime_state = state;
+        get_runtime_state_ptr() = state;
     }
 
 err_state:
@@ -93,9 +107,7 @@ done_state:
     }
 
     {
-        auto tstate_ptr = new std::shared_ptr<RuntimeThreadState>();
-        *tstate_ptr = tstate;
-        _runtime_thread_state.reset(tstate_ptr);
+        get_runtime_thread_state_ptr() = tstate;
     }
 
     return tstate->last_error;

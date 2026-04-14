@@ -1,19 +1,4 @@
-#include <cuda.h>
-#include <cuda_runtime_api.h>
-#include <dlfcn.h>
-#include <fatbinary_section.h>
-#include <fractos/logging.hpp>
-#include <glog/logging.h>
-#include <string>
-#include <unordered_map>
-
-#include <common.hpp>
-#include "./runtime-state.hpp"
-#include "./runtime-syms-extern.hpp"
-
-#define SYM(name) decltype(&name) ptr_ ## name;
-#include "./runtime-syms.hpp"
-#undef SYM
+#include <runtime-lib.hpp>
 
 using namespace fractos;
 
@@ -29,6 +14,11 @@ extern "C" [[gnu::visibility("hidden")]] cuda_function_t runtime_default_functio
 
 // NOTE: *cannot* be a global map, because it's constructed after init_lib() below
 static std::unordered_map<std::string, void*> *implemented_functions;
+
+RuntimeLibSyms& get_runtime_lib_syms() {
+    static RuntimeLibSyms syms;
+    return syms;
+}
 
 
 extern "C" [[gnu::visibility("default")]]
@@ -244,7 +234,8 @@ void CUDARTAPI __cudaRegisterVar(
     CHECK(module_desc->vars.insert((uintptr_t)hostVar).second);
 
     auto entries_lock = std::unique_lock(state.global->entries_mutex);
-    CHECK(state.global->vars.insert(std::make_pair((uintptr_t)hostVar, var_desc)).second);
+    // CHECK(state.global->vars.insert(std::make_pair((uintptr_t)hostVar, var_desc)).second);
+    state.global->vars.insert(std::make_pair((uintptr_t)hostVar, var_desc));
 }
 
 extern "C" [[gnu::visibility("default")]]
@@ -298,8 +289,7 @@ init_symbols()
         return ptr;
     };
 
-    // NOTE: globals override auto-generated weak symbols
-#define SYM(name) ptr_ ## name = (decltype(ptr_ ## name))do_load_sym(#name);
+#define SYM(name) get_runtime_lib_syms().ptr_ ## name = (decltype(get_runtime_lib_syms().ptr_ ## name))do_load_sym(#name);
 #include "./runtime-syms.hpp"
 #undef SYM
 }

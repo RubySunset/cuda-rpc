@@ -1,8 +1,10 @@
+#include <dlfcn.h>
 #include <cuda.h>
 
+#include <fractos/common/logging.hpp>
 #include <./common.hpp>
 #include <./driver-state.hpp>
-#include <./driver-syms-extern.hpp>
+#include <driver-lib.hpp>
 
 
 // * initialization
@@ -12,9 +14,9 @@ extern "C" [[gnu::visibility("default")]]
 CUresult CUDAAPI
 cuInit(unsigned int flags)
 {
-    auto lock = std::unique_lock(_driver_state_mutex);
+    auto lock = std::unique_lock(get_driver_state_mutex());
 
-    if (_driver_state.load()) {
+    if (get_driver_state_ptr().load()) {
         return CUDA_SUCCESS;
     }
 
@@ -23,6 +25,9 @@ cuInit(unsigned int flags)
 
     auto name = get_env("FRACTOS_SERVICE_COMPUTE_CUDA_NAME",
                         "fractos::service::compute::cuda");
+
+    fractos::common::logging::init(const_cast<char*>(name.c_str()));
+    LOG(INFO) << "Initialized logging";
 
     auto state = std::make_shared<DriverState>();
 
@@ -33,7 +38,7 @@ cuInit(unsigned int flags)
         return CUDA_ERROR_NO_DEVICE;
     }
 
-    auto prev = _driver_state.exchange(state);
+    auto prev = get_driver_state_ptr().exchange(state);
     CHECK(not prev);
 
     return CUDA_SUCCESS;

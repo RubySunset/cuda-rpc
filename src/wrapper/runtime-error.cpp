@@ -1,7 +1,7 @@
 #include <cuda.h>
 
 #include <./runtime-state.hpp>
-#include <./runtime-syms-extern.hpp>
+#include <runtime-lib.hpp>
 
 
 // * error handling
@@ -11,14 +11,14 @@ extern "C" [[gnu::visibility("default")]]
 const char* CUDARTAPI
 cudaGetErrorName(cudaError_t error)
 {
-    return (*ptr_cudaGetErrorName)(error);
+    return (*get_runtime_lib_syms().ptr_cudaGetErrorName)(error);
 }
 
 extern "C" [[gnu::visibility("default")]]
 const char* CUDARTAPI
 cudaGetErrorString(cudaError_t error)
 {
-    return (*ptr_cudaGetErrorString)(error);
+    return (*get_runtime_lib_syms().ptr_cudaGetErrorString)(error);
 }
 
 extern "C" [[gnu::visibility("default")]]

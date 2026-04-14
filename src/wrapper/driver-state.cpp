@@ -14,20 +14,22 @@ namespace clt = fractos::service::compute::cuda;
 
 // * FractOS objects
 
-static std::mutex fractos_mutex;
-static std::shared_ptr<fractos::core::process> process;
-static std::shared_ptr<fractos::core::channel> channel;
+static std::mutex& get_fractos_mutex() {
+    static std::mutex mut;
+    return mut;
+}
 
 fractos::core::process&
 get_process()
 {
+    static std::shared_ptr<fractos::core::process> process;
     if (not process) [[unlikely]] {
         auto controller_conf = fractos::core::parse_controller_config(
             get_env("FRACTOS_SERVICE_COMPUTE_CUDA_CONTROLLER"));
         auto process_conf = fractos::core::parse_process_config(
             get_env("FRACTOS_SERVICE_COMPUTE_CUDA_PROCESS"));
 
-        auto lock = std::unique_lock(fractos_mutex);
+        auto lock = std::unique_lock(get_fractos_mutex());
         if (not process) {
             process = fractos::core::make_process(controller_conf, process_conf).get();
         }
@@ -40,12 +42,13 @@ get_process()
 std::shared_ptr<fractos::core::channel>
 get_channel_ptr()
 {
+    static std::shared_ptr<fractos::core::channel> channel;
     if (not channel) [[unlikely]] {
         auto process = get_process();
         auto channel_conf = fractos::core::parse_channel_config(
             get_env("FRACTOS_SERVICE_COMPUTE_CUDA_CHANNEL"));
 
-        auto lock = std::unique_lock(fractos_mutex);
+        auto lock = std::unique_lock(get_fractos_mutex());
         if (not channel) {
             channel = process.make_channel(channel_conf).get();
         }
@@ -63,9 +66,6 @@ get_channel()
 
 
 // * DriverState object
-
-std::mutex _driver_state_mutex;
-std::atomic<std::shared_ptr<DriverState>> _driver_state;
 
 std::shared_ptr<fractos::service::compute::cuda::Device>
 DriverState::get_device_ordinal(int ordinal)
