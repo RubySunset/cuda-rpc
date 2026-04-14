@@ -1,7 +1,6 @@
 #include <cuda.h>
 
 #include <./driver-state.hpp>
-#include <./driver-syms-extern.hpp>
 
 namespace srv = fractos::service::compute::cuda;
 
@@ -57,6 +56,10 @@ cuStreamDestroy(CUstream stream)
     try {
         stream_ptr->destroy()
             .get();
+        {
+            auto streams_lock = std::unique_lock(state.streams_mutex);
+            CHECK(state.streams.erase(stream) == 1);
+        }
     } catch (const srv::CudaError& e) {
         error = e.cuerror;
     }

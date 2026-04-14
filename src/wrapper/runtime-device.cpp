@@ -3,7 +3,6 @@
 #include <cuda_runtime.h>
 
 #include <./driver-state.hpp>
-#include <./runtime-syms-extern.hpp>
 #include <driver_types.h>
 
 
@@ -31,7 +30,7 @@ cudaDeviceGetAttribute(int *value, enum cudaDeviceAttr attr, int device)
     auto err = (cudaError_t)cuDeviceGet(&dev, device);
     return_error_maybe(err);
 
-    err = (cudaError_t)cuDeviceGetAttribute(value, (CUdevice_attribute)attr, device);
+    err = (cudaError_t)cuDeviceGetAttribute(value, (CUdevice_attribute)attr, dev);
     return_error(err);
 }
 
