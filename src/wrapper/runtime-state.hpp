@@ -46,6 +46,9 @@ struct RuntimeState {
     std::shared_mutex entries_mutex;
     std::unordered_map<uintptr_t, std::shared_ptr<func_desc>> funcs;
     std::unordered_map<uintptr_t, std::shared_ptr<var_desc>> vars;
+
+    std::unordered_map<uintptr_t, const void*> kernel_trans;
+    std::atomic<uintptr_t> kernel_cnt = 0;
 };
 
 struct RuntimeThreadState {
