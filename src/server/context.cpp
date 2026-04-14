@@ -51,7 +51,7 @@ impl::make_context(std::shared_ptr<fractos::core::channel> ch,
     std::shared_ptr<Stream> legacy_default_stream;
 
     CUcontext cucontext;
-    cuerror = cuCtxCreate(&cucontext, &const_cast<CUctxCreateParams&>(ctxCreateParams), flags, device->cudevice);
+    cuerror = cuCtxCreate_v4(&cucontext, &const_cast<CUctxCreateParams&>(ctxCreateParams), flags, device->cudevice);
     if (cuerror != CUDA_SUCCESS) {
         return core::make_ready_future(std::make_tuple(error, cuerror, res, legacy_default_stream));
     }

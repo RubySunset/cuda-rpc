@@ -50,7 +50,7 @@ extern "C" [[gnu::visibility("default")]]
 cudaError_t CUDARTAPI
 cudaMallocHost(void** devPtr, size_t size)
 {
-    *devPtr = aligned_alloc(32, size);
+    *devPtr = aligned_alloc(4096, size);
     return cudaSuccess;
 }
 
@@ -89,7 +89,7 @@ cudaMemcpy(void *dst, const void *src, size_t count, enum cudaMemcpyKind kind)
         return_error((cudaError_t)cuMemcpyDtoH(dst, (CUdeviceptr)src, count));
         break;
     case cudaMemcpyDeviceToDevice:
-        return((cudaError_t)cuMemcpyDtoD((CUdeviceptr)dst, (CUdeviceptr)src, count));
+        return_error((cudaError_t)cuMemcpyDtoD((CUdeviceptr)dst, (CUdeviceptr)src, count));
         break;
     case cudaMemcpyDefault:
         return_error((cudaError_t)cuMemcpy((CUdeviceptr)dst, (CUdeviceptr)src, count));

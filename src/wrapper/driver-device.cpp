@@ -70,12 +70,6 @@ cuDeviceGetUuid_v2(CUuuid *uuid, CUdevice dev)
     return CUDA_SUCCESS;
 }
 
-extern "C" [[gnu::visibility("default")]]
-CUresult
-cuDeviceGetUuid(CUuuid *uuid, CUdevice dev)
-{
-    return cuDeviceGetUuid_v2(uuid, dev);
-}
 
 extern "C" [[gnu::visibility("default")]]
 CUresult
@@ -90,9 +84,3 @@ cuDeviceTotalMem_v2(size_t* bytes, CUdevice dev)
     return CUDA_SUCCESS;
 }
 
-extern "C" [[gnu::visibility("default")]]
-CUresult
-cuDeviceTotalMem(size_t* bytes, CUdevice dev)
-{
-    return cuDeviceTotalMem_v2(bytes, dev);
-}

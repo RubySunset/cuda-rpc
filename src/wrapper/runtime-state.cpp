@@ -54,7 +54,7 @@ do_runtime_init()
             }
 
             CUcontext ctx;
-            err = cuDevicePrimaryCtxRetain(&ctx, dev_idx);
+            err = cuDevicePrimaryCtxRetain(&ctx, dev);
             if (err != CUDA_SUCCESS) {
                 goto err_state;
             }
@@ -75,7 +75,9 @@ done_state:
     }
 
     CUcontext ctx_0;
-    tstate->last_error = (cudaError_t)cuDevicePrimaryCtxRetain(&ctx_0, 0);
+    CUdevice dev_0;
+    err = cuDeviceGet(&dev_0, 0);
+    tstate->last_error = (cudaError_t)cuDevicePrimaryCtxRetain(&ctx_0, dev_0);
     if (tstate->last_error) {
         return tstate->last_error;
     }
