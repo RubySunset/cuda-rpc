@@ -40,6 +40,10 @@ cuLaunchKernel(CUfunction f,
                unsigned int sharedMemBytes, CUstream hStream,
                void **kernelParams, void **extra)
 {
+    if (extra != NULL) {
+        LOG_FIRST_N(ERROR, 1) << "TODO: add support for kernel launch args specified via the extra parameter";
+    }
+
     auto& state = get_driver_state();
 
     auto func_ptr = state.get_function(f);

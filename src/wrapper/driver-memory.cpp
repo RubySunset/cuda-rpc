@@ -19,8 +19,6 @@ cuMemAlloc(CUdeviceptr* devPtr, size_t size)
 {
     auto& state = get_driver_state();
 
-    LOG_FIRST_N(WARNING, 1) << "TODO: reserve allocated memory on host side to ensure access error?";
-
     auto ctx_ptr = state.get_current_context();
     std::shared_ptr<srv::Memory> mem_ptr;
     try {
@@ -91,6 +89,11 @@ do_memcpy(std::pair<pointer_type, CUdeviceptr> src,
     auto mem_src = state.get_memory(src.second);
     auto mem_dst = state.get_memory(dst.second);
     if (invalid_mem_kind(mem_src, src.first) or invalid_mem_kind(mem_dst, dst.first)) {
+        LOG(ERROR) << "Invalid mem kind: "
+            << "src=" << src.second
+            << ", dst=" << dst.second
+            << ", state.get_memory(src)=" << (uintptr_t)mem_src.get()
+            << ", state.get_memory(dst)=" << (uintptr_t)mem_dst.get();
         return CUDA_ERROR_INVALID_VALUE;
     }
 

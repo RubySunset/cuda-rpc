@@ -249,6 +249,10 @@ impl::Function::handle_launch(auto ch, auto args)
                                  dimBlock.x, dimBlock.y, dimBlock.z,
                                  shared_mem, custream,
                                  (void**)kernel_args.data(), 0);
+
+        if (cuerror != CUDA_SUCCESS) {
+            LOG(WARNING) << "CUDA kernel launch failed with error code " << cuerror;
+        }
     }
 
 out:
