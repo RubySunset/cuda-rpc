@@ -47,8 +47,10 @@ struct RuntimeState {
     std::unordered_map<uintptr_t, std::shared_ptr<func_desc>> funcs;
     std::unordered_map<uintptr_t, std::shared_ptr<var_desc>> vars;
 
-    std::unordered_map<uintptr_t, const void*> kernel_trans;
-    std::atomic<uintptr_t> kernel_cnt = 0;
+    std::mutex kernel_mutex;
+    uintptr_t kernel_cnt = 0;
+    std::unordered_map<cudaKernel_t, const void*> kernel_to_addr;
+    std::unordered_map<const void*, cudaKernel_t> addr_to_kernel;
 };
 
 struct RuntimeThreadState {

@@ -16,7 +16,7 @@ cuInit(unsigned int flags)
 {
     auto lock = std::unique_lock(get_driver_state_mutex());
 
-    if (get_driver_state_ptr().load()) {
+    if (get_driver_state_atomic().load()) {
         return CUDA_SUCCESS;
     }
 
@@ -61,7 +61,7 @@ cuInit(unsigned int flags)
         return CUDA_ERROR_NO_DEVICE;
     }
 
-    auto prev = get_driver_state_ptr().exchange(state);
+    auto prev = get_driver_state_atomic().exchange(state);
     CHECK(not prev);
 
     return CUDA_SUCCESS;

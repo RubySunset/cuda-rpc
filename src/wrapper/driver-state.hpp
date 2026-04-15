@@ -8,6 +8,7 @@
 #include <shared_mutex>
 #include <stack>
 #include <unordered_map>
+#include <unordered_set>
 
 
 fractos::core::process& get_process();
@@ -114,6 +115,8 @@ public:
     std::shared_ptr<fractos::service::compute::cuda::Memory> get_memory(CUdeviceptr addr);
     void insert_memory(std::shared_ptr<fractos::service::compute::cuda::Memory> mem);
     std::shared_ptr<fractos::service::compute::cuda::Memory> erase_memory(CUdeviceptr addr);
+    void register_host_memory(const void* ptr);
+    bool deregister_host_memory(const void* ptr); // returns true if successful
 
 private:
     std::shared_mutex mems_mutex;
@@ -123,6 +126,7 @@ private:
         std::shared_ptr<fractos::service::compute::cuda::Memory> mem;
     };
     std::map<CUdeviceptr, std::shared_ptr<mem_desc>> mems;
+    std::unordered_set<const void*> host_mems;
 public:
 
     // stream
@@ -143,19 +147,12 @@ public:
     std::unordered_map<CUevent, std::shared_ptr<fractos::service::compute::cuda::Event>> events;
 };
 
-inline std::mutex& get_driver_state_mutex() {
-    static std::mutex mut;
-    return mut;
-}
-
-inline std::atomic<std::shared_ptr<DriverState>>& get_driver_state_ptr() {
-    static std::atomic<std::shared_ptr<DriverState>> storage;
-    return storage;
-}
+std::mutex& get_driver_state_mutex();
+std::atomic<std::shared_ptr<DriverState>>& get_driver_state_atomic();
 
 #define get_driver_state()                                              \
     ({                                                                  \
-        auto state = get_driver_state_ptr().load(); \
+        auto state = get_driver_state_atomic().load(); \
         if (not state) [[unlikely]] {                                   \
             return CUDA_ERROR_NOT_INITIALIZED;                          \
         }                                                               \
@@ -164,7 +161,7 @@ inline std::atomic<std::shared_ptr<DriverState>>& get_driver_state_ptr() {
 
 #define get_driver_state_unsafe()                                       \
     ({                                                                  \
-        auto state = get_driver_state_ptr().load(); \
+        auto state = get_driver_state_atomic().load(); \
         DCHECK(state);                                                  \
         std::ref(*state);                                               \
     }).get()

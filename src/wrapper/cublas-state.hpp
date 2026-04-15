@@ -49,7 +49,7 @@ inline CublasState& get_cublas_state_instance() {
 
 #define get_driver_state_return_cublas()                                \
     ({                                                                  \
-        auto state = get_driver_state_ptr().load(); \
+        auto state = get_driver_state_atomic().load(); \
         if (not state) [[unlikely]] {                                   \
             return CUBLAS_STATUS_NOT_INITIALIZED;                       \
         }                                                               \

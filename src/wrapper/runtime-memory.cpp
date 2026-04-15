@@ -1,5 +1,4 @@
 #include "runtime-state.hpp"
-#include <cstdlib>
 #include <cuda_runtime.h>
 #include <driver_types.h>
 
@@ -49,16 +48,18 @@ extern "C" [[gnu::visibility("default")]]
 cudaError_t CUDARTAPI
 cudaMallocHost(void** devPtr, size_t size)
 {
-    *devPtr = aligned_alloc(4096, size);
-    return cudaSuccess;
+    auto& state = get_runtime_state();
+    auto err = (cudaError_t)cuMemAllocHost(devPtr, size);
+    return_error(err);
 }
 
 extern "C" [[gnu::visibility("default")]]
 cudaError_t CUDARTAPI
 cudaFreeHost(void* ptr)
 {
-    free(ptr);
-    return cudaSuccess;
+    auto& state = get_runtime_state();
+    auto err = (cudaError_t)cuMemFreeHost(ptr);
+    return_error(err);
 }
 
 extern "C" [[gnu::visibility("default")]]

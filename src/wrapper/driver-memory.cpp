@@ -5,6 +5,7 @@
 #include <fractos/service/compute/cuda.hpp>
 #include <glog/logging.h>
 #include <stdexcept>
+#include <cstdlib>
 
 #include "driver-lib.hpp"
 #include "driver-state.hpp"
@@ -54,6 +55,29 @@ cuMemFree_v2(CUdeviceptr dptr)
     mem_ptr->destroy().get();
 
     return CUDA_SUCCESS;
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult CUDAAPI
+cuMemAllocHost(void** pp, size_t bytesize) 
+{
+    auto& state = get_driver_state();
+    *pp = aligned_alloc(4096, bytesize);
+    state.register_host_memory(*pp);
+    return CUDA_SUCCESS;
+}
+
+extern "C" [[gnu::visibility("default")]]
+CUresult CUDAAPI
+cuMemFreeHost(void* p)
+{
+    auto& state = get_driver_state();
+    if (state.deregister_host_memory(p)) {
+        free(p);
+        return CUDA_SUCCESS;
+    } else {
+        return CUDA_ERROR_INVALID_VALUE;
+    }
 }
 
 extern "C" [[gnu::visibility("default")]]

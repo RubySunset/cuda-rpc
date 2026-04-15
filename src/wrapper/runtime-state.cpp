@@ -12,7 +12,7 @@ std::mutex& get_runtime_state_mutex()
     return mutex;
 }
 
-std::atomic<std::shared_ptr<RuntimeState>>& get_runtime_state_ptr()
+std::atomic<std::shared_ptr<RuntimeState>>& get_runtime_state_atomic()
 {
     static std::atomic<std::shared_ptr<RuntimeState>> state;
     return state;
@@ -32,7 +32,7 @@ do_runtime_init()
 
     auto tstate = std::make_shared<RuntimeThreadState>();
 
-    auto state = get_runtime_state_ptr().load();
+    auto state = get_runtime_state_atomic().load();
     if (state) {
         goto done_state;
     }
@@ -42,7 +42,7 @@ do_runtime_init()
     {
         auto runtime_state_lock = std::unique_lock(get_runtime_state_mutex());
 
-        state = get_runtime_state_ptr().load();
+        state = get_runtime_state_atomic().load();
         if (state) {
             goto done_state;
         }
@@ -74,7 +74,7 @@ do_runtime_init()
             }
         }
 
-        get_runtime_state_ptr() = state;
+        get_runtime_state_atomic() = state;
     }
 
 err_state:
@@ -90,7 +90,7 @@ done_state:
 
     CUcontext ctx_0;
     CUdevice dev_0;
-    err = cuDeviceGet(&dev_0, 0);
+    cuDeviceGet(&dev_0, 0);
     tstate->last_error = (cudaError_t)cuDevicePrimaryCtxRetain(&ctx_0, dev_0);
     if (tstate->last_error) {
         return tstate->last_error;

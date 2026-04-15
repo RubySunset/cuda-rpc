@@ -67,6 +67,20 @@ get_channel()
 
 // * DriverState object
 
+std::mutex&
+get_driver_state_mutex()
+{
+    static std::mutex mut;
+    return mut;
+}
+
+std::atomic<std::shared_ptr<DriverState>>&
+get_driver_state_atomic()
+{
+    static std::atomic<std::shared_ptr<DriverState>> storage;
+    return storage;
+}
+
 std::shared_ptr<fractos::service::compute::cuda::Device>
 DriverState::get_device_ordinal(int ordinal)
 {
@@ -332,6 +346,20 @@ DriverState::erase_memory(CUdeviceptr addr)
     } else {
         return nullptr;
     }
+}
+
+void
+DriverState::register_host_memory(const void* ptr)
+{
+    auto lock = std::unique_lock(mems_mutex);
+    CHECK(host_mems.insert(ptr).second == true);
+}
+
+bool
+DriverState::deregister_host_memory(const void* ptr)
+{
+    auto lock = std::unique_lock(mems_mutex);
+    return host_mems.erase(ptr);
 }
 
 std::shared_ptr<fractos::service::compute::cuda::Stream>
