@@ -28,10 +28,6 @@ def run(base_dir, output_dir, src_dir, copy):
             "test-cublas-wrapper-full",
         ],
     )
-    e.params(env="""
-      env:
-        LD_LIBRARY_PATH: ${DIST}/lib:${DIST}/lib/libfractos-service-compute-cuda-wrapper\
-""")
 
     # copy files
     for elem in copy:

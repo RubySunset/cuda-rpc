@@ -61,7 +61,6 @@ main(int argc, char *argv[])
         std::shared_ptr<service::compute::cuda::Context> ctx;
         std::shared_ptr<service::compute::cuda::Module> mod;
         std::shared_ptr<service::compute::cuda::Function> fun;
-        std::shared_ptr<service::compute::cuda::Stream> stream;
         std::shared_ptr<core::channel> ch;
     };
 
@@ -93,7 +92,6 @@ main(int argc, char *argv[])
                 tstate->ctx->set_channel(tstate->ch);
                 tstate->mod = tstate->ctx->module_load(ptx_path).get();
                 tstate->fun = tstate->mod->get_function("empty").get();
-                tstate->stream = tstate->ctx->stream_create((CUstream_flags)0).get();
                 break;
             }
             return tstate;
