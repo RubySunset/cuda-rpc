@@ -1,17 +1,9 @@
-#include <cstdlib>
-#include <cstring>
-#include <cuda.h>
-#include <dlfcn.h>
-#include <fractos/logging.hpp>
-#include <fractos/service/compute/cuda_msg.hpp>
-#include <glog/logging.h>
-#include <link.h>
-#include <unordered_map>
-
 #include <sys/mman.h>
 #include <cerrno>
 #include <cstring>
 #include <sstream>
+
+#include "driver-lib.hpp"
 
 
 DriverLibSyms& get_driver_lib_syms() {
