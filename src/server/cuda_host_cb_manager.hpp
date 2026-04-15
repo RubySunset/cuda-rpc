@@ -33,11 +33,33 @@ struct MemcpyInfo {
     CUstream stream;
 };
 
-// CUDA host function used to notify the manager that a task is ready
-inline void CUDA_CB notify_task_ready(void*);
+// The representation of an event sync operation
+struct EventSyncInfo {
+    bool ready;
+    std::shared_ptr<core::cap::request> cont;
+};
+
+// The possible tasks that can be processed by the cb manager
+enum class TaskType {
+    MEMCPY_ASYNC,
+    STREAM_SYNC,
+    CTX_SYNC,
+    EVENT_SYNC,
+};
+
+// A task in the task queue
+struct Task {
+    TaskType task_type;
+    unsigned long task_id;
+};
+
+// CUDA host functions used to notify the manager that a task is ready
+inline void CUDA_CB notify_memcpy_ready(void*);
+inline void CUDA_CB notify_stream_ready(void*);
+inline void CUDA_CB notify_event_ready(void*);
 
 // CUDA host function used to update number of remaining streams to wait for,
-// when no streams remain, will notify memcpy manager like notify_task_ready
+// when no streams remain, will notify memcpy manager like notify_XXX_ready
 inline void CUDA_CB update_remaining_streams(void*);
 
 class CudaHostCBManager {
@@ -65,7 +87,14 @@ public:
     CUresult event_record(CUstream stream, CUevent event);
     CUresult event_sync(CUevent event, core::cap::request continuation);
 private:
-    friend void CUDA_CB notify_task_ready(void* userData);
+    void process_ready_memcpy(unsigned int task_id);
+    void process_ready_stream(unsigned int task_id);
+    void process_ready_ctx(unsigned int task_id);
+    void process_ready_event(unsigned int task_id);
+
+    friend void CUDA_CB notify_memcpy_ready(void* userData);
+    friend void CUDA_CB notify_stream_ready(void* userData);
+    friend void CUDA_CB notify_event_ready(void* userData);
     friend void CUDA_CB update_remaining_streams(void* userData); 
 
     // Get an auxilliary stream that can be used to unblock memcpy streams
@@ -77,7 +106,7 @@ private:
     std::atomic<unsigned long> next_task_id = 1; // start from 1 to avoid conflict with initial value of memcpy flag, which is 0
     std::mutex task_buf_mutex;
     std::condition_variable task_buf_cv;
-    std::vector<unsigned long> task_buf;
+    std::vector<Task> task_buf;
     std::shared_ptr<fractos::core::channel> ch;
 
     // Memcpy-specific
@@ -102,8 +131,7 @@ private:
     std::mutex event_mutex;
     std::unordered_map<CUevent, unsigned long> event_to_id;
     std::unordered_map<unsigned long, CUevent> id_to_event;
-    std::unordered_map<unsigned long, bool> event_ready;
-    std::unordered_map<unsigned long, core::cap::request> event_cont_map;
+    std::unordered_map<unsigned long, EventSyncInfo> event_info;
 };
 
 inline
