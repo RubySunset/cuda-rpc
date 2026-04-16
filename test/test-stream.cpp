@@ -9,8 +9,6 @@ using namespace fractos;
 int
 main(int argc, char *argv[])
 {
-    common::logging::init(argv[0]);
-
     auto odesc = common::cmdline::options();
     auto [args, ch] = common::cmdline::parse(odesc, argc, argv);
     common::signal::init_log_handler(SIGUSR1, ch->get_process());
