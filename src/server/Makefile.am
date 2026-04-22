@@ -35,7 +35,7 @@ nodist_fractos_service_compute_cuda_SOURCES =
 nodist_fractos_service_compute_cuda_SOURCES += cublas-codegen.cpp
 
 .cublas-codegen-stamp: $(abs_srcdir)/../../bin/cublas-codegen.py
-	uv run --with libclang $(abs_srcdir)/../../bin/cublas-codegen.py \
+	$(abs_srcdir)/../../bin/cublas-codegen.py \
 		--cublas-header /usr/local/cuda/include/cublas_v2.h \
 		--cublas-manual-file $(abs_srcdir)/../wrapper/cublas-manual.cpp \
 		--wrapper-dir ../wrapper \
