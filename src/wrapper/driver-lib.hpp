@@ -31,3 +31,5 @@ struct DriverLibSyms {
 };
 
 DriverLibSyms& get_driver_lib_syms();
+
+std::shared_ptr<std::unordered_map<std::string, void*>> get_implemented_functions();
