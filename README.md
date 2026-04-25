@@ -1,8 +1,22 @@
-This repository provides access remote CUDA devices in FractOS.
+# cuda-rpc
 
-[[_TOC_]]
+A library for transparently intercepting CUDA API calls and converting them to RPCs, using the FractOS distributed systems research framework.
 
-# Overview
+## Motivating results
+
+The highlights:
+
+- The network overhead introduced by this library typically hovers around 10%, and can be as low as 1% depending on the model size and number of GPUs.
+- This framework performs about 30% better in terms of network overhead than the inbuilt llama.cpp RPC server, even though the latter translates CUDA operations into RPCs at a much coarser granularity (for example, an entire CUDA graph to predict a token is just a single RPC).
+- The network overhead decreases considerably for larger models due to their higher computational intensity.
+
+![img](figs/decode_tokens.png)
+
+![img](figs/decode_model_size.png)
+
+![img](figs/tps_13b.png)
+
+## Overview
 
 This repository contains three main parts:
 * A service to access remote CUDA-enabled devices (`src/service`)
@@ -11,14 +25,14 @@ This repository contains three main parts:
 
 The service provides a remote counterpart of the CUDA driver API (https://docs.nvidia.com/cuda/cuda-driver-api/index.html).
 
-# Using the CUDA service
+## Using the CUDA service
 
 Applications can access the CUDA service via the API in `fractos/service/compute/cuda.hpp` (located in `src/include/fractos/service/compute/cuda.hpp`).
 
 Each new connection to the service via `cuda::make_service(core::gns::service)` will create an isolated service instance.
 Applications using the same service via `cuda::make_service(core::cap::request)` will share a virtual address space for CUDA allocations.
 
-# Using the CUDA wrapper library
+## Using the CUDA wrapper library
 
 The wrapper library uses library interposition to intercept calls to the CUDA driver and CUDA runtime API, and reimplements them in terms of the CUDA service API in this repository.
 
@@ -68,50 +82,6 @@ All environment variables are optional, unless otherwise noted. The most importa
 * `FRACTOS_SERVICE_COMPUTE_LIBCUDART`: overrides the location of the system-wide CUDA runtime library
 
 * `FRACTOS_SERVICE_COMPUTE_CUDA_NAME`: overrides the name used to publish the CUDA service with the FractOS GNS
-
-
-# New GPU Service
-
-# Test for example
-1. move the `app-compute-cuda/` into `experiment/deps/app-compute-cuda`.
-2. move the `app-compute-cuda-src/` into `experiment/src/app-compute-cuda`.
-3. move the `app-compute-cuda-src/service-compute-cuda.mak` into `experiment/`.
-4. update experiment/Makefile with `include src/service-compute-cuda.mak` and `include src/app-compute-cuda/rules.mak`.
-5. make build/service-compute-cuda.
-6. make run/app-compute-cuda.
-
-
-## Currently Supported CUDA API Functions
-
-- `cuInit`
-- `cuDeviceGet`
-- `cuModuleLoadData`
-- `cuMemAlloc`
-- `cuMemFree`
-- `cuModuleGetFunction`
-- `cuLaunchKernel`
-- `cuCtxCreate`
-- `cuCtxSynchronize`
-- `cuCtxDestroy`
-- `cuStreamCreate`
-- `cuStreamSynchronize`
-- `cuStreamDestroy`
-
-## To Be Confirmed (TBC)
-
-- `cuMemsetD8 `
-- `cuMemGetInfo`
-- `cuEventCreate`
-- `cuEventDestroy`
-- `cuEventRecord`
-- `cudaEventSynchronize`
-
-## Roadmap feature
-
-- cublas
-- cuda graph support
-- global service & client service.
-
 
 ## TroubleShooting
 
